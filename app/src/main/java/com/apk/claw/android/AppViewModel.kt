@@ -4,6 +4,7 @@ import android.os.PowerManager
 import androidx.lifecycle.ViewModel
 import com.apk.claw.android.ClawApplication.Companion.appViewModelInstance
 import com.apk.claw.android.agent.AgentConfig
+import com.apk.claw.android.agent.LlmProvider
 import com.apk.claw.android.channel.Channel
 import com.apk.claw.android.channel.ChannelManager
 import com.apk.claw.android.channel.ChannelSetup
@@ -51,14 +52,25 @@ class AppViewModel : ViewModel() {
     }
 
     fun getAgentConfig(): AgentConfig {
-        var baseUrl = KVUtils.getLlmBaseUrl().trim()
-        if (baseUrl.isEmpty()) baseUrl = "https://api.openai.com/v1"
+        val provider = try {
+            LlmProvider.valueOf(KVUtils.getLlmProvider())
+        } catch (_: Exception) {
+            LlmProvider.OPENAI
+        }
+
+        val baseUrl = if (provider == LlmProvider.LOCAL) {
+            KVUtils.getLocalModelPath()
+        } else {
+            KVUtils.getLlmBaseUrl().trim().ifEmpty { "https://api.openai.com/v1" }
+        }
+
         return AgentConfig.Builder()
             .apiKey(KVUtils.getLlmApiKey())
             .baseUrl(baseUrl)
             .modelName(KVUtils.getLlmModelName())
             .temperature(0.1)
             .maxIterations(60)
+            .provider(provider)
             .build()
     }
 

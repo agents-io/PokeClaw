@@ -25,7 +25,7 @@ class OpenAiLlmClient(
     private fun buildChatModel(): ChatModel {
         val builder = OpenAiChatModel.builder()
             .httpClientBuilder(httpClientBuilder)
-            .apiKey(config.apiKey)
+            .apiKey(config.apiKey.ifEmpty { "ollama" })
             .modelName(config.modelName)
             .temperature(config.temperature)
         if (config.baseUrl.isNotEmpty()) {
@@ -37,7 +37,7 @@ class OpenAiLlmClient(
     private fun buildStreamingChatModel(): StreamingChatModel {
         val builder = OpenAiStreamingChatModel.builder()
             .httpClientBuilder(httpClientBuilder)
-            .apiKey(config.apiKey)
+            .apiKey(config.apiKey.ifEmpty { "ollama" })
             .modelName(config.modelName)
             .temperature(config.temperature)
         if (config.baseUrl.isNotEmpty()) {

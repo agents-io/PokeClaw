@@ -1,6 +1,6 @@
 package com.apk.claw.android.agent
 
-enum class LlmProvider { OPENAI, ANTHROPIC }
+enum class LlmProvider { OPENAI, ANTHROPIC, LOCAL }
 
 data class AgentConfig(
     val apiKey: String,
@@ -112,7 +112,9 @@ data class AgentConfig(
         fun streaming(streaming: Boolean) = apply { this.streaming = streaming }
 
         fun build(): AgentConfig {
-            require(apiKey.isNotEmpty()) { "API key is required" }
+            require(apiKey.isNotEmpty() || baseUrl.isNotEmpty()) {
+                "Either API key or base URL is required"
+            }
             return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming)
         }
     }

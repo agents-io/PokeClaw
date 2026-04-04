@@ -23,113 +23,207 @@
             android:layout_height="wrap_content"
             android:orientation="vertical">
 
-            <TextView
-                android:id="@+id/tvTip"
+            <!-- Provider toggle: Cloud / Local -->
+            <RadioGroup
+                android:id="@+id/rgProvider"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="16pt"
-                android:text="@string/llm_config_tip"
-                android:textColor="@color/colorTextSecondary"
-                android:textSize="14pt" />
+                android:orientation="horizontal"
+                android:paddingBottom="16pt">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
-                android:text="@string/llm_config_api_key"
-                android:textColor="@color/colorTextPrimary"
-                android:textSize="14pt"
-                android:textStyle="bold" />
+                <RadioButton
+                    android:id="@+id/rbCloud"
+                    android:layout_width="0dp"
+                    android:layout_height="40pt"
+                    android:layout_weight="1"
+                    android:text="Cloud LLM"
+                    android:textSize="14pt"
+                    android:checked="true" />
 
-            <androidx.cardview.widget.CardView
+                <RadioButton
+                    android:id="@+id/rbLocal"
+                    android:layout_width="0dp"
+                    android:layout_height="40pt"
+                    android:layout_weight="1"
+                    android:text="On-Device LLM"
+                    android:textSize="14pt" />
+            </RadioGroup>
+
+            <!-- Cloud config section -->
+            <LinearLayout
+                android:id="@+id/layoutCloud"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/colorContainerBrighten"
-                app:cardCornerRadius="12pt"
-                app:cardElevation="1pt">
+                android:orientation="vertical">
 
-                <EditText
-                    android:id="@+id/etApiKey"
+                <TextView
+                    android:id="@+id/tvTip"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="4pt"
+                    android:paddingBottom="16pt"
+                    android:text="@string/llm_config_tip"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textSize="14pt" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="4pt"
+                    android:paddingBottom="8pt"
+                    android:text="@string/llm_config_api_key"
+                    android:textColor="@color/colorTextPrimary"
+                    android:textSize="14pt"
+                    android:textStyle="bold" />
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/colorContainerBrighten"
+                    app:cardCornerRadius="12pt"
+                    app:cardElevation="1pt">
+
+                    <EditText
+                        android:id="@+id/etApiKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="48pt"
+                        android:background="@null"
+                        android:hint="@string/llm_config_api_key_hint"
+                        android:inputType="textPassword"
+                        android:maxLines="1"
+                        android:paddingHorizontal="16pt"
+                        android:singleLine="true"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="15pt" />
+                </androidx.cardview.widget.CardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20pt"
+                    android:paddingHorizontal="4pt"
+                    android:paddingBottom="8pt"
+                    android:text="@string/llm_config_base_url"
+                    android:textColor="@color/colorTextPrimary"
+                    android:textSize="14pt"
+                    android:textStyle="bold" />
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/colorContainerBrighten"
+                    app:cardCornerRadius="12pt"
+                    app:cardElevation="1pt">
+
+                    <EditText
+                        android:id="@+id/etBaseUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="48pt"
+                        android:background="@null"
+                        android:hint="@string/llm_config_base_url_hint"
+                        android:inputType="textUri"
+                        android:maxLines="1"
+                        android:paddingHorizontal="16pt"
+                        android:singleLine="true"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="15pt" />
+                </androidx.cardview.widget.CardView>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="20pt"
+                    android:paddingHorizontal="4pt"
+                    android:paddingBottom="8pt"
+                    android:text="@string/llm_config_model_name"
+                    android:textColor="@color/colorTextPrimary"
+                    android:textSize="14pt"
+                    android:textStyle="bold" />
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:cardBackgroundColor="@color/colorContainerBrighten"
+                    app:cardCornerRadius="12pt"
+                    app:cardElevation="1pt">
+
+                    <EditText
+                        android:id="@+id/etModelName"
+                        android:layout_width="match_parent"
+                        android:layout_height="48pt"
+                        android:background="@null"
+                        android:hint="@string/llm_config_model_name_hint"
+                        android:inputType="text"
+                        android:maxLines="1"
+                        android:paddingHorizontal="16pt"
+                        android:singleLine="true"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="15pt" />
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
+
+            <!-- Local model section -->
+            <LinearLayout
+                android:id="@+id/layoutLocal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="4pt"
+                    android:paddingBottom="16pt"
+                    android:text="Download a model to run AI entirely on your phone. No internet needed after download."
+                    android:textColor="@color/colorTextSecondary"
+                    android:textSize="14pt" />
+
+                <Spinner
+                    android:id="@+id/spinnerModel"
                     android:layout_width="match_parent"
                     android:layout_height="48pt"
-                    android:background="@null"
-                    android:hint="@string/llm_config_api_key_hint"
-                    android:inputType="textPassword"
-                    android:maxLines="1"
-                    android:paddingHorizontal="16pt"
-                    android:singleLine="true"
-                    android:textColor="@color/colorTextPrimary"
-                    android:textColorHint="@color/colorTextTertiary"
-                    android:textSize="15pt" />
-            </androidx.cardview.widget.CardView>
+                    android:paddingHorizontal="8pt" />
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20pt"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
-                android:text="@string/llm_config_base_url"
-                android:textColor="@color/colorTextPrimary"
-                android:textSize="14pt"
-                android:textStyle="bold" />
+                <TextView
+                    android:id="@+id/tvModelStatus"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8pt"
+                    android:paddingHorizontal="4pt"
+                    android:text="Not downloaded"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textSize="13pt" />
 
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/colorContainerBrighten"
-                app:cardCornerRadius="12pt"
-                app:cardElevation="1pt">
+                <ProgressBar
+                    android:id="@+id/progressDownload"
+                    style="?android:attr/progressBarStyleHorizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8pt"
+                    android:max="100"
+                    android:visibility="gone" />
 
-                <EditText
-                    android:id="@+id/etBaseUrl"
+                <TextView
+                    android:id="@+id/tvDownloadProgress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="4pt"
+                    android:textColor="@color/colorTextSecondary"
+                    android:textSize="12pt"
+                    android:visibility="gone" />
+
+                <com.apk.claw.android.widget.KButton
+                    android:id="@+id/btnDownload"
                     android:layout_width="match_parent"
                     android:layout_height="48pt"
-                    android:background="@null"
-                    android:hint="@string/llm_config_base_url_hint"
-                    android:inputType="textUri"
-                    android:maxLines="1"
-                    android:paddingHorizontal="16pt"
-                    android:singleLine="true"
-                    android:textColor="@color/colorTextPrimary"
-                    android:textColorHint="@color/colorTextTertiary"
-                    android:textSize="15pt" />
-            </androidx.cardview.widget.CardView>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="20pt"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
-                android:text="@string/llm_config_model_name"
-                android:textColor="@color/colorTextPrimary"
-                android:textSize="14pt"
-                android:textStyle="bold" />
-
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/colorContainerBrighten"
-                app:cardCornerRadius="12pt"
-                app:cardElevation="1pt">
-
-                <EditText
-                    android:id="@+id/etModelName"
-                    android:layout_width="match_parent"
-                    android:layout_height="48pt"
-                    android:background="@null"
-                    android:hint="@string/llm_config_model_name_hint"
-                    android:inputType="text"
-                    android:maxLines="1"
-                    android:paddingHorizontal="16pt"
-                    android:singleLine="true"
-                    android:textColor="@color/colorTextPrimary"
-                    android:textColorHint="@color/colorTextTertiary"
-                    android:textSize="15pt" />
-            </androidx.cardview.widget.CardView>
+                    android:layout_marginTop="16pt"
+                    android:text="Download Model"
+                    android:textSize="16pt" />
+            </LinearLayout>
 
             <com.apk.claw.android.widget.KButton
                 android:id="@+id/btnSave"

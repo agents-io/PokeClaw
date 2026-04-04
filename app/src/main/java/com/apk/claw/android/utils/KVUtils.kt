@@ -192,6 +192,8 @@ object KVUtils {
     private const val KEY_LLM_API_KEY = "KEY_LLM_API_KEY"
     private const val KEY_LLM_BASE_URL = "KEY_LLM_BASE_URL"
     private const val KEY_LLM_MODEL_NAME = "KEY_LLM_MODEL_NAME"
+    private const val KEY_LLM_PROVIDER = "KEY_LLM_PROVIDER"
+    private const val KEY_LOCAL_MODEL_PATH = "KEY_LOCAL_MODEL_PATH"
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
@@ -199,7 +201,12 @@ object KVUtils {
     fun setLlmBaseUrl(value: String) = putString(KEY_LLM_BASE_URL, value)
     fun getLlmModelName(): String = getString(KEY_LLM_MODEL_NAME, "")
     fun setLlmModelName(value: String) = putString(KEY_LLM_MODEL_NAME, value)
+    fun getLlmProvider(): String = getString(KEY_LLM_PROVIDER, "OPENAI")
+    fun setLlmProvider(value: String) = putString(KEY_LLM_PROVIDER, value)
+    fun getLocalModelPath(): String = getString(KEY_LOCAL_MODEL_PATH, "")
+    fun setLocalModelPath(value: String) = putString(KEY_LOCAL_MODEL_PATH, value)
 
-    /** 是否已配置 LLM（API Key 非空即视为已配置） */
-    fun hasLlmConfig(): Boolean = getLlmApiKey().isNotEmpty()
+    /** 是否已配置 LLM（API Key、Base URL 或本地模型路径非空即视为已配置） */
+    fun hasLlmConfig(): Boolean =
+        getLlmApiKey().isNotEmpty() || getLlmBaseUrl().isNotEmpty() || getLocalModelPath().isNotEmpty()
 }

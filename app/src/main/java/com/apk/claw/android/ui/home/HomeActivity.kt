@@ -14,9 +14,12 @@ import androidx.activity.result.contract.ActivityResultContracts
 import com.apk.claw.android.service.ForegroundService
 import androidx.core.content.ContextCompat
 import android.view.View
+import android.widget.EditText
+import android.widget.TextView
 import com.apk.claw.android.R
 import com.apk.claw.android.appViewModel
 import com.apk.claw.android.base.BaseActivity
+import com.apk.claw.android.channel.Channel as ChannelEnum
 import com.apk.claw.android.service.ClawAccessibilityService
 import com.apk.claw.android.ui.guide.GuideActivity
 import com.apk.claw.android.ui.settings.SettingsActivity
@@ -41,6 +44,9 @@ class HomeActivity : BaseActivity() {
     private lateinit var cardBattery: PermissionCardView
     private lateinit var cardStorage: PermissionCardView
     private lateinit var btnCancelTask: KButton
+    private lateinit var etTaskInput: EditText
+    private lateinit var btnSendTask: KButton
+    private lateinit var tvTaskStatus: TextView
 
     private val handler = Handler(Looper.getMainLooper())
     private val checkRunnable = object : Runnable {
@@ -131,6 +137,43 @@ class HomeActivity : BaseActivity() {
                 Toast.makeText(this, R.string.home_no_task_running, Toast.LENGTH_SHORT).show()
             }
             updateCancelTaskVisibility()
+        }
+
+        // Task input
+        etTaskInput = findViewById(R.id.etTaskInput)
+        btnSendTask = findViewById(R.id.btnSendTask)
+        tvTaskStatus = findViewById(R.id.tvTaskStatus)
+
+        btnSendTask.setOnClickListener {
+            val task = etTaskInput.text.toString().trim()
+            if (task.isEmpty()) {
+                Toast.makeText(this, "Please enter a task", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            if (!KVUtils.hasLlmConfig()) {
+                Toast.makeText(this, "Please configure LLM first (Settings → LLM Config)", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            if (!ClawAccessibilityService.isRunning()) {
+                Toast.makeText(this, "Please enable Accessibility Service first", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+            if (appViewModel.isTaskRunning()) {
+                Toast.makeText(this, "A task is already running", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            tvTaskStatus.text = "Running: $task"
+            tvTaskStatus.visibility = View.VISIBLE
+            btnSendTask.isEnabled = false
+
+            appViewModel.startNewTask(ChannelEnum.LOCAL, task, "local_${System.currentTimeMillis()}")
+            etTaskInput.text.clear()
+
+            handler.postDelayed({
+                btnSendTask.isEnabled = true
+                updateCancelTaskVisibility()
+            }, 1000)
         }
 
         // 点击卡片申请权限
