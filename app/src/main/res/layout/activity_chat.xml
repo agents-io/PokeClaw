@@ -1,75 +1,220 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/colorBgPrimary"
-    android:orientation="vertical">
+    android:background="#121212">
 
-    <com.apk.claw.android.widget.CommonToolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="56pt" />
-
-    <!-- Status bar -->
-    <TextView
-        android:id="@+id/tvStatus"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#1AFFFFFF"
-        android:paddingHorizontal="16pt"
-        android:paddingVertical="8pt"
-        android:text="Loading model..."
-        android:textColor="@color/colorTextSecondary"
-        android:textSize="13pt" />
-
-    <!-- Chat messages -->
-    <ScrollView
-        android:id="@+id/scrollView"
-        android:layout_width="match_parent"
-        android:layout_height="0dp"
-        android:layout_weight="1"
-        android:fillViewport="true"
-        android:paddingHorizontal="16pt"
-        android:paddingTop="8pt">
-
-        <LinearLayout
-            android:id="@+id/layoutMessages"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical" />
-    </ScrollView>
-
-    <!-- Input bar -->
+    <!-- Main content -->
     <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:background="#1A000000"
-        android:orientation="horizontal"
-        android:padding="12pt">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <EditText
-            android:id="@+id/etInput"
-            android:layout_width="0dp"
-            android:layout_height="44pt"
+        <!-- Toolbar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:background="#1A1A1A"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="8dp">
+
+            <ImageButton
+                android:id="@+id/btnMenu"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Menu"
+                android:src="@android:drawable/ic_menu_sort_by_size"
+                app:tint="#9E9E9E" />
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:text="New Chat"
+                android:textColor="#E0E0E0"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <ImageButton
+                android:id="@+id/btnSettings"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?android:attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Settings"
+                android:src="@android:drawable/ic_menu_preferences"
+                app:tint="#9E9E9E" />
+        </LinearLayout>
+
+        <!-- Model status bar -->
+        <TextView
+            android:id="@+id/tvStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#1E1E1E"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="6dp"
+            android:text="No model loaded"
+            android:textColor="#757575"
+            android:textSize="12sp" />
+
+        <!-- Chat messages -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerMessages"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
             android:layout_weight="1"
-            android:background="@drawable/bg_input_field"
-            android:hint="Type a message..."
-            android:inputType="text"
-            android:maxLines="1"
-            android:paddingHorizontal="14pt"
-            android:singleLine="true"
-            android:textColor="@color/colorTextPrimary"
-            android:textColorHint="@color/colorTextTertiary"
-            android:textSize="15pt" />
+            android:clipToPadding="false"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp" />
 
-        <com.apk.claw.android.widget.KButton
-            android:id="@+id/btnSend"
-            android:layout_width="wrap_content"
-            android:layout_height="44pt"
-            android:layout_marginStart="8pt"
-            android:paddingHorizontal="20pt"
-            android:text="Send"
-            android:textSize="15pt" />
+        <!-- Input bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#1A1A1A"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="8dp">
+
+            <EditText
+                android:id="@+id/etInput"
+                android:layout_width="0dp"
+                android:layout_height="44dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_chat_input"
+                android:hint="Message..."
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingHorizontal="16dp"
+                android:singleLine="true"
+                android:textColor="#E0E0E0"
+                android:textColorHint="#666666"
+                android:textSize="15sp" />
+
+            <!-- Send (chat) -->
+            <ImageButton
+                android:id="@+id/btnSend"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_btn_send"
+                android:contentDescription="Send"
+                android:src="@android:drawable/ic_menu_send"
+                app:tint="#FFFFFF" />
+
+            <!-- Task (agent) -->
+            <ImageButton
+                android:id="@+id/btnTask"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/bg_btn_task"
+                android:contentDescription="Run as task"
+                android:src="@android:drawable/ic_menu_myplaces"
+                app:tint="#FFFFFF" />
+        </LinearLayout>
     </LinearLayout>
 
-</LinearLayout>
+    <!-- Sidebar drawer -->
+    <LinearLayout
+        android:id="@+id/navDrawer"
+        android:layout_width="280dp"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="#171717"
+        android:orientation="vertical"
+        android:paddingTop="16dp">
+
+        <!-- App name -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="16dp"
+            android:text="Local Lobster"
+            android:textColor="#E0E0E0"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <!-- New chat button -->
+        <TextView
+            android:id="@+id/btnNewChat"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:drawableStart="@android:drawable/ic_menu_add"
+            android:drawablePadding="12dp"
+            android:drawableTint="#9E9E9E"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:text="New Chat"
+            android:textColor="#E0E0E0"
+            android:textSize="15sp" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="8dp"
+            android:background="#2A2A2A" />
+
+        <!-- Conversation history -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="20dp"
+            android:paddingBottom="8dp"
+            android:text="Recent"
+            android:textColor="#666666"
+            android:textSize="12sp"
+            android:textStyle="bold" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerHistory"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#2A2A2A" />
+
+        <!-- Bottom nav -->
+        <TextView
+            android:id="@+id/btnSidebarSettings"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:drawableStart="@android:drawable/ic_menu_preferences"
+            android:drawablePadding="12dp"
+            android:drawableTint="#9E9E9E"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:text="Settings"
+            android:textColor="#BDBDBD"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/btnSidebarModels"
+            android:layout_width="match_parent"
+            android:layout_height="44dp"
+            android:layout_marginBottom="8dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:drawableStart="@android:drawable/ic_menu_save"
+            android:drawablePadding="12dp"
+            android:drawableTint="#9E9E9E"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20dp"
+            android:text="Models"
+            android:textColor="#BDBDBD"
+            android:textSize="15sp" />
+    </LinearLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>

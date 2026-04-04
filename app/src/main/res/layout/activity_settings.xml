@@ -29,11 +29,18 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8pt" />
 
-            <!-- 通道分组 -->
+            <!-- 权限分组 (from HomeActivity) -->
+            <com.apk.claw.android.widget.MenuGroup
+                android:id="@+id/permissionsGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- 通道分组 (hidden for now) -->
             <com.apk.claw.android.widget.MenuGroup
                 android:id="@+id/channelGroup"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
 
             <View
                 android:layout_width="match_parent"

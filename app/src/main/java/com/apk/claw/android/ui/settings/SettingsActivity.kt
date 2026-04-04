@@ -1,6 +1,8 @@
 package com.apk.claw.android.ui.settings
 
 import android.os.Bundle
+import android.os.PowerManager
+import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
@@ -17,6 +19,8 @@ import kotlinx.coroutines.launch
 import android.content.Intent
 import com.apk.claw.android.appViewModel
 import com.apk.claw.android.server.ConfigServerManager
+import com.apk.claw.android.service.ClawAccessibilityService
+import androidx.core.net.toUri
 
 /**
  * 设置页面
@@ -117,6 +121,56 @@ class SettingsActivity : BaseActivity() {
         )
         menuItems[SettingsViewModel.MenuAction.LAN_CONFIG.name]?.setLeadingIconColor(getColor(R.color.colorTextPrimary))
 
+
+        // Permissions
+        val permissionsGroup = findViewById<MenuGroup>(R.id.permissionsGroup)
+        permissionsGroup.setTitle("Permissions")
+
+        permissionsGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_menu_manage,
+            title = "Accessibility Service",
+            onClick = {
+                startActivity(Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))
+                Toast.makeText(this, "Enable ApkClaw accessibility service", Toast.LENGTH_LONG).show()
+            },
+            showDivider = true
+        ).apply {
+            setTrailingText(if (ClawAccessibilityService.isRunning()) "Enabled" else "Disabled")
+        }
+
+        permissionsGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_menu_view,
+            title = "Display Over Other Apps",
+            onClick = {
+                if (!Settings.canDrawOverlays(this)) {
+                    startActivity(Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, "package:$packageName".toUri()))
+                } else {
+                    Toast.makeText(this, "Already enabled", Toast.LENGTH_SHORT).show()
+                }
+            },
+            showDivider = true
+        ).apply {
+            setTrailingText(if (Settings.canDrawOverlays(this@SettingsActivity)) "Enabled" else "Disabled")
+        }
+
+        permissionsGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_lock_idle_low_battery,
+            title = "Battery Optimization",
+            onClick = {
+                val pm = getSystemService(POWER_SERVICE) as PowerManager
+                if (!pm.isIgnoringBatteryOptimizations(packageName)) {
+                    startActivity(Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = "package:$packageName".toUri()
+                    })
+                } else {
+                    Toast.makeText(this, "Already disabled", Toast.LENGTH_SHORT).show()
+                }
+            },
+            showDivider = false
+        ).apply {
+            val pm = getSystemService(POWER_SERVICE) as PowerManager
+            setTrailingText(if (pm.isIgnoringBatteryOptimizations(packageName)) "Unrestricted" else "Restricted")
+        }
 
         val modelGroup = findViewById<MenuGroup>(R.id.modelGroup)
         modelGroup.setTitle(getString(R.string.settings_group_model))
