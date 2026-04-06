@@ -32,6 +32,13 @@ PokeClaw:       Phone → LLM → Phone
 This is a 2-day open-source prototype, not a polished consumer app.
 If it works on your device, amazing. If it breaks, Issues and fix proposals are welcome.
 
+Monitor Girlfriend's whatsapp and auto reply:
+
+
+https://github.com/user-attachments/assets/4cb4c2bf-90e1-4391-8e08-9d6113634a41
+
+Monitor Mom's whatsapp and auto reply:
+
 https://github.com/user-attachments/assets/5a43d4d5-458a-4eea-a0a5-58d113255741
 
 https://github.com/user-attachments/assets/5c2966c5-04e6-4b22-8d66-11915ae62096
