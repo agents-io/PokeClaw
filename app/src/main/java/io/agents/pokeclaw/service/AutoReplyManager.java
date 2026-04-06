@@ -45,12 +45,19 @@ public class AutoReplyManager {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean replying = new AtomicBoolean(false);
 
-    // Debounce: don't reply to same contact within 30s (avoid loops)
+    // Debounce: don't reply to same contact within 5s (avoid loops).
+    // ownSentMessages handles self-reply detection, so debounce can be short.
     private final Map<String, Long> lastReplyTime = new HashMap<>();
-    private static final long DEBOUNCE_MS = 10_000;
+    private static final long DEBOUNCE_MS = 5_000;
 
     // Track our own sent messages to avoid replying to ourselves
     private final Set<String> ownSentMessages = new HashSet<>();
+
+    // When messages arrive while replying, flag it.
+    // After current reply finishes, re-open chat, read everything, reply to latest.
+    private volatile boolean hasPending = false;
+    private volatile String pendingPackage = null;
+    private volatile String pendingContact = null;
 
 
 
@@ -92,61 +99,48 @@ public class AutoReplyManager {
     }
 
     /**
-     * Called from ClawAccessibilityService.onAccessibilityEvent.
-     * Checks if this is a messaging notification we should reply to.
+     * Called from ClawNotificationListener (primary, reliable) or
+     * ClawAccessibilityService (fallback if NotificationListener not enabled).
+     */
+    public void onNotificationReceived(String packageName, String title, String text) {
+        if (!enabled) return;
+        if (!monitoredApps.contains(packageName)) return;
+        if (title.isEmpty() || text.isEmpty()) return;
+
+        XLog.d(TAG, "Notification from " + packageName + ": title='" + title + "' text='" + text + "'");
+        handleIncomingMessage(packageName, title, text);
+    }
+
+    /**
+     * Fallback: Called from ClawAccessibilityService.onAccessibilityEvent.
+     * Only used if NotificationListenerService is not connected.
      */
     public void onAccessibilityEvent(AccessibilityEvent event) {
         if (!enabled) return;
 
+        // Skip if NotificationListenerService is active — it's more reliable
+        if (ClawNotificationListener.isConnected()) return;
+
         String packageName = event.getPackageName() != null ? event.getPackageName().toString() : "";
         if (!monitoredApps.contains(packageName)) return;
 
-        String title = "";
-        String text = "";
+        if (event.getEventType() != AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) return;
 
-        if (event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
-            // Path 1: Notification (app is in background)
-            android.os.Parcelable parcelable = event.getParcelableData();
-            if (!(parcelable instanceof Notification)) return;
-            Notification notification = (Notification) parcelable;
-            Bundle extras = notification.extras;
-            if (extras == null) return;
-            title = extras.getString(Notification.EXTRA_TITLE, "");
-            text = extras.getString(Notification.EXTRA_TEXT, "");
-
-        // Path 2 disabled: content change detection in open chatrooms causes false
-        // positives (scrolling, deleting messages, etc. all trigger it). We rely on
-        // notifications only and press Home after each reply to stay in background.
-        // } else if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
-        //     long now = System.currentTimeMillis();
-        //     if (now - lastContentChangeCheck < 5000) return;
-        //     lastContentChangeCheck = now;
-        //     XLog.d(TAG, "Content change from " + packageName);
-        //     ClawAccessibilityService service = ClawAccessibilityService.getInstance();
-        //     if (service == null) return;
-        //     AccessibilityNodeInfo root = service.getRootInActiveWindow();
-        //     if (root == null) return;
-        //     CharSequence rootPkg = root.getPackageName();
-        //     if (rootPkg == null || !monitoredApps.contains(rootPkg.toString())) return;
-        //     String contactName = findContactNameInToolbar(root);
-        //     XLog.d(TAG, "Content change: contactName='" + contactName + "'");
-        //     if (contactName.isEmpty()) return;
-        //     String lastMsg = findLastIncomingMessage(root);
-        //     XLog.d(TAG, "Content change: lastMsg='" + lastMsg + "'");
-        //     if (lastMsg.isEmpty()) return;
-        //     String fingerprint = contactName + ":" + lastMsg;
-        //     if (fingerprint.equals(lastProcessedFingerprint)) return;
-        //     lastProcessedFingerprint = fingerprint;
-        //     title = contactName;
-        //     text = lastMsg;
-        //     XLog.d(TAG, "Content change detected: " + title + " -> " + text);
-        } else {
-            return;
-        }
+        android.os.Parcelable parcelable = event.getParcelableData();
+        if (!(parcelable instanceof Notification)) return;
+        Notification notification = (Notification) parcelable;
+        Bundle extras = notification.extras;
+        if (extras == null) return;
+        String title = extras.getString(Notification.EXTRA_TITLE, "");
+        String text = extras.getString(Notification.EXTRA_TEXT, "");
 
         if (title.isEmpty() || text.isEmpty()) return;
 
-        XLog.d(TAG, "Notification from " + packageName + ": title='" + title + "' text='" + text + "'");
+        XLog.d(TAG, "[Fallback] Notification from " + packageName + ": title='" + title + "' text='" + text + "'");
+        handleIncomingMessage(packageName, title, text);
+    }
+
+    private void handleIncomingMessage(String packageName, String title, String text) {
 
         // Check if sender is in our monitored list
         String senderLower = title.toLowerCase();
@@ -160,6 +154,12 @@ public class AutoReplyManager {
             }
         }
         if (!isMonitored) return;
+
+        // Skip summary notifications like "2 new messages", "3 messages from Mom"
+        if (text.matches("^\\d+ (new )?messages?.*")) {
+            XLog.d(TAG, "Skipping summary notification: " + text);
+            return;
+        }
 
         // Skip our own sent messages
         if (ownSentMessages.remove(text)) {
@@ -175,9 +175,13 @@ public class AutoReplyManager {
             return;
         }
 
-        // Don't reply if already replying
+        // If already replying, just flag it — after current reply we'll re-open chat,
+        // read the full screen (all messages including new ones), and reply to latest.
         if (!replying.compareAndSet(false, true)) {
-            XLog.d(TAG, "Already replying, skipping");
+            hasPending = true;
+            pendingPackage = packageName;
+            pendingContact = matchedContact;
+            XLog.d(TAG, "Already replying, flagged pending from " + matchedContact);
             return;
         }
 
@@ -261,11 +265,13 @@ public class AutoReplyManager {
                     XLog.i(TAG, "Auto-reply sent to " + finalContact + ": '" + reply + "'");
                     lastReplyTime.put(senderLower, System.currentTimeMillis());
 
-                    // Wait for WhatsApp to mark messages as read and clear its notification.
-                    // We're still in the chatroom — WhatsApp clears notifications when
-                    // the chat is visible. If we press Home too fast, it doesn't have time.
+                    // Dismiss the messaging app's notifications so the next message
+                    // triggers a fresh notification event (not an update to existing one).
+                    ClawNotificationListener.dismissNotifications(packageName);
+
+                    // Press Home after reply so next message arrives as notification.
                     try {
-                        Thread.sleep(2000);
+                        Thread.sleep(1000);
                         ClawAccessibilityService homeSvc = ClawAccessibilityService.getInstance();
                         if (homeSvc != null) {
                             homeSvc.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME);
@@ -281,8 +287,23 @@ public class AutoReplyManager {
                 XLog.e(TAG, "Auto-reply error", e);
             } finally {
                 replying.set(false);
-                // Clear fingerprint so next content change re-checks for new messages
                 lastProcessedFingerprint = "";
+
+                // If messages arrived while we were replying, re-open chat and reply
+                if (hasPending) {
+                    String pPkg = pendingPackage;
+                    String pContact = pendingContact;
+                    hasPending = false;
+                    pendingPackage = null;
+                    pendingContact = null;
+
+                    if (pPkg != null && pContact != null) {
+                        XLog.i(TAG, "Pending messages from " + pContact + " — re-reading chat");
+                        // Use a dummy text — the actual reply will be based on
+                        // reading the full screen, not this text
+                        handleIncomingMessage(pPkg, pContact, "(pending)");
+                    }
+                }
             }
         });
     }
@@ -321,8 +342,10 @@ public class AutoReplyManager {
 
             String prompt;
             if (conversationContext != null && !conversationContext.isEmpty()) {
+                // Context has the full conversation visible on screen.
+                // Read everything, address ALL points from them that haven't been replied to yet.
                 prompt = "Recent conversation:\n" + conversationContext + "\n" +
-                         sender + " just said: \"" + incomingMessage + "\"\nYour reply:";
+                         "Read the entire conversation above. Reply to ALL of " + sender + "'s messages that you (me) haven't responded to yet. Address every point in one reply. Your reply:";
             } else {
                 prompt = sender + " says: \"" + incomingMessage + "\"\nYour reply:";
             }

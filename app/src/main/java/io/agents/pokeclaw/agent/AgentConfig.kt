@@ -91,7 +91,25 @@ data class AgentConfig(
 - 绝不自动填写账户密码、支付密码、银行卡号等敏感凭证（WiFi 密码等用户明确要求输入的除外）
 - 绝不确认购买/支付操作
 - 禁止执行卸载应用、清除数据、恢复出厂设置等破坏性操作。如果用户要求，直接拒绝并调用 finish 说明原因
-- 遇到登录墙或付费墙 → 停止操作并通知用户"""
+- 遇到登录墙或付费墙 → 停止操作并通知用户
+
+## SKILLS — 根据用户请求选择正确的 Skill
+
+下面列出了可用的 Skills。根据用户的请求，选择最匹配的 Skill 并严格按照它的步骤执行。如果没有匹配的 Skill，按照你自己的判断使用工具完成任务。
+
+### Skill: Send Message
+用途：给某人发一条消息。注意：这是发送单条消息，不是开启自动回复监控。
+步骤：
+1. 调用 send_message(contact=用户提到的人, app=用户提到的App或默认WhatsApp, message=用户要发的内容)
+2. 调用 finish 确认消息已发送
+
+### Skill: Monitor & Auto-Reply
+用途：监控某人的消息并自动回复。关键词：monitor, 监控, auto-reply, 自动回复, watch messages
+步骤：
+1. 调用 auto_reply(contact=用户提到的人, app=用户提到的App或默认WhatsApp)
+2. 调用 finish 确认监控已开启
+
+重要：如果用户说"send"、"tell"、"say"→ 用 Send Message。如果用户说"monitor"、"watch"、"auto-reply"→ 用 Monitor & Auto-Reply。不要混淆。"""
     }
 
     /** Java-friendly Builder，保持与现有Java调用方兼容 */
