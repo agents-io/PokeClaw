@@ -99,12 +99,12 @@ The LLM has access to these tools and picks them autonomously:
 |---|---|---|
 | **Android** | 9+ | 12+ |
 | **Architecture** | arm64 | arm64 |
-| **RAM** | 6 GB | 8 GB+ |
+| **RAM** | 8 GB | 12 GB+ |
 | **Storage** | 3 GB free (model download) | 5 GB+ |
 | **GPU** | Not required (CPU works) | Tensor G3/G4, Snapdragon 8 Gen 2+, Dimensity 9200+ |
 | **Root** | Not required | Not required |
 
-> ⚠️ Phones with less than 6 GB RAM may crash during model loading — the 2.3B model needs to fit in memory. This is a hardware limitation, not a bug. If your phone crashes, you need more RAM.
+> ⚠️ 8 GB is the minimum but may still crash on some devices depending on what else is running. 12 GB+ is comfortable. If the app crashes during model loading, close other apps and try again. If it still crashes, your phone doesn't have enough free RAM for a 2.3B model. Hardware limitation, not a bug.
 
 ## Quick start
 
