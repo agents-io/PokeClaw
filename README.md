@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="pokeclaw.png" width="200" />
+</p>
+
 # PokeClaw
 
 
