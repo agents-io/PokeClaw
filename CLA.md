@@ -1,7 +1,7 @@
 # Individual Contributor License Agreement
 
 **Project:** PokeClaw  
-**Licensor:** Nicole / agents.io
+**Owner:** Nicole / agents.io
 
 Thank you for your interest in contributing to PokeClaw. This agreement clarifies the terms under which you may contribute.
 
@@ -17,9 +17,9 @@ By submitting a pull request or otherwise contributing to this project, you acce
 
 ---
 
-## 2. Copyright License
+## 2. Copyright Assignment
 
-You grant Nicole (agents.io) a perpetual, worldwide, non-exclusive, royalty-free, irrevocable copyright license to reproduce, prepare derivative works of, publicly display, publicly perform, sublicense, and distribute your Contributions and derivative works.
+You assign all right, title, and interest in the copyright of your Contributions to Nicole (agents.io). In return, Nicole (agents.io) grants back to you a perpetual, worldwide, non-exclusive, royalty-free license to use, reproduce, and distribute your Contributions in any form.
 
 ---
 
@@ -33,7 +33,7 @@ You grant Nicole (agents.io) a perpetual, worldwide, non-exclusive, royalty-free
 
 You confirm that:
 
-- You are legally entitled to grant the above licenses.
+- You are legally entitled to make this assignment and grant the above licenses.
 - If your employer has rights to intellectual property you create, you have received permission to make this Contribution on behalf of your employer, or your employer has waived such rights.
 - Each Contribution is your original creation, or you have the right to submit it under these terms.
 

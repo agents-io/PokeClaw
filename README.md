@@ -200,8 +200,12 @@ Also inspired by the [OpenClaw](https://github.com/openclaw/openclaw) community 
 
 And thank you to [Claude Code](https://claude.ai/code) by Anthropic. I'm a CS dropout with zero Android development experience. Claude Code made it possible for me to go from nothing to a working app in two nights. The future is wild.
 
+## Trademark
+
+PokeClaw is a trademark of Nicole / agents.io. The name "PokeClaw" and the PokeClaw logo may not be used to endorse or promote products derived from this software without prior written permission. Forks must be renamed before distribution.
+
 ## License
 
 Apache 2.0
 
-Contributors sign our CLA before their first PR is merged.
+Contributors sign our [CLA](CLA.md) before their first PR is merged.
