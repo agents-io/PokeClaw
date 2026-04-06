@@ -42,6 +42,10 @@ https://github.com/user-attachments/assets/5a43d4d5-458a-4eea-a0a5-58d113255741
 
 https://github.com/user-attachments/assets/18d49148-c744-46a5-98a2-0f8320f00d19
 
+
+https://github.com/user-attachments/assets/89999dd8-a1be-49ad-9419-60c2b38f6374
+
+
 > **Why is the "hi" demo slow?** Recorded on a budget Android phone (I'm literally too broke to buy a proper one, got this just to demo the app lol) with CPU-only inference, no GPU, no NPU. Running Gemma 4 E2B on pure CPU takes about 45 seconds to warm up — started at several minutes, we optimized the engine initialization and session handoff to squeeze it down this far. If your phone actually has a decent chip it's **way faster**:
 > - **Google Tensor G3/G4** (Pixel 8, Pixel 9)
 > - **Snapdragon 8 Gen 2/3** (Galaxy S24, OnePlus 12)
