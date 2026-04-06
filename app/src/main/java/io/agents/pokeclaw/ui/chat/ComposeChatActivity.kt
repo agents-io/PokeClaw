@@ -3,7 +3,10 @@
 
 package io.agents.pokeclaw.ui.chat
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -11,6 +14,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
+import androidx.core.content.ContextCompat
 import io.agents.pokeclaw.agent.llm.EngineHolder
 import io.agents.pokeclaw.agent.llm.LocalModelManager
 import io.agents.pokeclaw.appViewModel
@@ -391,6 +395,9 @@ class ComposeChatActivity : ComponentActivity() {
             return
         }
 
+        // Ensure notification permission + foreground service for task progress visibility
+        ensureNotificationPermission()
+
         // Reset stuck processing state from previous task
         _isProcessing.value = false
 
@@ -526,6 +533,23 @@ class ComposeChatActivity : ComponentActivity() {
     }
 
     // ==================== HELPERS ====================
+
+    /**
+     * Request notification permission (Android 13+) and start ForegroundService
+     * so the user sees task progress in the status bar while PokeClaw is in background.
+     */
+    private fun ensureNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
+        // Start foreground service if not running
+        if (!io.agents.pokeclaw.service.ForegroundService.isRunning()) {
+            io.agents.pokeclaw.service.ForegroundService.start(this)
+        }
+    }
 
     private fun addUser(text: String) { _messages.add(ChatMessage(ChatMessage.Role.USER, text)) }
     private fun addSystem(text: String) { _messages.add(ChatMessage(ChatMessage.Role.SYSTEM, text)) }
