@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokeClaw — All Themes</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #08080a;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  padding: 30px 20px;
+}
+
+h2 {
+  color: #666;
+  font-size: 13px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  text-align: center;
+  margin: 30px 0 16px;
+}
+h2:first-of-type { margin-top: 0; }
+
+.row {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.column { display: flex; flex-direction: column; align-items: center; }
+.label {
+  color: #555;
+  font-size: 10px;
+  text-align: center;
+  margin-bottom: 8px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.phone {
+  width: 300px;
+  height: 660px;
+  border-radius: 38px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.4);
+}
+
+/* ======= SHARED STRUCTURE ======= */
+.sb { height: 42px; padding: 11px 18px 0; display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: 600; flex-shrink: 0; }
+.sb .m { font-size: 10px; opacity: 0.4; }
+
+.tb { height: 40px; padding: 0 14px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.tb .t { font-size: 15px; font-weight: 700; letter-spacing: -0.3px; }
+.tb .ac { display: flex; gap: 12px; }
+.tb .ac button { background: none; border: none; font-size: 16px; cursor: pointer; opacity: 0.45; }
+
+.dv { height: 1px; flex-shrink: 0; opacity: 0.06; }
+
+.ct { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 2px; }
+.ct::-webkit-scrollbar { width: 0; }
+
+.mr { display: flex; align-items: flex-end; gap: 6px; margin-bottom: 1px; }
+.mr.u { justify-content: flex-end; }
+.mr.a { justify-content: flex-start; }
+
+.av { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; margin-bottom: 1px; }
+
+.mg { max-width: 78%; padding: 8px 12px; font-size: 12.5px; line-height: 1.45; }
+.mr.u .mg { border-radius: 16px 16px 4px 16px; }
+.mr.a .mg { border-radius: 16px 16px 16px 4px; }
+
+.ms { text-align: center; font-size: 10px; padding: 6px 0 2px; opacity: 0.3; }
+
+.tg { align-self: flex-start; margin: 2px 0 2px 30px; }
+.ti { display: flex; align-items: center; gap: 4px; font-size: 10.5px; padding: 1px 0; opacity: 0.45; }
+.ti .d { width: 4px; height: 4px; border-radius: 50%; flex-shrink: 0; }
+
+.th { display: inline-flex; gap: 3px; padding: 4px 0; }
+.th span { width: 4px; height: 4px; border-radius: 50%; animation: p 1.4s infinite ease-in-out; }
+.th span:nth-child(2) { animation-delay: 0.16s; }
+.th span:nth-child(3) { animation-delay: 0.32s; }
+@keyframes p { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 0.9; } }
+
+.ib { padding: 5px 10px 20px; display: flex; gap: 5px; align-items: center; flex-shrink: 0; }
+.ib input { flex: 1; height: 34px; background: transparent; border-radius: 17px; padding: 0 12px; font-size: 12px; outline: none; font-family: inherit; }
+.bsn { background: transparent; border: none; font-size: 11px; font-weight: 700; cursor: pointer; padding: 0 3px; font-family: inherit; }
+.btk { background: transparent; border: none; font-size: 14px; cursor: pointer; padding: 0 2px; opacity: 0.4; }
+
+/* ============================================================
+   DARK THEMES
+   ============================================================ */
+
+/* Ember Dark */
+.ember-d { background: #141010; color: #e8ddd5; border: 1.5px solid #2a2220; }
+.ember-d .dv { background: #fff; }
+.ember-d .mr.u .mg { background: #c0542e; color: #fef2ed; }
+.ember-d .mr.a .mg { background: #1f1a18; color: #e0d5cc; }
+.ember-d .av { background: #c0542e; }
+.ember-d .ti .d { background: #666; } .ember-d .ti .d.ok { background: #e8845a; }
+.ember-d .th span { background: #8a6e60; }
+.ember-d .ib input { border: 1px solid #2e2623; color: #e0d5cc; }
+.ember-d .ib input::placeholder { color: #5c4f47; }
+.ember-d .ib input:focus { border-color: #c0542e; }
+.ember-d .bsn { color: #e8845a; }
+
+/* Abyss Dark */
+.abyss-d { background: #0c111b; color: #cbd5e1; border: 1.5px solid #1a2234; }
+.abyss-d .dv { background: #fff; }
+.abyss-d .mr.u .mg { background: #2563eb; color: #f0f5ff; }
+.abyss-d .mr.a .mg { background: #151d2e; color: #c8d2e0; }
+.abyss-d .av { background: #1d4ed8; }
+.abyss-d .ti .d { background: #475569; } .abyss-d .ti .d.ok { background: #38bdf8; }
+.abyss-d .th span { background: #475569; }
+.abyss-d .ib input { border: 1px solid #1e293b; color: #cbd5e1; }
+.abyss-d .ib input::placeholder { color: #3b4963; }
+.abyss-d .ib input:focus { border-color: #3b82f6; }
+.abyss-d .bsn { color: #60a5fa; }
+
+/* Moss Dark */
+.moss-d { background: #0f1410; color: #d4e0d4; border: 1.5px solid #1c261c; }
+.moss-d .dv { background: #fff; }
+.moss-d .mr.u .mg { background: #2d7a4f; color: #eef7f0; }
+.moss-d .mr.a .mg { background: #161e16; color: #c8d8c8; }
+.moss-d .av { background: #2d7a4f; }
+.moss-d .ti .d { background: #4a6350; } .moss-d .ti .d.ok { background: #4ade80; }
+.moss-d .th span { background: #4a6350; }
+.moss-d .ib input { border: 1px solid #233023; color: #d4e0d4; }
+.moss-d .ib input::placeholder { color: #3d5040; }
+.moss-d .ib input:focus { border-color: #4ade80; }
+.moss-d .bsn { color: #6ee7a0; }
+
+/* Onyx Dark */
+.onyx-d { background: #111; color: #d4d4d4; border: 1.5px solid #222; }
+.onyx-d .dv { background: #fff; }
+.onyx-d .mr.u .mg { background: #333; color: #f0f0f0; }
+.onyx-d .mr.a .mg { background: #1a1a1a; color: #ccc; }
+.onyx-d .av { background: #444; }
+.onyx-d .ti .d { background: #555; } .onyx-d .ti .d.ok { background: #a3a3a3; }
+.onyx-d .th span { background: #555; }
+.onyx-d .ib input { border: 1px solid #2a2a2a; color: #d4d4d4; }
+.onyx-d .ib input::placeholder { color: #4a4a4a; }
+.onyx-d .ib input:focus { border-color: #666; }
+.onyx-d .bsn { color: #999; }
+
+/* ============================================================
+   LIGHT THEMES
+   ============================================================ */
+
+/* Ember Light */
+.ember-l { background: #f0e8e0; color: #3d2e24; border: 1.5px solid #d8ccc0; }
+.ember-l .dv { background: #c4b5a8; }
+.ember-l .mr.u .mg { background: #c0542e; color: #fff; }
+.ember-l .mr.a .mg { background: #f7f0ea; color: #4a3828; }
+.ember-l .av { background: #c0542e; }
+.ember-l .ti .d { background: #c4b5a8; } .ember-l .ti .d.ok { background: #c0542e; }
+.ember-l .th span { background: #c4b5a8; }
+.ember-l .ib input { border: 1px solid #d0c4b8; color: #3d2e24; background: #f7f0ea; }
+.ember-l .ib input::placeholder { color: #b5a598; }
+.ember-l .ib input:focus { border-color: #c0542e; }
+.ember-l .bsn { color: #c0542e; }
+
+/* Abyss Light */
+.abyss-l { background: #e8edf4; color: #1e293b; border: 1.5px solid #c8d4e4; }
+.abyss-l .dv { background: #94a3b8; }
+.abyss-l .mr.u .mg { background: #2563eb; color: #fff; }
+.abyss-l .mr.a .mg { background: #f0f4f9; color: #334155; }
+.abyss-l .av { background: #2563eb; }
+.abyss-l .ti .d { background: #94a3b8; } .abyss-l .ti .d.ok { background: #2563eb; }
+.abyss-l .th span { background: #94a3b8; }
+.abyss-l .ib input { border: 1px solid #c8d4e4; color: #1e293b; background: #f0f4f9; }
+.abyss-l .ib input::placeholder { color: #94a3b8; }
+.abyss-l .ib input:focus { border-color: #3b82f6; }
+.abyss-l .bsn { color: #2563eb; }
+
+/* Moss Light */
+.moss-l { background: #e4efe4; color: #1a2e1a; border: 1.5px solid #c0d8c0; }
+.moss-l .dv { background: #8cb898; }
+.moss-l .mr.u .mg { background: #2d7a4f; color: #fff; }
+.moss-l .mr.a .mg { background: #f0f7f0; color: #2a4a2a; }
+.moss-l .av { background: #2d7a4f; }
+.moss-l .ti .d { background: #8cb898; } .moss-l .ti .d.ok { background: #2d7a4f; }
+.moss-l .th span { background: #8cb898; }
+.moss-l .ib input { border: 1px solid #b8d0b8; color: #1a2e1a; background: #f0f7f0; }
+.moss-l .ib input::placeholder { color: #8cb898; }
+.moss-l .ib input:focus { border-color: #2d7a4f; }
+.moss-l .bsn { color: #2d7a4f; }
+
+/* Onyx Light */
+.onyx-l { background: #e8e8e8; color: #1a1a1a; border: 1.5px solid #ccc; }
+.onyx-l .dv { background: #bbb; }
+.onyx-l .mr.u .mg { background: #333; color: #f5f5f5; }
+.onyx-l .mr.a .mg { background: #f2f2f2; color: #2a2a2a; }
+.onyx-l .av { background: #444; }
+.onyx-l .ti .d { background: #bbb; } .onyx-l .ti .d.ok { background: #666; }
+.onyx-l .th span { background: #bbb; }
+.onyx-l .ib input { border: 1px solid #ccc; color: #1a1a1a; background: #f2f2f2; }
+.onyx-l .ib input::placeholder { color: #aaa; }
+.onyx-l .ib input:focus { border-color: #888; }
+.onyx-l .bsn { color: #555; }
+</style>
+</head>
+<body>
+
+<script>
+function ph(cls) {
+  return `<div class="phone ${cls}">
+    <div class="sb"><span>12:37</span><span class="m">5G · 72%</span></div>
+    <div class="tb"><div class="t">PokeClaw</div><div class="ac"><button>✎</button><button>⋯</button></div></div>
+    <div class="dv"></div>
+    <div class="ct">
+      <div class="ms">Today</div>
+      <div class="mr u"><div class="mg">Open WhatsApp and send hi to Mom</div></div>
+      <div class="mr a"><div class="av">🦞</div><div class="mg">On it. Checking your screen.</div></div>
+      <div class="tg">
+        <div class="ti"><span class="d ok"></span><span>screen → found WhatsApp</span></div>
+        <div class="ti"><span class="d ok"></span><span>tap → opened WhatsApp</span></div>
+        <div class="ti"><span class="d ok"></span><span>screen → found Mom</span></div>
+        <div class="ti"><span class="d ok"></span><span>tap → opened chat</span></div>
+        <div class="ti"><span class="d ok"></span><span>type → "hi"</span></div>
+        <div class="ti"><span class="d ok"></span><span>tap → sent</span></div>
+      </div>
+      <div class="mr a"><div class="av">🦞</div><div class="mg">Done! Sent "hi" to Mom on WhatsApp.</div></div>
+      <div class="mr u"><div class="mg">Check my battery level</div></div>
+      <div class="mr a"><div class="av">🦞</div><div class="mg"><div class="th"><span></span><span></span><span></span></div></div></div>
+    </div>
+    <div class="dv"></div>
+    <div class="ib">
+      <input placeholder="Message...">
+      <button class="btk">🚀</button>
+      <button class="bsn">Send</button>
+    </div>
+  </div>`;
+}
+
+function makeRow(themes, title) {
+  const h = document.createElement('h2');
+  h.textContent = title;
+  document.body.appendChild(h);
+
+  const row = document.createElement('div');
+  row.className = 'row';
+  themes.forEach(([c, n]) => {
+    const col = document.createElement('div');
+    col.className = 'column';
+    col.innerHTML = `<div class="label">${n}</div>${ph(c)}`;
+    row.appendChild(col);
+  });
+  document.body.appendChild(row);
+}
+
+makeRow([
+  ['ember-d', 'Ember'],
+  ['abyss-d', 'Abyss'],
+  ['moss-d', 'Moss'],
+  ['onyx-d', 'Onyx'],
+], 'Dark');
+
+makeRow([
+  ['ember-l', 'Ember'],
+  ['abyss-l', 'Abyss'],
+  ['moss-l', 'Moss'],
+  ['onyx-l', 'Onyx'],
+], 'Light');
+</script>
+</body>
+</html>

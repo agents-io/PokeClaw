@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBgSecondary"
+    android:orientation="vertical">
+
+    <io.agents.pokeclaw.widget.CommonToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56pt" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16pt"
+        android:paddingTop="8pt">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Active Model Card -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="4pt"
+                android:paddingBottom="8pt"
+                android:text="Active Model"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13pt"
+                android:textStyle="bold" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/colorContainerBrighten"
+                app:cardCornerRadius="12pt"
+                app:cardElevation="1pt">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:padding="16pt">
+
+                    <TextView
+                        android:layout_width="40pt"
+                        android:layout_height="40pt"
+                        android:background="@drawable/bg_avatar_ai"
+                        android:gravity="center"
+                        android:text="🦞"
+                        android:textSize="22pt" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12pt"
+                        android:layout_weight="1"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:id="@+id/tvActiveModelName"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="No model"
+                            android:textColor="@color/colorTextPrimary"
+                            android:textSize="15pt"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:id="@+id/tvActiveModelMeta"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2pt"
+                            android:text="Tap to download a model"
+                            android:textColor="@color/colorTextTertiary"
+                            android:textSize="12pt" />
+
+                        <TextView
+                            android:id="@+id/tvActiveModelStatus"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4pt"
+                            android:text="● Not configured"
+                            android:textColor="@color/colorSuccessPrimary"
+                            android:textSize="12pt" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Available Models -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20pt"
+                android:paddingHorizontal="4pt"
+                android:paddingBottom="8pt"
+                android:text="Available Models"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13pt"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:id="@+id/layoutModelList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <!-- Storage -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20pt"
+                android:paddingHorizontal="4pt"
+                android:paddingBottom="8pt"
+                android:text="Storage"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13pt"
+                android:textStyle="bold" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/colorContainerBrighten"
+                app:cardCornerRadius="12pt"
+                app:cardElevation="1pt">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16pt">
+
+                    <TextView
+                        android:id="@+id/tvStorageInfo"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="0 models · 0 MB used"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textSize="14pt" />
+
+                    <ProgressBar
+                        android:id="@+id/progressStorage"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="6pt"
+                        android:layout_marginTop="8pt"
+                        android:max="100"
+                        android:progress="0" />
+
+                    <TextView
+                        android:id="@+id/tvStorageDetail"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4pt"
+                        android:textColor="@color/colorTextTertiary"
+                        android:textSize="11pt" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Cloud LLM (collapsible) -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20pt"
+                android:paddingHorizontal="4pt"
+                android:paddingBottom="8pt"
+                android:text="Cloud LLM (Advanced)"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13pt"
+                android:textStyle="bold" />
+
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24pt"
+                app:cardBackgroundColor="@color/colorContainerBrighten"
+                app:cardCornerRadius="12pt"
+                app:cardElevation="1pt">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="16pt">
+
+                    <EditText
+                        android:id="@+id/etApiKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="44pt"
+                        android:background="@drawable/bg_input_field"
+                        android:hint="API Key"
+                        android:inputType="textPassword"
+                        android:paddingHorizontal="14pt"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="14pt" />
+
+                    <EditText
+                        android:id="@+id/etBaseUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="44pt"
+                        android:layout_marginTop="8pt"
+                        android:background="@drawable/bg_input_field"
+                        android:hint="Base URL (e.g. http://localhost:11434/v1)"
+                        android:inputType="textUri"
+                        android:paddingHorizontal="14pt"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="14pt" />
+
+                    <EditText
+                        android:id="@+id/etModelName"
+                        android:layout_width="match_parent"
+                        android:layout_height="44pt"
+                        android:layout_marginTop="8pt"
+                        android:background="@drawable/bg_input_field"
+                        android:hint="Model name"
+                        android:inputType="text"
+                        android:paddingHorizontal="14pt"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="14pt" />
+
+                    <io.agents.pokeclaw.widget.KButton
+                        android:id="@+id/btnSaveCloud"
+                        android:layout_width="match_parent"
+                        android:layout_height="40pt"
+                        android:layout_marginTop="12pt"
+                        android:text="Save Cloud Config"
+                        android:textSize="14pt" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:padding="24pt">
+
+    <!-- 标题 -->
+    <TextView
+        android:id="@+id/tvTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@color/colorTextPrimary"
+        android:textSize="18pt"
+        android:textStyle="bold" />
+
+    <!-- 副标题 -->
+    <TextView
+        android:id="@+id/tvSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8pt"
+        android:textColor="@color/colorTextSecondary"
+        android:textSize="14pt"
+        android:visibility="gone" />
+
+    <!-- 二维码区域 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24pt">
+
+        <!-- 二维码图片 -->
+        <ImageView
+            android:id="@+id/ivQrCode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:adjustViewBounds="true"
+            android:scaleType="fitCenter" />
+
+        <!-- 状态覆盖层 -->
+        <FrameLayout
+            android:id="@+id/layoutStatusOverlay"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/colorBgPrimary"
+            android:alpha="0.9"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/tvStatusText"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="18pt"
+                android:textStyle="bold" />
+
+        </FrameLayout>
+
+    </FrameLayout>
+
+    <!-- 关闭按钮 -->
+    <io.agents.pokeclaw.widget.KButton
+        android:id="@+id/btnClose"
+        android:layout_width="match_parent"
+        android:layout_height="48pt"
+        android:layout_marginTop="24pt"
+        android:text="@string/common_close"
+        android:textSize="16pt" />
+
+</LinearLayout>

@@ -1,0 +1,226 @@
+<resources>
+    <string name="app_name">PokeClaw</string>
+
+    <!-- 通用 -->
+    <string name="common_confirm">确定</string>
+    <string name="common_cancel">取消</string>
+    <string name="common_close">关闭</string>
+    <string name="common_save">保存</string>
+    <string name="common_agree">同意</string>
+    <string name="common_bound">已绑定</string>
+    <string name="common_unbound">未绑定</string>
+    <string name="common_unconfigured">未配置</string>
+    <string name="common_unbound_success">已解除绑定</string>
+    <string name="channel_dingtalk">钉钉</string>
+    <string name="channel_feishu">飞书</string>
+    <string name="channel_qq">QQ</string>
+    <string name="channel_discord">Discord</string>
+    <string name="channel_telegram">Telegram</string>
+    <string name="channel_wechat">微信</string>
+    <string name="common_load_failed">加载失败: %s</string>
+
+    <string name="app_slogan">一款能做事的AI Agents</string>
+
+    <!-- 引导页 -->
+    <string name="guide_page_title">权限设置</string>
+    <string name="guide_page_subtitle">请开启以下权限，以确保应用正常运行</string>
+    <string name="guide_skip">跳过</string>
+    <string name="guide_start">开始使用</string>
+    <string name="guide_title_accessibility">无障碍服务</string>
+    <string name="guide_desc_accessibility">这是 AI 自动操控设备的核心权限。\n\n1. 前往系统设置 → 无障碍 → 已下载的应用\n2. 在列表中找到「PokeClaw」\n3. 开启开关\n4. 在系统弹窗中确认</string>
+    <string name="guide_title_notification">常驻通知</string>
+    <string name="guide_desc_notification">保持应用在后台运行，防止被系统杀死。\n\n在首页点击对应卡片即可开启。Android 13 及以上会先请求通知权限。</string>
+    <string name="guide_title_overlay">悬浮窗</string>
+    <string name="guide_desc_overlay">显示 AI 执行状态的浮动面板。\n\n1. 前往系统设置 → 应用 → PokeClaw\n2. 找到「显示在其他应用上方」\n3. 开启开关</string>
+    <string name="guide_title_battery">电池白名单</string>
+    <string name="guide_desc_battery">防止系统在后台关闭应用。\n\n在首页点击对应卡片，然后在系统弹窗中确认「允许」。(部分品牌手机需要修改为"无限制")</string>
+    <string name="guide_title_storage">文件访问</string>
+    <string name="guide_desc_storage">允许 AI 读写设备上的文件。\n\nAndroid 11 及以上：前往设置开启「所有文件访问」\nAndroid 10 及以下：在弹窗中授予权限</string>
+
+    <!-- 首页 -->
+    <string name="home_need_notification_permission">需要通知权限才能显示常驻通知</string>
+    <string name="home_enable_accessibility">请开启 PokeClaw 无障碍服务</string>
+    <string name="home_accessibility_enabled">已开启无障碍服务</string>
+    <string name="home_notification_enabled">已开启常驻通知</string>
+    <string name="home_overlay_enabled">已开启悬浮窗权限</string>
+    <string name="home_battery_ignored">已忽略电池优化</string>
+    <string name="home_permission_enabled">已开启</string>
+    <string name="home_card_accessibility_title">无障碍服务</string>
+    <string name="home_card_accessibility_subtitle">用于自动化操作手机</string>
+    <string name="home_card_notification_title">常驻通知</string>
+    <string name="home_card_notification_subtitle">显示运行状态</string>
+    <string name="home_card_system_window_title">系统窗口</string>
+    <string name="home_card_system_window_subtitle">悬浮窗显示操作面板</string>
+    <string name="home_card_battery_title">电池白名单</string>
+    <string name="home_card_battery_subtitle">防止后台被系统杀死</string>
+    <string name="home_card_storage_title">文件读写</string>
+    <string name="home_card_storage_subtitle">读写设备上的文件</string>
+    <string name="home_storage_enabled">已获得文件读写权限</string>
+    <string name="home_enable_storage">请允许访问所有文件</string>
+    <string name="home_cancel_task">结束当前任务</string>
+    <string name="home_cancel_task_success">已结束当前AI任务</string>
+    <string name="home_no_task_running">当前没有进行中的任务</string>
+
+    <!-- 设置 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_group_channel">通道</string>
+    <string name="settings_group_model">模型</string>
+
+    <!-- 解绑 -->
+    <string name="unbind_title">解除绑定</string>
+    <string name="unbind_message">确定要解除%1$s的绑定吗？解除后将无法通过%2$s接收消息。</string>
+    <string name="unbind_action">解除绑定</string>
+
+    <!-- 通道配置 -->
+    <string name="channel_config_dingtalk_title">钉钉配置</string>
+    <string name="channel_config_feishu_title">飞书配置</string>
+    <string name="channel_config_dingtalk_tip">填入 Client ID 和 Client Secret 绑定你的钉钉</string>
+    <string name="channel_config_feishu_tip">填入 App ID 和 App Secret 绑定你的飞书</string>
+    <string name="channel_config_dingtalk_hint1">输入获取到的 Client ID</string>
+    <string name="channel_config_dingtalk_hint2">输入获取到的 Client Secret</string>
+    <string name="channel_config_feishu_hint1">输入获取到的 App ID</string>
+    <string name="channel_config_feishu_hint2">输入获取到的 App Secret</string>
+    <string name="channel_config_qq_title">QQ 配置</string>
+    <string name="channel_config_qq_tip">填入 QQ 机器人 App ID 和 App Secret（QQ 开放平台创建应用获取）</string>
+    <string name="channel_config_qq_hint1">输入获取到的 App ID</string>
+    <string name="channel_config_qq_hint2">输入获取到的 App Secret</string>
+    <string name="channel_config_discord_title">Discord 配置</string>
+    <string name="channel_config_discord_tip">填入 Bot Token（Discord Developer Portal 创建应用 → Bot 页面获取），需开启 Message Content Intent</string>
+    <string name="channel_config_discord_hint1">输入获取到的 Bot Token</string>
+    <string name="channel_config_telegram_title">Telegram 配置</string>
+    <string name="channel_config_telegram_tip">填入 Bot Token（在 Telegram 中通过 @BotFather 创建 Bot 获取）</string>
+    <string name="channel_config_telegram_hint1">输入获取到的 Bot Token</string>
+    <string name="channel_config_wechat_title">微信配置</string>
+    <string name="channel_config_wechat_tip">使用微信扫描二维码授权机器人。确认后 Token 和 API 地址将自动保存。</string>
+    <string name="channel_config_wechat_btn_scan">获取二维码</string>
+    <string name="channel_config_wechat_scanning">等待扫码…</string>
+    <string name="channel_config_wechat_confirmed">授权成功</string>
+    <string name="wechat_qr_failed">获取微信二维码失败</string>
+    <string name="wechat_unsupported_media">收到了%s消息，暂不支持该类型，请发送文字指令</string>
+    <string name="wechat_media_image">图片</string>
+    <string name="wechat_media_video">视频</string>
+    <string name="wechat_media_file">文件</string>
+    <string name="wechat_media_voice">语音</string>
+    <string name="wechat_media_unknown">媒体</string>
+    <string name="channel_config_saved">配置已保存</string>
+    <string name="channel_config_lan_hint">💡 在设置页开启「局域网配置」，即可通过电脑浏览器配置</string>
+    <string name="channel_config_lan_hint_running">💡 电脑浏览器打开 %s 即可配置</string>
+    <string name="channel_config_lan_copied">已复制地址</string>
+
+    <!-- LLM 配置 -->
+    <string name="llm_config_title">LLM 配置</string>
+    <string name="llm_config_tip">请填写你的 LLM API Key、Base URL 和模型名称，数据仅保存在本地。</string>
+    <string name="llm_config_api_key">API Key</string>
+    <string name="llm_config_api_key_hint">如 sk-xxx（OpenAI）或其它服务商的 Key</string>
+    <string name="llm_config_base_url">Base URL</string>
+    <string name="llm_config_base_url_hint">如 https://api.openai.com/v1（留空则使用 OpenAI 默认）</string>
+    <string name="llm_config_model_name">模型名称</string>
+    <string name="llm_config_model_name_hint">如 gpt-4o、gpt-4o-mini、claude-3-5-sonnet</string>
+    <string name="llm_config_saved">LLM 配置已保存</string>
+    <string name="llm_config_api_key_required">请填写 API Key</string>
+    <string name="menu_llm_config">LLM 配置</string>
+
+    <!-- 设置菜单项 -->
+    <string name="menu_dingtalk">钉钉</string>
+    <string name="menu_feishu">飞书</string>
+    <string name="menu_qq">QQ</string>
+    <string name="menu_discord">Discord</string>
+    <string name="menu_telegram">Telegram</string>
+    <string name="menu_wechat">微信</string>
+    <string name="menu_lan_config">局域网配置</string>
+    <string name="lan_config_stopped">已关闭</string>
+    <string name="lan_config_no_wifi">请先连接 WiFi</string>
+
+    <!-- 协议弹窗 -->
+    <string name="protocol_agree_title">个人信息保护指引</string>
+    <string name="protocol_alert_title">服务协议和隐私保护</string>
+    <string name="protocol_disagree">不同意</string>
+    <string name="protocol_agree_continue">同意并继续</string>
+
+    <!-- 悬浮窗 -->
+    <string name="floating_ai_label">AI</string>
+    <string name="floating_task_received">已收到：\"%s\"</string>
+
+    <!-- 前台服务通知 -->
+    <string name="notification_channel_name">PokeClaw 运行状态</string>
+    <string name="notification_channel_description">显示 PokeClaw 运行状态及统计数据</string>
+    <string name="notification_content_title">PokeClaw 运行中</string>
+    <string name="notification_content_text">AI Agent 服务正在运行</string>
+
+    <!-- 通道消息（发给用户的回复） -->
+    <string name="channel_msg_task_cancelled">任务已手动取消</string>
+    <string name="channel_msg_service_not_ready">服务未就绪，请稍后重试</string>
+    <string name="channel_msg_tool_success">成功</string>
+    <string name="channel_msg_tool_failure">失败</string>
+    <string name="channel_msg_tool_execution">[%1$s]：%2$s</string>
+    <string name="channel_msg_task_error">遇到了错误：%s</string>
+    <string name="channel_msg_no_accessibility">缺少无障碍权限，无法执行任务</string>
+    <string name="channel_msg_task_in_progress">有任务执行中，请稍候</string>
+    <string name="channel_msg_system_dialog_blocked">可能有系统弹窗遮挡了屏幕，请检查并手动处理后重试</string>
+
+    <!-- 无障碍 -->
+    <string name="cd_back_button">返回</string>
+    <string name="cd_settings">设置</string>
+    <string name="cd_clear_input">清除输入</string>
+    <string name="cd_checkbox">切换选中状态</string>
+    <string name="cd_selected">已选中</string>
+    <string name="cd_task_success">任务完成</string>
+    <string name="cd_task_error">任务失败</string>
+    <string name="cd_channel_logo">渠道图标</string>
+    <string name="cd_app_logo">应用图标</string>
+    <string name="cd_qr_code">二维码</string>
+    <string name="cd_toggle_password">显示或隐藏密码</string>
+    <string name="cd_copy">复制</string>
+    <string name="cd_arrow_right">更多</string>
+    <string name="cd_empty_state">暂无数据</string>
+    <string name="cd_error_state">加载失败</string>
+
+    <!-- Agent 服务 -->
+    <string name="agent_accessibility_not_enabled">无障碍服务未开启，无法执行任务</string>
+    <string name="agent_task_cancelled">任务已取消</string>
+    <string name="agent_task_completed">任务完成</string>
+    <string name="agent_task_cancel">任务取消</string>
+    <string name="agent_api_call_failed">AI 服务调用失败: %s</string>
+    <string name="agent_max_iterations">在未完成任务的情况下达到了最大迭代次数 (%d)</string>
+
+    <!-- 文件工具 -->
+    <string name="tool_no_storage_permission">没有读写文件的权限</string>
+    <string name="tool_file_not_found">文件不存在: %s</string>
+    <string name="tool_not_a_file">路径不是文件: %s</string>
+    <string name="tool_no_task_channel">当前没有进行中的任务通道</string>
+    <string name="tool_file_sent">文件已发送: %s</string>
+    <string name="tool_file_send_failed">文件发送失败: %s</string>
+
+    <!-- 工具名称 -->
+    <string name="tool_name_screenshot">截屏</string>
+    <string name="tool_name_send_file">发送文件</string>
+    <string name="tool_name_wait">等待</string>
+    <string name="tool_name_get_screen_info">获取屏幕信息</string>
+    <string name="tool_name_finish">完成任务</string>
+    <string name="tool_name_open_app">打开应用</string>
+    <string name="tool_name_get_installed_apps">获取应用列表</string>
+    <string name="tool_name_system_key">系统按键</string>
+    <string name="tool_name_tap">点击</string>
+    <string name="tool_name_swipe">滑动</string>
+    <string name="tool_name_input_text">输入文本</string>
+    <string name="tool_name_find_node_info">查找节点</string>
+    <string name="tool_name_long_press">长按</string>
+    <string name="tool_name_repeat_actions">重复执行动作</string>
+    <string name="tool_name_volume_up">音量+</string>
+    <string name="tool_name_volume_down">音量-</string>
+    <string name="tool_name_dpad_up">方向上</string>
+    <string name="tool_name_dpad_down">方向下</string>
+    <string name="tool_name_dpad_left">方向左</string>
+    <string name="tool_name_dpad_right">方向右</string>
+    <string name="tool_name_dpad_center">方向中心</string>
+    <string name="tool_name_press_menu">菜单</string>
+    <string name="tool_name_press_power">电源</string>
+    <string name="tool_name_search_app">搜索APP</string>
+    <string name="tool_name_clipboard">剪贴板</string>
+    <string name="tool_name_scroll_to_find">滚动查找</string>
+
+    <!-- 输入弹窗 -->
+    <string name="input_dialog_need_more">至少输入%d个字符</string>
+    <string name="input_dialog_need_less">最多输入%d个字符</string>
+    <string name="input_dialog_no_zero">请输入非零数值</string>
+</resources>

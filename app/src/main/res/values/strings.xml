@@ -1,0 +1,226 @@
+<resources>
+    <string name="app_name">PokeClaw</string>
+
+    <!-- Common -->
+    <string name="common_confirm">OK</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_close">Close</string>
+    <string name="common_save">Save</string>
+    <string name="common_agree">Agree</string>
+    <string name="common_bound">Connected</string>
+    <string name="common_unbound">Not connected</string>
+    <string name="common_unconfigured">Not configured</string>
+    <string name="common_unbound_success">Disconnected</string>
+    <string name="channel_dingtalk">DingTalk</string>
+    <string name="channel_feishu">Feishu</string>
+    <string name="channel_qq">QQ</string>
+    <string name="channel_discord">Discord</string>
+    <string name="channel_telegram">Telegram</string>
+    <string name="channel_wechat">WeChat</string>
+    <string name="common_load_failed">Failed to load: %s</string>
+
+    <string name="app_slogan">AI Agents that get things done</string>
+
+    <!-- Guide -->
+    <string name="guide_page_title">Permission Setup</string>
+    <string name="guide_page_subtitle">Please enable the following permissions for the app to work properly</string>
+    <string name="guide_skip">Skip</string>
+    <string name="guide_start">Get Started</string>
+    <string name="guide_title_accessibility">Accessibility Service</string>
+    <string name="guide_desc_accessibility">Lets PokeClaw read the screen and tap buttons for you. Tap to enable.</string>
+    <string name="guide_title_notification">Persistent Notification</string>
+    <string name="guide_desc_notification">Keeps PokeClaw running in the background. Tap to enable.</string>
+    <string name="guide_title_overlay">System Overlay</string>
+    <string name="guide_desc_overlay">Shows a floating status panel while tasks run. Tap to enable.</string>
+    <string name="guide_title_battery">Battery Whitelist</string>
+    <string name="guide_desc_battery">Prevents the system from killing PokeClaw. Tap to allow.</string>
+    <string name="guide_title_storage">File Access</string>
+    <string name="guide_desc_storage">Lets PokeClaw read and write files on your device. Tap to enable.</string>
+
+    <!-- Home -->
+    <string name="home_need_notification_permission">Notification permission is required</string>
+    <string name="home_enable_accessibility">Please enable PokeClaw Accessibility Service</string>
+    <string name="home_accessibility_enabled">Accessibility service enabled</string>
+    <string name="home_notification_enabled">Persistent notification enabled</string>
+    <string name="home_overlay_enabled">Overlay permission enabled</string>
+    <string name="home_battery_ignored">Battery optimization ignored</string>
+    <string name="home_permission_enabled">Enabled</string>
+    <string name="home_card_accessibility_title">Accessibility Service</string>
+    <string name="home_card_accessibility_subtitle">For automated phone control</string>
+    <string name="home_card_notification_title">Persistent Notification</string>
+    <string name="home_card_notification_subtitle">Show running status</string>
+    <string name="home_card_system_window_title">System Window</string>
+    <string name="home_card_system_window_subtitle">Floating panel overlay</string>
+    <string name="home_card_battery_title">Battery Whitelist</string>
+    <string name="home_card_battery_subtitle">Prevent background termination</string>
+    <string name="home_card_storage_title">File Access</string>
+    <string name="home_card_storage_subtitle">Read and write device files</string>
+    <string name="home_storage_enabled">File access permission granted</string>
+    <string name="home_enable_storage">Please allow access to all files</string>
+    <string name="home_cancel_task">Stop current task</string>
+    <string name="home_cancel_task_success">AI task stopped</string>
+    <string name="home_no_task_running">No task is running</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_group_channel">Channels</string>
+    <string name="settings_group_model">Model</string>
+
+    <!-- Unbind -->
+    <string name="unbind_title">Disconnect</string>
+    <string name="unbind_message">Disconnect %1$s? You will no longer receive messages via %2$s.</string>
+    <string name="unbind_action">Disconnect</string>
+
+    <!-- Channel Config -->
+    <string name="channel_config_dingtalk_title">DingTalk Config</string>
+    <string name="channel_config_feishu_title">Feishu Config</string>
+    <string name="channel_config_dingtalk_tip">Enter Client ID and Client Secret to connect DingTalk</string>
+    <string name="channel_config_feishu_tip">Enter App ID and App Secret to connect Feishu</string>
+    <string name="channel_config_dingtalk_hint1">Enter Client ID</string>
+    <string name="channel_config_dingtalk_hint2">Enter Client Secret</string>
+    <string name="channel_config_feishu_hint1">Enter App ID</string>
+    <string name="channel_config_feishu_hint2">Enter App Secret</string>
+    <string name="channel_config_qq_title">QQ Config</string>
+    <string name="channel_config_qq_tip">Enter QQ Bot App ID and App Secret (from QQ Open Platform)</string>
+    <string name="channel_config_qq_hint1">Enter App ID</string>
+    <string name="channel_config_qq_hint2">Enter App Secret</string>
+    <string name="channel_config_discord_title">Discord Config</string>
+    <string name="channel_config_discord_tip">Enter Bot Token (from Discord Developer Portal → Bot page). Message Content Intent must be enabled.</string>
+    <string name="channel_config_discord_hint1">Enter Bot Token</string>
+    <string name="channel_config_telegram_title">Telegram Config</string>
+    <string name="channel_config_telegram_tip">Enter Bot Token (create a bot via @BotFather on Telegram to get the token)</string>
+    <string name="channel_config_telegram_hint1">Enter Bot Token</string>
+    <string name="channel_config_wechat_title">WeChat Config</string>
+    <string name="channel_config_wechat_tip">Scan QR code with WeChat to authorize the bot. Token and API URL will be saved automatically after confirmation.</string>
+    <string name="channel_config_wechat_btn_scan">Get QR Code</string>
+    <string name="channel_config_wechat_scanning">Waiting for scan…</string>
+    <string name="channel_config_wechat_confirmed">Authorization confirmed</string>
+    <string name="wechat_qr_failed">Failed to get WeChat QR code</string>
+    <string name="wechat_unsupported_media">Received %s message, this type is not supported yet. Please send a text command.</string>
+    <string name="wechat_media_image">image</string>
+    <string name="wechat_media_video">video</string>
+    <string name="wechat_media_file">file</string>
+    <string name="wechat_media_voice">voice</string>
+    <string name="wechat_media_unknown">media</string>
+    <string name="channel_config_saved">Configuration saved</string>
+    <string name="channel_config_lan_hint">💡 Enable \"LAN Config\" in Settings to configure via browser</string>
+    <string name="channel_config_lan_hint_running">💡 Open %s in your browser to configure</string>
+    <string name="channel_config_lan_copied">Address copied</string>
+
+    <!-- LLM Config -->
+    <string name="llm_config_title">LLM Configuration</string>
+    <string name="llm_config_tip">Enter your LLM API key, base URL and model name. Data is stored locally only.</string>
+    <string name="llm_config_api_key">API Key</string>
+    <string name="llm_config_api_key_hint">e.g. sk-xxx (OpenAI) or your provider key</string>
+    <string name="llm_config_base_url">Base URL</string>
+    <string name="llm_config_base_url_hint">e.g. https://api.openai.com/v1 (leave empty for OpenAI default)</string>
+    <string name="llm_config_model_name">Model Name</string>
+    <string name="llm_config_model_name_hint">e.g. gpt-4o, gpt-4o-mini, claude-3-5-sonnet</string>
+    <string name="llm_config_saved">LLM configuration saved</string>
+    <string name="llm_config_api_key_required">Please enter API Key</string>
+    <string name="menu_llm_config">LLM Config</string>
+
+    <!-- Settings Menu -->
+    <string name="menu_dingtalk">DingTalk</string>
+    <string name="menu_feishu">Feishu</string>
+    <string name="menu_qq">QQ</string>
+    <string name="menu_discord">Discord</string>
+    <string name="menu_telegram">Telegram</string>
+    <string name="menu_wechat">WeChat</string>
+    <string name="menu_lan_config">LAN Config</string>
+    <string name="lan_config_stopped">Off</string>
+    <string name="lan_config_no_wifi">Please connect to WiFi first</string>
+
+    <!-- Protocol -->
+    <string name="protocol_agree_title">Privacy Guidelines</string>
+    <string name="protocol_alert_title">Terms and Privacy</string>
+    <string name="protocol_disagree">Disagree</string>
+    <string name="protocol_agree_continue">Agree and Continue</string>
+
+    <!-- Floating -->
+    <string name="floating_ai_label">AI</string>
+    <string name="floating_task_received">Received: \"%s\"</string>
+
+    <!-- Foreground Service Notification -->
+    <string name="notification_channel_name">PokeClaw Status</string>
+    <string name="notification_channel_description">Shows PokeClaw running status and stats</string>
+    <string name="notification_content_title">PokeClaw Running</string>
+    <string name="notification_content_text">AI Agent service is active</string>
+
+    <!-- Channel Messages -->
+    <string name="channel_msg_task_cancelled">Task cancelled manually</string>
+    <string name="channel_msg_service_not_ready">Service not ready, please try again later</string>
+    <string name="channel_msg_tool_success">Success</string>
+    <string name="channel_msg_tool_failure">Failed</string>
+    <string name="channel_msg_tool_execution">[%1$s]: %2$s</string>
+    <string name="channel_msg_task_error">Error: %s</string>
+    <string name="channel_msg_no_accessibility">Accessibility permission missing, cannot execute task</string>
+    <string name="channel_msg_task_in_progress">A task is already running, please wait</string>
+    <string name="channel_msg_system_dialog_blocked">A system dialog may be blocking the screen. Please check and handle it manually, then try again.</string>
+
+    <!-- Accessibility -->
+    <string name="cd_back_button">Back</string>
+    <string name="cd_settings">Settings</string>
+    <string name="cd_clear_input">Clear input</string>
+    <string name="cd_checkbox">Toggle checkbox</string>
+    <string name="cd_selected">Selected</string>
+    <string name="cd_task_success">Task completed</string>
+    <string name="cd_task_error">Task failed</string>
+    <string name="cd_channel_logo">Channel logo</string>
+    <string name="cd_app_logo">App logo</string>
+    <string name="cd_qr_code">QR code</string>
+    <string name="cd_toggle_password">Show or hide password</string>
+    <string name="cd_copy">Copy</string>
+    <string name="cd_arrow_right">More</string>
+    <string name="cd_empty_state">No data</string>
+    <string name="cd_error_state">Load failed</string>
+
+    <!-- Agent -->
+    <string name="agent_accessibility_not_enabled">Accessibility service is not enabled</string>
+    <string name="agent_task_cancelled">Task cancelled</string>
+    <string name="agent_task_completed">Task completed</string>
+    <string name="agent_task_cancel">Task cancelled</string>
+    <string name="agent_api_call_failed">AI service call failed: %s</string>
+    <string name="agent_max_iterations">Reached maximum iterations (%d) without completing the task</string>
+
+    <!-- File Tool -->
+    <string name="tool_no_storage_permission">No file read/write permission</string>
+    <string name="tool_file_not_found">File not found: %s</string>
+    <string name="tool_not_a_file">Path is not a file: %s</string>
+    <string name="tool_no_task_channel">No active task channel</string>
+    <string name="tool_file_sent">File sent: %s</string>
+    <string name="tool_file_send_failed">Failed to send file: %s</string>
+
+    <!-- Tool Names -->
+    <string name="tool_name_screenshot">Screenshot</string>
+    <string name="tool_name_send_file">Send File</string>
+    <string name="tool_name_wait">Wait</string>
+    <string name="tool_name_get_screen_info">Get Screen Info</string>
+    <string name="tool_name_finish">Finish Task</string>
+    <string name="tool_name_open_app">Open App</string>
+    <string name="tool_name_get_installed_apps">Get Installed Apps</string>
+    <string name="tool_name_system_key">System Key</string>
+    <string name="tool_name_tap">Tap</string>
+    <string name="tool_name_swipe">Swipe</string>
+    <string name="tool_name_input_text">Input Text</string>
+    <string name="tool_name_find_node_info">Find Node</string>
+    <string name="tool_name_long_press">Long Press</string>
+    <string name="tool_name_repeat_actions">Repeat Actions</string>
+    <string name="tool_name_volume_up">Volume Up</string>
+    <string name="tool_name_volume_down">Volume Down</string>
+    <string name="tool_name_dpad_up">D-pad Up</string>
+    <string name="tool_name_dpad_down">D-pad Down</string>
+    <string name="tool_name_dpad_left">D-pad Left</string>
+    <string name="tool_name_dpad_right">D-pad Right</string>
+    <string name="tool_name_dpad_center">D-pad Center</string>
+    <string name="tool_name_press_menu">Menu</string>
+    <string name="tool_name_press_power">Power</string>
+    <string name="tool_name_search_app">Search App</string>
+    <string name="tool_name_clipboard">Clipboard</string>
+    <string name="tool_name_scroll_to_find">Scroll to Find</string>
+
+    <!-- Input Dialog -->
+    <string name="input_dialog_need_more">Enter at least %d characters</string>
+    <string name="input_dialog_need_less">Enter at most %d characters</string>
+    <string name="input_dialog_no_zero">Please enter a non-zero value</string>
+</resources>

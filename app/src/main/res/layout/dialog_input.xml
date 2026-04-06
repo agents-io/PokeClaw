@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog"
+    android:orientation="vertical"
+    android:paddingHorizontal="16pt"
+    android:paddingTop="24pt"
+    android:paddingBottom="40pt">
+
+    <!-- 标题栏：关闭按钮 + 居中标题 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="44pt">
+
+        <ImageView
+            android:id="@+id/btnClose"
+            android:layout_width="44pt"
+            android:layout_height="44pt"
+            android:layout_gravity="start|center_vertical"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/common_close"
+            android:padding="10pt"
+            android:src="@drawable/ic_close" />
+
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="17pt"
+            android:textStyle="bold" />
+
+    </FrameLayout>
+
+    <android.widget.Space
+        android:layout_width="0dp"
+        android:layout_height="24pt" />
+
+    <!-- 输入框 -->
+    <FrameLayout
+        android:id="@+id/inputContainer"
+        android:layout_width="match_parent"
+        android:layout_height="56pt"
+        android:background="@drawable/bg_input_field">
+
+        <EditText
+            android:id="@+id/etInput"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:imeOptions="actionDone"
+            android:paddingHorizontal="16pt"
+            android:paddingEnd="48pt"
+            android:singleLine="true"
+            android:textColor="@color/colorTextPrimary"
+            android:textColorHint="@color/colorTextTertiary"
+            android:textSize="16pt"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/btnClear"
+            android:layout_width="40pt"
+            android:layout_height="40pt"
+            android:layout_gravity="end|center_vertical"
+            android:layout_marginEnd="4pt"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="10pt"
+            android:src="@drawable/ic_close"
+            android:visibility="gone" />
+
+    </FrameLayout>
+
+    <android.widget.Space
+        android:layout_width="0dp"
+        android:layout_height="24pt" />
+
+    <!-- 确认按钮 -->
+    <io.agents.pokeclaw.widget.KButton
+        android:id="@+id/btnConfirm"
+        android:layout_width="match_parent"
+        android:layout_height="48pt"
+        android:text="@string/common_confirm"
+        android:textSize="15pt" />
+
+</LinearLayout>

@@ -1,0 +1,330 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ============================================================
+         Typography
+         命名规则: TS.{类别}.{尺寸}[.Emphasized]
+         fontWeight: 400=regular, 500=medium, 600=semiBold, 700=bold
+         ============================================================ -->
+
+    <!-- ==================== Display ==================== -->
+    <!-- 64sp / semiBold / lineHeight 72sp -->
+    <style name="TS.Display.Large.Emphasized" parent="TextAppearance.Material3.DisplayLarge">
+        <item name="android:textSize">64sp</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:lineHeight">72sp</item>
+    </style>
+
+    <!-- 64sp / regular / lineHeight 72sp -->
+    <style name="TS.Display.Large" parent="TextAppearance.Material3.DisplayLarge">
+        <item name="android:textSize">64sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">72sp</item>
+    </style>
+
+    <!-- 48sp / semiBold / lineHeight 56sp -->
+    <style name="TS.Display.Medium.Emphasized" parent="TextAppearance.Material3.DisplayMedium">
+        <item name="android:textSize">48sp</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:lineHeight">56sp</item>
+    </style>
+
+    <!-- 48sp / regular / lineHeight 56sp -->
+    <style name="TS.Display.Medium" parent="TextAppearance.Material3.DisplayMedium">
+        <item name="android:textSize">48sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">56sp</item>
+    </style>
+
+    <!-- 36sp / semiBold / lineHeight 44sp -->
+    <style name="TS.Display.Small.Emphasized" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:textSize">36sp</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:lineHeight">44sp</item>
+    </style>
+
+    <!-- 36sp / regular / lineHeight 44sp -->
+    <style name="TS.Display.Small" parent="TextAppearance.Material3.DisplaySmall">
+        <item name="android:textSize">36sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">44sp</item>
+    </style>
+
+    <!-- ==================== Headline ==================== -->
+    <!-- 32sp / semiBold / lineHeight 40sp -->
+    <style name="TS.Headline.Large.Emphasized" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:textSize">32sp</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:lineHeight">40sp</item>
+    </style>
+
+    <!-- 32sp / regular / lineHeight 40sp -->
+    <style name="TS.Headline.Large" parent="TextAppearance.Material3.HeadlineLarge">
+        <item name="android:textSize">32sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">40sp</item>
+    </style>
+
+    <!-- 28sp / semiBold / lineHeight 36sp -->
+    <style name="TS.Headline.Medium.Emphasized" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:lineHeight">36sp</item>
+    </style>
+
+    <!-- 28sp / regular / lineHeight 36sp -->
+    <style name="TS.Headline.Medium" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="android:textSize">28sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">36sp</item>
+    </style>
+
+    <!-- 24sp / semiBold / lineHeight 32sp -->
+    <style name="TS.Headline.Small.Emphasized" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textFontWeight">600</item>
+        <item name="android:lineHeight">32sp</item>
+    </style>
+
+    <!-- 24sp / regular / lineHeight 32sp -->
+    <style name="TS.Headline.Small" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="android:textSize">24sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">32sp</item>
+    </style>
+
+    <!-- ==================== Title ==================== -->
+    <!-- 22sp / bold / lineHeight 28sp -->
+    <style name="TS.Title.Large.Emphasized" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textFontWeight">700</item>
+        <item name="android:lineHeight">28sp</item>
+    </style>
+
+    <!-- 22sp / medium / lineHeight 28sp -->
+    <style name="TS.Title.Large" parent="TextAppearance.Material3.TitleLarge">
+        <item name="android:textSize">22sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">28sp</item>
+    </style>
+
+    <!-- 20sp / bold / lineHeight 26sp -->
+    <style name="TS.Title.Medium.Emphasized" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textFontWeight">700</item>
+        <item name="android:lineHeight">26sp</item>
+    </style>
+
+    <!-- 20sp / medium / lineHeight 26sp -->
+    <style name="TS.Title.Medium" parent="TextAppearance.Material3.TitleMedium">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">26sp</item>
+    </style>
+
+    <!-- 18sp / bold / lineHeight 24sp -->
+    <style name="TS.Title.Small.Emphasized" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textFontWeight">700</item>
+        <item name="android:lineHeight">24sp</item>
+    </style>
+
+    <!-- 18sp / medium / lineHeight 24sp -->
+    <style name="TS.Title.Small" parent="TextAppearance.Material3.TitleSmall">
+        <item name="android:textSize">18sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">24sp</item>
+    </style>
+
+    <!-- ==================== Label ==================== -->
+    <!-- 16sp / medium / lineHeight 24sp -->
+    <style name="TS.Label.Large.Emphasized" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">24sp</item>
+    </style>
+
+    <!-- 16sp / regular / lineHeight 24sp -->
+    <style name="TS.Label.Large" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">24sp</item>
+    </style>
+
+    <!-- 14sp / medium / lineHeight 20sp -->
+    <style name="TS.Label.Medium.Emphasized" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">20sp</item>
+    </style>
+
+    <!-- 14sp / regular / lineHeight 20sp -->
+    <style name="TS.Label.Medium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">20sp</item>
+    </style>
+
+    <!-- 12sp / medium / lineHeight 18sp -->
+    <style name="TS.Label.Small.Emphasized" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">18sp</item>
+    </style>
+
+    <!-- 12sp / regular / lineHeight 18sp -->
+    <style name="TS.Label.Small" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">18sp</item>
+    </style>
+
+    <!-- ==================== Body ==================== -->
+    <!-- 16sp / medium / lineHeight 28sp -->
+    <style name="TS.Body.Large.Emphasized" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">28sp</item>
+    </style>
+
+    <!-- 16sp / regular / lineHeight 28sp -->
+    <style name="TS.Body.Large" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">28sp</item>
+    </style>
+
+    <!-- 14sp / medium / lineHeight 24sp -->
+    <style name="TS.Body.Medium.Emphasized" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">24sp</item>
+    </style>
+
+    <!-- 14sp / regular / lineHeight 24sp -->
+    <style name="TS.Body.Medium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">24sp</item>
+    </style>
+
+    <!-- 12sp / medium / lineHeight 20sp -->
+    <style name="TS.Body.Small.Emphasized" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">20sp</item>
+    </style>
+
+    <!-- 12sp / regular / lineHeight 20sp -->
+    <style name="TS.Body.Small" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">20sp</item>
+    </style>
+
+    <!-- ==================== Caption ==================== -->
+    <!-- 12sp / medium / lineHeight 16sp -->
+    <style name="TS.Caption.Large.Emphasized" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">16sp</item>
+    </style>
+
+    <!-- 12sp / regular / lineHeight 16sp -->
+    <style name="TS.Caption.Large" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">16sp</item>
+    </style>
+
+    <!-- 10sp / medium / lineHeight 12sp -->
+    <style name="TS.Caption.Medium.Emphasized" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">12sp</item>
+    </style>
+
+    <!-- 10sp / regular / lineHeight 12sp -->
+    <style name="TS.Caption.Medium" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">12sp</item>
+    </style>
+
+    <!-- 8sp / medium / lineHeight 10sp -->
+    <style name="TS.Caption.Small.Emphasized" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">8sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">10sp</item>
+    </style>
+
+    <!-- 8sp / regular / lineHeight 10sp -->
+    <style name="TS.Caption.Small" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">8sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">10sp</item>
+    </style>
+
+    <!-- ==================== Mark ==================== -->
+    <!-- 16sp / medium / lineHeight 24sp -->
+    <style name="TS.Mark.Large" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">24sp</item>
+    </style>
+
+    <!-- 14sp / medium / lineHeight 22sp -->
+    <style name="TS.Mark.Medium" parent="TextAppearance.Material3.LabelMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">22sp</item>
+    </style>
+
+    <!-- 12sp / medium / lineHeight 20sp -->
+    <style name="TS.Mark.Small" parent="TextAppearance.Material3.LabelSmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">500</item>
+        <item name="android:lineHeight">20sp</item>
+    </style>
+
+    <!-- ==================== Link ==================== -->
+    <!-- 16sp / regular / lineHeight 24sp -->
+    <style name="TS.Link.Large" parent="TextAppearance.Material3.BodyLarge">
+        <item name="android:textSize">16sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">24sp</item>
+        <item name="android:textColor">@color/colorBrandPrimary</item>
+    </style>
+
+    <!-- 14sp / regular / lineHeight 22sp -->
+    <style name="TS.Link.Medium" parent="TextAppearance.Material3.BodyMedium">
+        <item name="android:textSize">14sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">22sp</item>
+        <item name="android:textColor">@color/colorBrandPrimary</item>
+    </style>
+
+    <!-- 12sp / regular / lineHeight 20sp -->
+    <style name="TS.Link.Small" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">20sp</item>
+        <item name="android:textColor">@color/colorBrandPrimary</item>
+    </style>
+
+    <!-- ==================== Footnote ==================== -->
+    <!-- 10sp / regular / lineHeight 16sp -->
+    <style name="TS.Footnote.Medium" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">16sp</item>
+    </style>
+
+    <!-- 8sp / regular / lineHeight 12sp -->
+    <style name="TS.Footnote.Small" parent="TextAppearance.Material3.BodySmall">
+        <item name="android:textSize">8sp</item>
+        <item name="android:textFontWeight">400</item>
+        <item name="android:lineHeight">12sp</item>
+    </style>
+
+</resources>

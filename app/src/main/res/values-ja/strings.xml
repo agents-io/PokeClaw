@@ -1,0 +1,226 @@
+<resources>
+    <string name="app_name">PokeClaw</string>
+
+    <!-- 共通 -->
+    <string name="common_confirm">OK</string>
+    <string name="common_cancel">キャンセル</string>
+    <string name="common_close">閉じる</string>
+    <string name="common_save">保存</string>
+    <string name="common_agree">同意</string>
+    <string name="common_bound">接続済み</string>
+    <string name="common_unbound">未接続</string>
+    <string name="common_unconfigured">未設定</string>
+    <string name="common_unbound_success">接続を解除しました</string>
+    <string name="channel_dingtalk">DingTalk</string>
+    <string name="channel_feishu">Feishu</string>
+    <string name="channel_qq">QQ</string>
+    <string name="channel_discord">Discord</string>
+    <string name="channel_telegram">Telegram</string>
+    <string name="channel_wechat">WeChat</string>
+    <string name="common_load_failed">読み込み失敗: %s</string>
+
+    <string name="app_slogan">タスクをこなすAI Agents</string>
+
+    <!-- ガイド -->
+    <string name="guide_page_title">権限の設定</string>
+    <string name="guide_page_subtitle">アプリを正常に動作させるため、以下の権限を有効にしてください</string>
+    <string name="guide_skip">スキップ</string>
+    <string name="guide_start">はじめる</string>
+    <string name="guide_title_accessibility">ユーザー補助サービス</string>
+    <string name="guide_desc_accessibility">AIがデバイスを操作するための基本権限です。\n\n1. 設定 → ユーザー補助 → ダウンロード済みアプリを開く\n2. リストから「PokeClaw」を見つける\n3. スイッチをオンにする\n4. システムダイアログで確認する</string>
+    <string name="guide_title_notification">常駐通知</string>
+    <string name="guide_desc_notification">アプリをバックグラウンドで実行し続け、システムによる強制終了を防ぎます。\n\nホーム画面のカードをタップして有効にしてください。Android 13以降は通知権限が先に求められます。</string>
+    <string name="guide_title_overlay">システムオーバーレイ</string>
+    <string name="guide_desc_overlay">AI実行状態を表示するフローティングパネルです。\n\n1. 設定 → アプリ → PokeClawを開く\n2.「他のアプリの上に重ねて表示」を見つける\n3. スイッチをオンにする</string>
+    <string name="guide_title_battery">バッテリーホワイトリスト</string>
+    <string name="guide_desc_battery">システムがバックグラウンドでアプリを停止するのを防ぎます。\n\nホーム画面のカードをタップし、システムダイアログで「許可」を確認してください。(一部の端末では「制限なし」に変更が必要です)</string>
+    <string name="guide_title_storage">ファイルアクセス</string>
+    <string name="guide_desc_storage">AIがデバイス上のファイルを読み書きできるようにします。\n\nAndroid 11以降: 設定で「すべてのファイルへのアクセス」を有効にする\nAndroid 10以前: ポップアップで権限を許可する</string>
+
+    <!-- ホーム -->
+    <string name="home_need_notification_permission">通知権限が必要です</string>
+    <string name="home_enable_accessibility">PokeClawユーザー補助サービスを有効にしてください</string>
+    <string name="home_accessibility_enabled">ユーザー補助サービスが有効です</string>
+    <string name="home_notification_enabled">常駐通知が有効です</string>
+    <string name="home_overlay_enabled">オーバーレイ権限が有効です</string>
+    <string name="home_battery_ignored">バッテリー最適化を無効化済み</string>
+    <string name="home_permission_enabled">有効</string>
+    <string name="home_card_accessibility_title">ユーザー補助サービス</string>
+    <string name="home_card_accessibility_subtitle">スマホの自動操作に使用</string>
+    <string name="home_card_notification_title">常駐通知</string>
+    <string name="home_card_notification_subtitle">実行状態を表示</string>
+    <string name="home_card_system_window_title">システムウィンドウ</string>
+    <string name="home_card_system_window_subtitle">フローティングパネルを表示</string>
+    <string name="home_card_battery_title">バッテリーホワイトリスト</string>
+    <string name="home_card_battery_subtitle">バックグラウンドでの強制終了を防止</string>
+    <string name="home_card_storage_title">ファイルアクセス</string>
+    <string name="home_card_storage_subtitle">デバイスのファイルを読み書き</string>
+    <string name="home_storage_enabled">ファイルアクセス権限を取得済み</string>
+    <string name="home_enable_storage">すべてのファイルへのアクセスを許可してください</string>
+    <string name="home_cancel_task">現在のタスクを停止</string>
+    <string name="home_cancel_task_success">AIタスクを停止しました</string>
+    <string name="home_no_task_running">実行中のタスクはありません</string>
+
+    <!-- 設定 -->
+    <string name="settings_title">設定</string>
+    <string name="settings_group_channel">チャネル</string>
+    <string name="settings_group_model">モデル</string>
+
+    <!-- 接続解除 -->
+    <string name="unbind_title">接続を解除</string>
+    <string name="unbind_message">%1$sの接続を解除しますか？%2$sからのメッセージを受信できなくなります。</string>
+    <string name="unbind_action">解除</string>
+
+    <!-- チャネル設定 -->
+    <string name="channel_config_dingtalk_title">DingTalk設定</string>
+    <string name="channel_config_feishu_title">Feishu設定</string>
+    <string name="channel_config_dingtalk_tip">Client IDとClient Secretを入力してDingTalkを接続</string>
+    <string name="channel_config_feishu_tip">App IDとApp Secretを入力してFeishuを接続</string>
+    <string name="channel_config_dingtalk_hint1">Client IDを入力</string>
+    <string name="channel_config_dingtalk_hint2">Client Secretを入力</string>
+    <string name="channel_config_feishu_hint1">App IDを入力</string>
+    <string name="channel_config_feishu_hint2">App Secretを入力</string>
+    <string name="channel_config_qq_title">QQ設定</string>
+    <string name="channel_config_qq_tip">QQボットのApp IDとApp Secretを入力（QQオープンプラットフォームで取得）</string>
+    <string name="channel_config_qq_hint1">App IDを入力</string>
+    <string name="channel_config_qq_hint2">App Secretを入力</string>
+    <string name="channel_config_discord_title">Discord設定</string>
+    <string name="channel_config_discord_tip">Bot Tokenを入力（Discord Developer Portal → Botページで取得）。Message Content Intentを有効にしてください。</string>
+    <string name="channel_config_discord_hint1">Bot Tokenを入力</string>
+    <string name="channel_config_telegram_title">Telegram設定</string>
+    <string name="channel_config_telegram_tip">Bot Tokenを入力（Telegramで@BotFatherからBotを作成して取得）</string>
+    <string name="channel_config_telegram_hint1">Bot Tokenを入力</string>
+    <string name="channel_config_wechat_title">WeChat設定</string>
+    <string name="channel_config_wechat_tip">WeChatでQRコードをスキャンしてボットを認証します。確認後、TokenとAPI URLが自動的に保存されます。</string>
+    <string name="channel_config_wechat_btn_scan">QRコードを取得</string>
+    <string name="channel_config_wechat_scanning">スキャン待ち…</string>
+    <string name="channel_config_wechat_confirmed">認証成功</string>
+    <string name="wechat_qr_failed">WeChat QRコードの取得に失敗しました</string>
+    <string name="wechat_unsupported_media">%sメッセージを受信しましたが、このタイプはまだサポートされていません。テキストコマンドを送信してください。</string>
+    <string name="wechat_media_image">画像</string>
+    <string name="wechat_media_video">動画</string>
+    <string name="wechat_media_file">ファイル</string>
+    <string name="wechat_media_voice">音声</string>
+    <string name="wechat_media_unknown">メディア</string>
+    <string name="channel_config_saved">設定を保存しました</string>
+    <string name="channel_config_lan_hint">💡 設定ページで「LAN設定」を有効にすると、ブラウザから設定できます</string>
+    <string name="channel_config_lan_hint_running">💡 ブラウザで %s を開いて設定してください</string>
+    <string name="channel_config_lan_copied">アドレスをコピーしました</string>
+
+    <!-- LLM設定 -->
+    <string name="llm_config_title">LLM設定</string>
+    <string name="llm_config_tip">LLM API Key、Base URL、モデル名を入力してください。データはローカルにのみ保存されます。</string>
+    <string name="llm_config_api_key">API Key</string>
+    <string name="llm_config_api_key_hint">例: sk-xxx（OpenAI）またはプロバイダーのKey</string>
+    <string name="llm_config_base_url">Base URL</string>
+    <string name="llm_config_base_url_hint">例: https://api.openai.com/v1（空欄の場合はOpenAIデフォルト）</string>
+    <string name="llm_config_model_name">モデル名</string>
+    <string name="llm_config_model_name_hint">例: gpt-4o、gpt-4o-mini、claude-3-5-sonnet</string>
+    <string name="llm_config_saved">LLM設定を保存しました</string>
+    <string name="llm_config_api_key_required">API Keyを入力してください</string>
+    <string name="menu_llm_config">LLM設定</string>
+
+    <!-- 設定メニュー -->
+    <string name="menu_dingtalk">DingTalk</string>
+    <string name="menu_feishu">Feishu</string>
+    <string name="menu_qq">QQ</string>
+    <string name="menu_discord">Discord</string>
+    <string name="menu_telegram">Telegram</string>
+    <string name="menu_wechat">WeChat</string>
+    <string name="menu_lan_config">LAN設定</string>
+    <string name="lan_config_stopped">オフ</string>
+    <string name="lan_config_no_wifi">WiFiに接続してください</string>
+
+    <!-- プロトコル -->
+    <string name="protocol_agree_title">個人情報保護について</string>
+    <string name="protocol_alert_title">利用規約とプライバシー</string>
+    <string name="protocol_disagree">同意しない</string>
+    <string name="protocol_agree_continue">同意して続行</string>
+
+    <!-- フローティング -->
+    <string name="floating_ai_label">AI</string>
+    <string name="floating_task_received">受信：\"%s\"</string>
+
+    <!-- フォアグラウンドサービス通知 -->
+    <string name="notification_channel_name">PokeClaw ステータス</string>
+    <string name="notification_channel_description">PokeClawの実行状態と統計を表示</string>
+    <string name="notification_content_title">PokeClaw 実行中</string>
+    <string name="notification_content_text">AI Agentサービスが稼働中</string>
+
+    <!-- チャネルメッセージ -->
+    <string name="channel_msg_task_cancelled">タスクを手動でキャンセルしました</string>
+    <string name="channel_msg_service_not_ready">サービスの準備ができていません。しばらくお待ちください</string>
+    <string name="channel_msg_tool_success">成功</string>
+    <string name="channel_msg_tool_failure">失敗</string>
+    <string name="channel_msg_tool_execution">[%1$s]：%2$s</string>
+    <string name="channel_msg_task_error">エラー: %s</string>
+    <string name="channel_msg_no_accessibility">ユーザー補助権限がないため、タスクを実行できません</string>
+    <string name="channel_msg_task_in_progress">タスク実行中です。お待ちください</string>
+    <string name="channel_msg_system_dialog_blocked">システムダイアログが画面を遮っている可能性があります。確認のうえ手動で操作してから再試行してください</string>
+
+    <!-- アクセシビリティ -->
+    <string name="cd_back_button">戻る</string>
+    <string name="cd_settings">設定</string>
+    <string name="cd_clear_input">入力をクリア</string>
+    <string name="cd_checkbox">チェックボックスを切替</string>
+    <string name="cd_selected">選択済み</string>
+    <string name="cd_task_success">タスク完了</string>
+    <string name="cd_task_error">タスク失敗</string>
+    <string name="cd_channel_logo">チャネルロゴ</string>
+    <string name="cd_app_logo">アプリロゴ</string>
+    <string name="cd_qr_code">QRコード</string>
+    <string name="cd_toggle_password">パスワードの表示/非表示</string>
+    <string name="cd_copy">コピー</string>
+    <string name="cd_arrow_right">詳細</string>
+    <string name="cd_empty_state">データなし</string>
+    <string name="cd_error_state">読み込み失敗</string>
+
+    <!-- Agent -->
+    <string name="agent_accessibility_not_enabled">ユーザー補助サービスが有効になっていません</string>
+    <string name="agent_task_cancelled">タスクがキャンセルされました</string>
+    <string name="agent_task_completed">タスク完了</string>
+    <string name="agent_task_cancel">タスクキャンセル</string>
+    <string name="agent_api_call_failed">AIサービスの呼び出しに失敗: %s</string>
+    <string name="agent_max_iterations">タスク未完了のまま最大反復回数 (%d) に達しました</string>
+
+    <!-- ファイルツール -->
+    <string name="tool_no_storage_permission">ファイルの読み書き権限がありません</string>
+    <string name="tool_file_not_found">ファイルが見つかりません: %s</string>
+    <string name="tool_not_a_file">パスはファイルではありません: %s</string>
+    <string name="tool_no_task_channel">アクティブなタスクチャネルがありません</string>
+    <string name="tool_file_sent">ファイルを送信しました: %s</string>
+    <string name="tool_file_send_failed">ファイルの送信に失敗: %s</string>
+
+    <!-- ツール名 -->
+    <string name="tool_name_screenshot">スクリーンショット</string>
+    <string name="tool_name_send_file">ファイル送信</string>
+    <string name="tool_name_wait">待機</string>
+    <string name="tool_name_get_screen_info">画面情報を取得</string>
+    <string name="tool_name_finish">タスク完了</string>
+    <string name="tool_name_open_app">アプリを開く</string>
+    <string name="tool_name_get_installed_apps">アプリ一覧を取得</string>
+    <string name="tool_name_system_key">システムキー</string>
+    <string name="tool_name_tap">タップ</string>
+    <string name="tool_name_swipe">スワイプ</string>
+    <string name="tool_name_input_text">テキスト入力</string>
+    <string name="tool_name_find_node_info">ノード検索</string>
+    <string name="tool_name_long_press">長押し</string>
+    <string name="tool_name_repeat_actions">アクションを繰り返す</string>
+    <string name="tool_name_volume_up">音量を上げる</string>
+    <string name="tool_name_volume_down">音量を下げる</string>
+    <string name="tool_name_dpad_up">上</string>
+    <string name="tool_name_dpad_down">下</string>
+    <string name="tool_name_dpad_left">左</string>
+    <string name="tool_name_dpad_right">右</string>
+    <string name="tool_name_dpad_center">決定</string>
+    <string name="tool_name_press_menu">メニュー</string>
+    <string name="tool_name_press_power">電源</string>
+    <string name="tool_name_search_app">アプリを検索</string>
+    <string name="tool_name_clipboard">クリップボード</string>
+    <string name="tool_name_scroll_to_find">スクロールして検索</string>
+
+    <!-- 入力ダイアログ -->
+    <string name="input_dialog_need_more">%d文字以上入力してください</string>
+    <string name="input_dialog_need_less">%d文字以内で入力してください</string>
+    <string name="input_dialog_no_zero">ゼロ以外の値を入力してください</string>
+</resources>

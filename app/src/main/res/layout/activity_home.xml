@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBgPrimary"
+    android:paddingHorizontal="16pt">
+
+    <!-- Toolbar -->
+    <io.agents.pokeclaw.widget.CommonToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56pt"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Chat button -->
+    <io.agents.pokeclaw.widget.KButton
+        android:id="@+id/btnChat"
+        android:layout_width="match_parent"
+        android:layout_height="48pt"
+        android:layout_marginTop="20pt"
+        android:text="Chat with Local LLM"
+        android:textSize="16pt"
+        app:layout_constraintTop_toBottomOf="@id/toolbar" />
+
+    <!-- Direct task input -->
+    <LinearLayout
+        android:id="@+id/layoutTaskInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20pt"
+        android:orientation="vertical"
+        app:layout_constraintTop_toBottomOf="@+id/btnChat">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingBottom="8pt"
+            android:text="Give a task:"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="14pt"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/etTaskInput"
+                android:layout_width="0dp"
+                android:layout_height="48pt"
+                android:layout_weight="1"
+                android:background="@drawable/bg_input_field"
+                android:hint="e.g. Open Settings"
+                android:inputType="text"
+                android:maxLines="1"
+                android:paddingHorizontal="12pt"
+                android:singleLine="true"
+                android:textColor="@color/colorTextPrimary"
+                android:textColorHint="@color/colorTextTertiary"
+                android:textSize="15pt" />
+
+            <io.agents.pokeclaw.widget.KButton
+                android:id="@+id/btnSendTask"
+                android:layout_width="wrap_content"
+                android:layout_height="48pt"
+                android:layout_marginStart="8pt"
+                android:paddingHorizontal="16pt"
+                android:text="Go"
+                android:textSize="16pt" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/tvTaskStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8pt"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="13pt"
+            android:visibility="gone" />
+    </LinearLayout>
+
+    <!-- 结束当前会话 -->
+    <io.agents.pokeclaw.widget.KButton
+        android:id="@+id/btnCancelTask"
+        android:layout_width="match_parent"
+        android:layout_height="48pt"
+        android:layout_marginTop="12pt"
+        android:text="@string/home_cancel_task"
+        android:textSize="16sp"
+        android:visibility="gone"
+        app:btnBackground="@color/colorErrorPrimary"
+        app:btnTextColor="@color/colorErrorOnPrimary"
+        app:layout_constraintTop_toBottomOf="@id/layoutTaskInput" />
+
+</androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merge xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="56pt"
+    tools:parentTag="android.widget.FrameLayout">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <!-- 返回按钮 -->
+        <ImageView
+            android:id="@+id/ivBack"
+            android:layout_width="40pt"
+            android:layout_height="40pt"
+            android:layout_marginStart="8pt"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/cd_back_button"
+            android:padding="8pt"
+            android:src="@drawable/ic_back"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/colorTextPrimary"
+            tools:visibility="visible" />
+
+        <!-- 标题 - 完全居中 -->
+        <TextView
+            android:id="@+id/tvTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="56pt"
+            android:ellipsize="end"
+            android:gravity="center"
+            android:maxLines="1"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="18pt"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="标题" />
+
+        <!-- 右侧图标按钮 -->
+        <ImageView
+            android:id="@+id/ivAction"
+            android:layout_width="40pt"
+            android:layout_height="40pt"
+            android:layout_marginEnd="8pt"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:padding="8pt"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/tvAction"
+            app:layout_constraintTop_toTopOf="parent"
+            app:tint="@color/colorTextPrimary"
+            tools:src="@drawable/ic_settings"
+            tools:visibility="visible" />
+
+        <!-- 右侧文字按钮 -->
+        <TextView
+            android:id="@+id/tvAction"
+            android:layout_width="wrap_content"
+            android:layout_height="40pt"
+            android:layout_marginEnd="8pt"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:gravity="center"
+            android:paddingHorizontal="8pt"
+            android:textColor="@color/colorBrandPrimary"
+            android:textSize="14pt"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="完成"
+            tools:visibility="gone" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</merge>

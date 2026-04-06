@@ -1,0 +1,79 @@
+package io.agents.pokeclaw.channel.wechat
+
+/**
+ * Markdown 转纯文本。
+ * 严格对应官方 @tencent-weixin/openclaw-weixin@1.0.2 的 src/messaging/send.ts markdownToPlainText()
+ */
+object WeChatMarkdown {
+
+    /**
+     * 将 Markdown 格式的文本转为纯文本，保留换行，去除 Markdown 语法。
+     */
+    fun markdownToPlainText(text: String): String {
+        var result = text
+
+        // Code blocks: strip fences, keep code content
+        result = Regex("```[^\\n]*\\n?([\\s\\S]*?)```").replace(result) { m ->
+            m.groupValues[1].trim()
+        }
+
+        // Images: remove entirely
+        result = Regex("!\\[[^\\]]*]\\([^)]*\\)").replace(result, "")
+
+        // Links: keep display text only
+        result = Regex("\\[([^\\]]+)]\\([^)]*\\)").replace(result) { m ->
+            m.groupValues[1]
+        }
+
+        // Tables: remove separator rows
+        result = Regex("^\\|[\\s:|-]+\\|$", RegexOption.MULTILINE).replace(result, "")
+
+        // Tables: strip leading/trailing pipes, convert inner pipes to spaces
+        result = Regex("^\\|(.+)\\|$", RegexOption.MULTILINE).replace(result) { m ->
+            m.groupValues[1].split("|").joinToString("  ") { it.trim() }
+        }
+
+        // Strip remaining inline markdown (对应 SDK 的 stripMarkdown)
+        result = stripMarkdown(result)
+
+        return result
+    }
+
+    /**
+     * 去除内联 Markdown 语法标记。
+     */
+    private fun stripMarkdown(text: String): String {
+        var result = text
+
+        // Bold: **text** or __text__
+        result = Regex("\\*\\*(.+?)\\*\\*").replace(result) { it.groupValues[1] }
+        result = Regex("__(.+?)__").replace(result) { it.groupValues[1] }
+
+        // Italic: *text* or _text_
+        result = Regex("\\*(.+?)\\*").replace(result) { it.groupValues[1] }
+        result = Regex("(?<=\\s|^)_(.+?)_(?=\\s|$)").replace(result) { it.groupValues[1] }
+
+        // Strikethrough: ~~text~~
+        result = Regex("~~(.+?)~~").replace(result) { it.groupValues[1] }
+
+        // Inline code: `text`
+        result = Regex("`(.+?)`").replace(result) { it.groupValues[1] }
+
+        // Headings: # text
+        result = Regex("^#{1,6}\\s+", RegexOption.MULTILINE).replace(result, "")
+
+        // Blockquotes: > text
+        result = Regex("^>\\s?", RegexOption.MULTILINE).replace(result, "")
+
+        // Horizontal rules
+        result = Regex("^[-*_]{3,}$", RegexOption.MULTILINE).replace(result, "")
+
+        // Unordered lists: - item, * item
+        result = Regex("^\\s*[-*+]\\s+", RegexOption.MULTILINE).replace(result, "")
+
+        // Ordered lists: 1. item
+        result = Regex("^\\s*\\d+\\.\\s+", RegexOption.MULTILINE).replace(result, "")
+
+        return result
+    }
+}

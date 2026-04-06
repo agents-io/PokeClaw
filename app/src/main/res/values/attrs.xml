@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="PermissionCardView">
+        <attr name="cardIcon" format="reference" />
+        <attr name="cardTitle" format="string" />
+        <attr name="cardSubtitle" format="string" />
+    </declare-styleable>
+
+    <declare-styleable name="KButton">
+        <attr name="btnBackground" format="color" />
+        <attr name="btnTextColor" format="color" />
+        <attr name="btnCornerRadius" format="dimension" />
+        <attr name="btnBorderColor" format="color" />
+    </declare-styleable>
+</resources>

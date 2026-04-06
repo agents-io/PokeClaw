@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="4pt">
+
+    <!-- Theme preview card -->
+    <LinearLayout
+        android:id="@+id/cardPreview"
+        android:layout_width="match_parent"
+        android:layout_height="100pt"
+        android:orientation="vertical"
+        android:padding="8pt">
+
+        <!-- Fake chat bubbles -->
+        <View
+            android:id="@+id/previewUserBubble"
+            android:layout_width="50pt"
+            android:layout_height="14pt"
+            android:layout_gravity="end"
+            android:layout_marginBottom="4pt" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="4pt"
+            android:gravity="center_vertical">
+
+            <View
+                android:id="@+id/previewAvatar"
+                android:layout_width="12pt"
+                android:layout_height="12pt"
+                android:layout_marginEnd="4pt" />
+
+            <View
+                android:id="@+id/previewAiBubble"
+                android:layout_width="40pt"
+                android:layout_height="14pt" />
+        </LinearLayout>
+
+        <View
+            android:id="@+id/previewUserBubble2"
+            android:layout_width="35pt"
+            android:layout_height="14pt"
+            android:layout_gravity="end"
+            android:layout_marginBottom="4pt" />
+
+        <!-- Fake input bar -->
+        <View
+            android:id="@+id/previewInputBar"
+            android:layout_width="match_parent"
+            android:layout_height="10pt"
+            android:layout_marginTop="12pt" />
+    </LinearLayout>
+
+    <!-- Selected indicator -->
+    <View
+        android:id="@+id/selectedIndicator"
+        android:layout_width="24pt"
+        android:layout_height="3pt"
+        android:layout_marginTop="6pt"
+        android:visibility="invisible" />
+
+    <!-- Theme name -->
+    <TextView
+        android:id="@+id/tvThemeName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:paddingTop="4pt"
+        android:textColor="@color/colorTextSecondary"
+        android:textSize="11pt" />
+</LinearLayout>

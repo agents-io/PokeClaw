@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/floatRoot"
+    android:layout_width="56pt"
+    android:layout_height="56pt">
+
+    <!-- 任务通知状态（胶囊展开，短暂显示后自动收回） -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardTaskNotify"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        app:cardCornerRadius="28pt"
+        app:cardElevation="4pt"
+        app:cardBackgroundColor="@color/colorBrandPrimary"
+        android:visibility="gone">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingStart="16pt"
+            android:paddingEnd="18pt">
+
+            <ImageView
+                android:id="@+id/ivNotifyChannelLogo"
+                android:layout_width="20pt"
+                android:layout_height="20pt"
+                android:contentDescription="@string/cd_channel_logo"
+                android:src="@drawable/ic_launcher"
+                android:scaleType="centerCrop" />
+
+            <TextView
+                android:id="@+id/tvTaskNotify"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8pt"
+                android:text=""
+                android:textColor="@color/colorBrandOnPrimary"
+                android:textSize="12pt"
+                android:maxWidth="200pt"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+        </LinearLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 等待任务状态（默认） -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardIdle"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:cardCornerRadius="28pt"
+        app:cardElevation="4pt"
+        app:cardBackgroundColor="@color/colorBrandPrimary">
+
+        <TextView
+            android:id="@+id/tvFloatTextIdle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:text="@string/floating_ai_label"
+            android:textColor="@color/colorBrandOnPrimary"
+            android:textSize="16pt"
+            android:textStyle="bold" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 任务执行中状态 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardRunning"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:cardCornerRadius="28pt"
+        app:cardElevation="4pt"
+        app:cardBackgroundColor="@color/colorBrandPrimary"
+        android:visibility="gone">
+
+        <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <!-- 旋转的进度环 -->
+            <ProgressBar
+                android:id="@+id/progressRunning"
+                android:layout_width="56pt"
+                android:layout_height="56pt"
+                android:layout_gravity="center"
+                android:indeterminate="true"
+                android:indeterminateTint="@color/colorBrandOnPrimary"
+                style="@style/Widget.AppCompat.ProgressBar" />
+
+            <!-- 渠道 Logo -->
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivChannelLogo"
+                android:layout_width="20pt"
+                android:layout_height="20pt"
+                android:layout_gravity="top|center_horizontal"
+                android:layout_marginTop="12pt"
+                android:contentDescription="@string/cd_channel_logo"
+                android:src="@drawable/ic_launcher"
+                android:scaleType="centerCrop"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.Launcher.Circle" />
+
+            <!-- 轮数显示 -->
+            <TextView
+                android:id="@+id/tvRound"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center|bottom"
+                android:layout_marginBottom="8pt"
+                android:text="1"
+                android:textColor="@color/colorBrandOnPrimary"
+                android:textSize="10pt"
+                android:textStyle="bold" />
+
+        </FrameLayout>
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 任务完成状态 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardSuccess"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:cardCornerRadius="28pt"
+        app:cardElevation="4pt"
+        app:cardBackgroundColor="@color/colorSuccessPrimary"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="32pt"
+            android:layout_height="32pt"
+            android:layout_gravity="center"
+            android:contentDescription="@string/cd_task_success"
+            android:src="@drawable/ic_check"
+            app:tint="@color/colorBrandOnPrimary" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+    <!-- 任务失败状态 -->
+    <com.google.android.material.card.MaterialCardView
+        android:id="@+id/cardError"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:cardCornerRadius="28pt"
+        app:cardElevation="4pt"
+        app:cardBackgroundColor="@color/colorErrorPrimary"
+        android:visibility="gone">
+
+        <ImageView
+            android:layout_width="32pt"
+            android:layout_height="32pt"
+            android:layout_gravity="center"
+            android:contentDescription="@string/cd_task_error"
+            android:src="@drawable/ic_close"
+            app:tint="@color/colorErrorOnPrimary" />
+
+    </com.google.android.material.card.MaterialCardView>
+
+</FrameLayout>
