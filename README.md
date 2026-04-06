@@ -106,7 +106,7 @@ The LLM has access to these tools and picks them autonomously:
 
 ## Download
 
-[**Download APK (v0.1.0)**](https://github.com/agents-io/PokeClaw/releases/latest)
+[**Download APK (v0.2.0)**](https://github.com/agents-io/PokeClaw/releases/latest)
 
 ### Requirements
 
@@ -141,6 +141,15 @@ That said, there are a LOT of issues. That's expected for something this new. If
 - 🍴 **[Fork it](https://github.com/agents-io/PokeClaw/fork)** and build on it
 
 Every issue makes this better. Every star helps more people find it.
+
+## Changelog
+
+### v0.2.0 (2026-04-06)
+- **Auto-reply now reads conversation context.** Before replying, the AI opens the chatroom and reads all visible messages on screen. It no longer forgets what was said 3 messages ago.
+- **In-app update checker.** The app checks GitHub Releases once per day and prompts you to download if a newer version exists. No more manually checking.
+
+### v0.1.0 (2026-04-04)
+- Initial release. On-device Gemma 4 E2B with tool calling, accessibility-based phone control, auto-reply, task mode.
 
 ## Acknowledgments
 

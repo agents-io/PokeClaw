@@ -49,11 +49,15 @@ public class ClawAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        // Debug: log notification events from messaging apps
+        if (event != null && event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
+            XLog.d(TAG, "Notification event from: " + event.getPackageName());
+        }
         // Auto-reply: check incoming messaging notifications
         try {
             AutoReplyManager.getInstance().onAccessibilityEvent(event);
         } catch (Exception e) {
-            // Never crash the accessibility service
+            XLog.e(TAG, "AutoReplyManager error in onAccessibilityEvent", e);
         }
     }
 

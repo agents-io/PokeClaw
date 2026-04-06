@@ -79,6 +79,9 @@ class ComposeChatActivity : ComponentActivity() {
         // Hide floating circle
         try { FloatingCircleManager.hide() } catch (_: Exception) {}
 
+        // Check for updates
+        io.agents.pokeclaw.utils.UpdateChecker.checkForUpdate(this)
+
         // Status bar color
         val themeColors = ThemeManager.getColors()
         window.statusBarColor = themeColors.toolbarBg

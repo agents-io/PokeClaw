@@ -52,6 +52,8 @@ public class AutoReplyManager {
     // Track our own sent messages to avoid replying to ourselves
     private final Set<String> ownSentMessages = new HashSet<>();
 
+
+
     // For content change detection (chatroom open)
     private long lastContentChangeCheck = 0;
     private String lastProcessedFingerprint = "";
@@ -187,8 +189,50 @@ public class AutoReplyManager {
 
         executor.submit(() -> {
             try {
-                // Read conversation context from screen (last 5-10 messages)
+                // Open the messaging app and navigate to the contact's chat
+                ClawAccessibilityService svc = ClawAccessibilityService.getInstance();
+                if (svc == null) {
+                    XLog.e(TAG, "No accessibility service, cannot open chat");
+                    return;
+                }
+
+                svc.openApp(packageName);
+                Thread.sleep(2000);
+
+                // Find and tap the contact to open their chatroom
+                AccessibilityNodeInfo root = svc.getRootInActiveWindow();
+                if (root != null) {
+                    // Check if already in the right chat (contact name in toolbar)
+                    boolean inChat = false;
+                    List<AccessibilityNodeInfo> topNodes = new ArrayList<>();
+                    collectTopBarNodes(root, topNodes);
+                    for (AccessibilityNodeInfo node : topNodes) {
+                        CharSequence t = node.getText();
+                        if (t != null && t.toString().toLowerCase().contains(finalContact.toLowerCase())) {
+                            inChat = true;
+                            break;
+                        }
+                    }
+
+                    if (!inChat) {
+                        // Not in chat — find contact in chat list and tap
+                        List<AccessibilityNodeInfo> matches = new ArrayList<>();
+                        findNodesContainingText(root, finalContact.toLowerCase(), matches);
+                        if (!matches.isEmpty()) {
+                            svc.clickNode(matches.get(0));
+                            XLog.i(TAG, "Tapped contact: " + finalContact);
+                            Thread.sleep(2000);
+                        } else {
+                            XLog.w(TAG, "Could not find " + finalContact + " in chat list");
+                        }
+                    } else {
+                        XLog.i(TAG, "Already in " + finalContact + "'s chat");
+                    }
+                }
+
+                // NOW read conversation context — chat is visible on screen
                 String context = readConversationContext();
+                XLog.i(TAG, "Context before reply: " + (context.isEmpty() ? "(empty)" : context.length() + " chars"));
 
                 // Generate reply with full context
                 String reply = generateReply(finalContact, incomingMessage, context);
@@ -196,9 +240,7 @@ public class AutoReplyManager {
                 // Track our own message to avoid loop
                 ownSentMessages.add(reply);
 
-                // Check if we're already in the chatroom (content change path)
-                // If so, just type and send directly — much faster
-                ClawAccessibilityService svc = ClawAccessibilityService.getInstance();
+                // We're already in the chatroom from the navigate step above
                 ToolResult result;
 
                 if (svc != null && isInChatroom(svc, finalContact)) {
@@ -446,6 +488,35 @@ public class AutoReplyManager {
         } catch (Exception e) {
             XLog.e(TAG, "typeAndSendInOpenChat failed", e);
             return ToolResult.error("Failed: " + e.getMessage());
+        }
+    }
+
+    /** Collect text nodes in top 300px (toolbar area) */
+    private void collectTopBarNodes(AccessibilityNodeInfo node, List<AccessibilityNodeInfo> result) {
+        if (node == null) return;
+        android.graphics.Rect bounds = new android.graphics.Rect();
+        node.getBoundsInScreen(bounds);
+        if (bounds.top < 300 && node.getText() != null) {
+            result.add(node);
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) collectTopBarNodes(child, result);
+        }
+    }
+
+    /** Recursively find nodes whose text or contentDescription contains target */
+    private void findNodesContainingText(AccessibilityNodeInfo node, String lowerTarget, List<AccessibilityNodeInfo> results) {
+        if (node == null) return;
+        CharSequence text = node.getText();
+        CharSequence desc = node.getContentDescription();
+        if ((text != null && text.toString().toLowerCase().contains(lowerTarget)) ||
+            (desc != null && desc.toString().toLowerCase().contains(lowerTarget))) {
+            results.add(node);
+        }
+        for (int i = 0; i < node.getChildCount(); i++) {
+            AccessibilityNodeInfo child = node.getChild(i);
+            if (child != null) findNodesContainingText(child, lowerTarget, results);
         }
     }
 
