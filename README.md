@@ -11,7 +11,7 @@
 
 https://github.com/user-attachments/assets/c713e227-7581-4475-acd4-0480128c8ec8
 
-
+> **☝️ Auto-reply demo:** PokeClaw monitors messages from Mom, reads what she said, and replies based on context using the on-device LLM. The video is a bit blurry because I compressed it too hard. I'll upload a clearer version after I wake up. Bear with me lol
 
 https://github.com/user-attachments/assets/18d49148-c744-46a5-98a2-0f8320f00d19
 
