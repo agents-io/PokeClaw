@@ -19,8 +19,6 @@ As far as I know, this is the first working app built on Gemma 4 that can autono
 The entire pipeline is a closed loop inside your device. The model reads the screen, picks a tool, executes, reads the result, loops. Nothing leaves.
 
 
-**AI controls your phone. And it never leaves your phone.**
-
 ```
 Everyone else:  Phone → Internet → Cloud API → Internet → Phone
                        💳 API key required. Monthly bill attached.
@@ -28,7 +26,7 @@ Everyone else:  Phone → Internet → Cloud API → Internet → Phone
 PokeClaw:       Phone → LLM → Phone
                        That's it. No internet. No API key. No bill.
 ```
-
+**AI controls your phone. And it never leaves your phone.**
 
 https://github.com/user-attachments/assets/c713e227-7581-4475-acd4-0480128c8ec8
 
