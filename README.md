@@ -140,7 +140,7 @@ As on-device models get smarter, the skills become less necessary. A future 7B o
 
 ## Download
 
-[**Download APK (v0.2.0)**](https://github.com/agents-io/PokeClaw/releases/latest)
+[**Download APK (v0.2.4)**](https://github.com/agents-io/PokeClaw/releases/latest)
 
 ### Requirements
 
@@ -177,6 +177,13 @@ That said, there are a LOT of issues. That's expected for something this new. If
 Every issue makes this better. Every star helps more people find it.
 
 ## Changelog
+
+### v0.2.4 (2026-04-06)
+- **Task tab redesigned with skill cards.** No more typing free-form commands that Gemma misunderstands. Two skill cards with fill-in-the-blank forms: "Monitor [name] on [WhatsApp]" and "Send [message] to [name] on [WhatsApp]".
+- **Java skill routing.** Monitor and send-message tasks bypass the LLM entirely. Instant activation, zero warmup.
+- **Progress bar on skill activation.** Card fills up and turns orange when active. You know exactly when monitoring starts.
+- **Custom tasks disabled for on-device models.** Gemma is not smart enough to route free-form tasks to the right skill. Switch to a cloud LLM in Settings to unlock the text input.
+- **Tasks stay in-app.** Starting a task no longer jumps to the home screen. You see progress in PokeClaw, then it goes to background when ready.
 
 ### v0.2.0 (2026-04-06)
 - **Auto-reply now reads conversation context.** Before replying, the AI opens the chatroom and reads all visible messages on screen. It no longer forgets what was said 3 messages ago.
