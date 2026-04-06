@@ -39,8 +39,8 @@ android {
         applicationId = "io.agents.pokeclaw"
         minSdk = 28
         targetSdk = 36
-        versionCode = 4
-        versionName = "0.2.0"
+        versionCode = 7
+        versionName = "0.2.3"
         buildConfigField("String", "VERSION_INFO", getVersionGit())
         buildConfigField("String", "APP_ORIGIN", "\"PokeClaw by agents.io | github.com/agents-io/PokeClaw\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
