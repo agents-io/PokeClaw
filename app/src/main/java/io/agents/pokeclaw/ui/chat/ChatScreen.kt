@@ -616,7 +616,7 @@ private fun ChatInputBar(
                 elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
             ) {
                 Icon(
-                    if (isTaskMode) Icons.Outlined.PlayArrow else Icons.Default.ArrowUpward,
+                    if (isTaskMode) Icons.Outlined.TouchApp else Icons.Default.ArrowUpward,
                     contentDescription = "Send",
                     tint = Color.White,
                     modifier = Modifier.size(18.dp),
