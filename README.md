@@ -34,9 +34,14 @@ If it works on your device, amazing. If it breaks, Issues and fix proposals are 
 
 https://github.com/user-attachments/assets/5a43d4d5-458a-4eea-a0a5-58d113255741
 
+https://github.com/user-attachments/assets/5c2966c5-04e6-4b22-8d66-11915ae62096
 > **☝️ Auto-reply demo:** PokeClaw monitors messages from Mom, reads what she said, and replies based on context using the on-device LLM. [Watch in higher resolution on YouTube](https://youtube.com/shorts/Vxpf474chm0)
 
+
 https://github.com/user-attachments/assets/89999dd8-a1be-49ad-9419-60c2b38f6374
+
+
+
 
 
 > **Why is the "hi" demo slow?** Recorded on a budget Android phone (I'm literally too broke to buy a proper one, got this just to demo the app lol) with CPU-only inference, no GPU, no NPU. Running Gemma 4 E2B on pure CPU takes about 45 seconds to warm up — started at several minutes, we optimized the engine initialization and session handoff to squeeze it down this far. If your phone actually has a decent chip it's **way faster**:
