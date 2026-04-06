@@ -34,7 +34,7 @@ If it works on your device, amazing. If it breaks, Issues and fix proposals are 
 
 https://github.com/user-attachments/assets/5a43d4d5-458a-4eea-a0a5-58d113255741
 
-> **☝️ Auto-reply demo:** PokeClaw monitors messages from Mom, reads what she said, and replies based on context using the on-device LLM.
+> **☝️ Auto-reply demo:** PokeClaw monitors messages from Mom, reads what she said, and replies based on context using the on-device LLM. [Watch in higher resolution on YouTube](https://youtube.com/shorts/Vxpf474chm0)
 
 https://github.com/user-attachments/assets/89999dd8-a1be-49ad-9419-60c2b38f6374
 
