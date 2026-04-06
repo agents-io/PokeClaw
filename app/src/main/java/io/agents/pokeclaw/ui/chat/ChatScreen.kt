@@ -639,7 +639,7 @@ private fun ModeTab(
         onClick = onClick,
         modifier = modifier,
         shape = RoundedCornerShape(8.dp),
-        color = if (selected) colors.accent.copy(alpha = 0.12f) else Color.Transparent,
+        color = Color.Transparent,
     ) {
         Row(
             modifier = Modifier.padding(vertical = 5.dp),
