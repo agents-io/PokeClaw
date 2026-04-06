@@ -335,8 +335,9 @@ class ComposeChatActivity : ComponentActivity() {
             loadedModelPath = modelPath
             val modelInfo = LocalModelManager.AVAILABLE_MODELS.find { modelPath.endsWith(it.fileName) }
             val modelName = modelInfo?.displayName ?: modelPath.substringAfterLast('/').substringBeforeLast('.')
+            val backendLabel = if (backend is Backend.CPU) "CPU" else "GPU"
             runOnUiThread {
-                _modelStatus.value = "● $modelName"
+                _modelStatus.value = "● $modelName · $backendLabel"
                 setButtonsEnabled(true)
                 if (_messages.isEmpty()) {
                     _messages.add(ChatMessage(ChatMessage.Role.ASSISTANT,
