@@ -6,7 +6,7 @@
   <img src="option.png" width="600" />
 </p>
 
-# PokeClaw (PocketClaw) - A Pocket Versoin Of OpenClaw
+# PokeClaw (PocketClaw) - A Pocket Versoin Inspired By OpenClaw
 
 Gemma 4 launched days ago.  
 
