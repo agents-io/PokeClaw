@@ -1,11 +1,13 @@
 # PokeClaw
 
 
-https://github.com/user-attachments/assets/6409df29-0013-406d-9037-ada6ee84df3a
+
+https://github.com/user-attachments/assets/c713e227-7581-4475-acd4-0480128c8ec8
 
 
 
-https://github.com/user-attachments/assets/66ceeac0-1226-4d05-8e58-4a2c005d9d6a
+https://github.com/user-attachments/assets/01cffa7a-067f-46d2-ba5a-5d2ea61a9a2d
+
 
 
 Your phone, on autopilot. No cloud, no API keys, no data leaving your device.
