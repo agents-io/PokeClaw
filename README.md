@@ -9,7 +9,9 @@
 # PokeClaw (PocketClaw) - A Pocket Versoin Of OpenClaw
 
 Gemma 4 has only been out for a few days.  
+
 Most people ship demos. I wanted to know if it could actually drive a phone.
+
 So I built one.
 
 As far as I know, this is the first working app built on Gemma 4 that can autonomously control an Android phone.
