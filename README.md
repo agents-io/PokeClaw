@@ -32,7 +32,7 @@ PokeClaw:       Phone → LLM → Phone
 This is a 2-day open-source prototype, not a polished consumer app.
 If it works on your device, amazing. If it breaks, Issues and fix proposals are welcome.
 
-Monitor Girlfriend's whatsapp and auto reply:
+Monitor Girlfriend's whatsapp and auto reply(yea the local llm isnt smart enough to not make gf angry lol):
 
 
 https://github.com/user-attachments/assets/4cb4c2bf-90e1-4391-8e08-9d6113634a41
