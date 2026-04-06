@@ -41,7 +41,9 @@ I'm a solo developer. When Gemma 4 dropped on April 2nd with native tool calling
 
 It's not perfect. Local LLMs are not as smart as cloud models, and there are plenty of rough edges. Hardware is what it is — we can't make your CPU faster. But on the software side, we're actively improving the architecture, the tool system, and the overall design. Cloud LLM support is coming as an optional feature for people who want more power.
 
-On-device models are getting smarter fast. We're hoping it won't be long before local LLMs close the gap with cloud models in reasoning and tool use. When that happens, PokeClaw is ready.
+And it's **completely free**. No API keys that bill you every month. No subscription. No usage limits. The model runs on your hardware and costs you nothing.
+
+We're living through a historic shift. Local LLMs are now smart enough to actually do useful work on a phone. That wasn't true 6 months ago. On-device models are getting smarter fast, and we're hoping it won't be long before they close the gap with cloud models entirely. When that happens, PokeClaw is ready.
 
 **This project has a lot of issues. That's expected. Please [open them](https://github.com/agents-io/PokeClaw/issues).** Every bug report makes this better.
 
