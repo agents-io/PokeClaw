@@ -107,6 +107,18 @@ The LLM has access to these tools and picks them autonomously:
 
 No API keys. No cloud config. No account.
 
+## Help Wanted
+
+This is the first local LLM that can autonomously control a phone. Built in two all-nighters on a model that dropped days ago. It's already pretty impressive that this works at all, and it's only going to get better as on-device models improve.
+
+That said, there are a LOT of issues. That's expected for something this new. If you run into bugs, weird behavior, or have ideas:
+
+- ⭐ **[Star this repo](https://github.com/agents-io/PokeClaw)** if you think local AI phone control matters
+- 🐛 **[Open an issue](https://github.com/agents-io/PokeClaw/issues)** when something breaks (it will)
+- 🍴 **[Fork it](https://github.com/agents-io/PokeClaw/fork)** and build on it
+
+Every issue makes this better. Every star helps more people find it.
+
 ## Acknowledgments
 
 PokeClaw exists because of [Gemma 4](https://blog.google/innovation-and-ai/technology/developers-tools/gemma-4/) by [Google DeepMind](https://github.com/google-deepmind). Thank you to [Clément Farabet](https://github.com/clementfarabet), [Olivier Lacombe](https://github.com/olivierlacombe), and the entire Gemma team for shipping an open model with native tool calling under Apache 2.0. You made it possible for a solo developer to build a working phone agent in two nights. The [LiteRT-LM](https://ai.google.dev/edge/litert/llm/overview) runtime is what makes on-device inference practical.
