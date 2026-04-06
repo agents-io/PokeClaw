@@ -32,10 +32,9 @@ PokeClaw:       Phone → LLM → Phone
 This is a 2-day open-source prototype, not a polished consumer app.
 If it works on your device, amazing. If it breaks, Issues and fix proposals are welcome.
 
+https://youtube.com/shorts/Vxpf474chm0
 
-https://github.com/user-attachments/assets/c713e227-7581-4475-acd4-0480128c8ec8
-
-> **☝️ Auto-reply demo:** PokeClaw monitors messages from Mom, reads what she said, and replies based on context using the on-device LLM. The video is a bit blurry because I compressed it too hard. I've been up for two nights straight building this thing, I'll upload a clearer version after I finally get some sleep. Bear with me lol
+> **☝️ Auto-reply demo:** PokeClaw monitors messages from Mom, reads what she said, and replies based on context using the on-device LLM.
 
 https://github.com/user-attachments/assets/18d49148-c744-46a5-98a2-0f8320f00d19
 
