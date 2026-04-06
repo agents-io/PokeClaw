@@ -35,13 +35,12 @@ If it works on your device, amazing. If it breaks, Issues and fix proposals are 
 https://github.com/user-attachments/assets/5a43d4d5-458a-4eea-a0a5-58d113255741
 
 https://github.com/user-attachments/assets/5c2966c5-04e6-4b22-8d66-11915ae62096
+
 > **☝️ Auto-reply demo:** PokeClaw monitors messages from Mom, reads what she said, and replies based on context using the on-device LLM. [Watch in higher resolution on YouTube](https://youtube.com/shorts/Vxpf474chm0)
 
+> **☝️ Context demo:** Mom asks "what did I tell you to bring?" — the AI opens the chat, reads the full conversation on screen, sees the earlier message about wine, and replies correctly. This is the difference between context-aware and context-free replies.
 
 https://github.com/user-attachments/assets/89999dd8-a1be-49ad-9419-60c2b38f6374
-
-
-
 
 
 > **Why is the "hi" demo slow?** Recorded on a budget Android phone (I'm literally too broke to buy a proper one, got this just to demo the app lol) with CPU-only inference, no GPU, no NPU. Running Gemma 4 E2B on pure CPU takes about 45 seconds to warm up — started at several minutes, we optimized the engine initialization and session handoff to squeeze it down this far. If your phone actually has a decent chip it's **way faster**:
@@ -111,15 +110,24 @@ These tools are generic — they work with any app, any contact, any language. T
 
 ## Tools + Skills
 
-A 2.3B on-device model is not GPT-4. It can follow instructions well, but it's not great at deciding *which* instructions to follow. When you say "send hi to Mom on WhatsApp", the model sometimes enables auto-reply instead of sending a message. It picks the wrong tool.
+A 2.3B on-device model is not GPT-4. It follows instructions well, but it's not great at figuring out *which* tools to use on its own. So we give it a playbook.
 
-The auto-reply feature works reliably because there's a predefined playbook behind it: open the chat → read the conversation on screen → generate a reply → send it → go back to home screen. The model doesn't have to figure out the workflow. It follows the recipe.
+The auto-reply feature is a good example. It doesn't work by magic — there's a predefined workflow behind it: open the chat → read all visible messages on screen → generate a context-aware reply → send it → go back to home. The model follows this recipe step by step. Every tool in that chain is generic: `open_app` works with any app, `read_screen` works on any screen, `send_message` works with any contact. The workflow just tells the model which tools to use and in what order.
 
-We're building this into a general system called **Skills** — predefined workflows that chain multiple tools together, similar to [Claude Code's skill system](https://docs.anthropic.com/en/docs/claude-code/skills). Each skill defines what tools to use, in what order, with what parameters. The LLM's job is to follow the playbook, not improvise.
+This is what we're calling **Skills** — reusable workflows built from generic tools. We're actively designing a skill system inspired by [Claude Code's skill architecture](https://docs.anthropic.com/en/docs/claude-code/skills). The idea: anyone can write a skill as a simple text file that describes the steps, and the LLM follows it.
 
-With enough generic tools and well-designed skills, the model can handle complex multi-step tasks: catch a notification → open an email → read it → draft a reply → attach a file → send it. The tools do the heavy lifting, the skill defines the workflow, the LLM connects the dots.
+Some examples of what skills can do:
 
-The tools and skills are both extensible. As on-device models get smarter, the skills become less necessary — the model will eventually figure out the right workflow on its own. Until then, skills are how we get reliable automation out of a small local model.
+- **Auto-reply**: monitor notifications → open chat → read conversation → generate reply → send
+- **Morning briefing**: open weather app → read temperature → open calendar → read today's events → open email → count unread → summarize everything
+- **Smart forward**: catch a notification → open the message → read it → forward to another contact with a summary
+- **Auto-booking**: open a booking app → search for a time slot → fill in details → confirm
+
+Each skill is just a combination of the same generic tools (`open_app`, `tap`, `type`, `read_screen`, `send_message`, etc.) arranged in a specific order. The tools are the building blocks, the skills are the recipes.
+
+Both are designed to be extensible. We're building the first 8-10 skills as built-in defaults. If the system works well, we'll open it up for the community to create and share their own tools and skills. You know your phone better than we do — you should be able to teach it new tricks.
+
+As on-device models get smarter, the skills become less necessary. A future 7B or 13B model might figure out the right workflow on its own. Until then, skills are how we get reliable automation out of a small local model. Think of it as training wheels that the model will eventually outgrow.
 
 🌐 **Landing Page:** https://agents-io.github.io/PokeClaw/
 

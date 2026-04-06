@@ -261,11 +261,11 @@ public class AutoReplyManager {
                     XLog.i(TAG, "Auto-reply sent to " + finalContact + ": '" + reply + "'");
                     lastReplyTime.put(senderLower, System.currentTimeMillis());
 
-                    // Press Home after reply so next message arrives as a notification
-                    // (not a content change). This avoids false positives from scrolling,
-                    // deleting, etc. in open chatrooms.
+                    // Wait for WhatsApp to mark messages as read and clear its notification.
+                    // We're still in the chatroom — WhatsApp clears notifications when
+                    // the chat is visible. If we press Home too fast, it doesn't have time.
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(2000);
                         ClawAccessibilityService homeSvc = ClawAccessibilityService.getInstance();
                         if (homeSvc != null) {
                             homeSvc.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_HOME);
