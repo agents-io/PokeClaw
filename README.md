@@ -30,7 +30,7 @@ PokeClaw:       Phone → LLM → Phone
 **AI controls your phone. And it never leaves your phone.**
 
 This is a 2-day open-source prototype, not a polished consumer app.
-If it works on your device, amazing. If it breaks, PRs are welcome.
+If it works on your device, amazing. If it breaks, Issues are welcome.
 
 
 https://github.com/user-attachments/assets/c713e227-7581-4475-acd4-0480128c8ec8
