@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokeClaw</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f5f5f7;
+  color: #1d1d1f;
+  min-height: 100vh;
+  padding: 24px 16px;
+}
+.container { max-width: 520px; margin: 0 auto; }
+h1 {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #5856D6;
+}
+.subtitle {
+  text-align: center;
+  font-size: 14px;
+  color: #86868b;
+  margin-bottom: 32px;
+}
+.card {
+  background: #fff;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+.card-title {
+  font-size: 17px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-title .dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.dingtalk .dot { background: #3370FF; }
+.feishu .dot { background: #00D6B9; }
+.qq .dot { background: #12B7F5; }
+.discord .dot { background: #5865F2; }
+.telegram .dot { background: #26A5E4; }
+.llm .dot { background: #34C759; }
+.field { margin-bottom: 16px; }
+.field:last-child { margin-bottom: 0; }
+label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #86868b;
+  margin-bottom: 6px;
+}
+input[type="text"], input[type="password"] {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid #e5e5ea;
+  border-radius: 10px;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #fafafa;
+}
+.input-wrap input {
+  padding-right: 42px;
+}
+input:focus {
+  border-color: #5856D6;
+  background: #fff;
+}
+.input-wrap {
+  position: relative;
+}
+.toggle-eye {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+  border: none;
+  background: none;
+  padding: 0;
+}
+.toggle-eye:hover { opacity: 0.7; }
+.toggle-eye svg { width: 100%; height: 100%; }
+.btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  color: #fff;
+  background: #5856D6;
+}
+.btn:hover { opacity: 0.9; }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-80px);
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  z-index: 9999;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { background: #34C759; }
+.toast.error { background: #FF3B30; }
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #86868b;
+  font-size: 15px;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 data-i18n="title"></h1>
+  <p class="subtitle" data-i18n="subtitle"></p>
+
+  <div id="loading" class="loading" data-i18n="loading"></div>
+
+  <div id="content" style="display:none">
+    <div class="card llm">
+      <div class="card-title"><span class="dot"></span><span data-i18n="llm_title"></span></div>
+      <div class="field">
+        <label data-i18n="llm_api_key"></label>
+        <div class="input-wrap">
+          <input type="password" id="llmApiKey" data-i18n-placeholder="ph_llm_api_key" autocomplete="off">
+          <button class="toggle-eye" onclick="togglePassword('llmApiKey', this)" data-i18n-title="toggle_visibility"></button>
+        </div>
+      </div>
+      <div class="field">
+        <label data-i18n="llm_base_url"></label>
+        <input type="text" id="llmBaseUrl" data-i18n-placeholder="ph_llm_base_url" autocomplete="off">
+      </div>
+      <div class="field">
+        <label data-i18n="llm_model_name"></label>
+        <input type="text" id="llmModelName" data-i18n-placeholder="ph_llm_model" autocomplete="off">
+      </div>
+      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="llm_tip"></p>
+    </div>
+
+    <div class="card dingtalk">
+      <div class="card-title"><span class="dot"></span><span data-i18n="dingtalk"></span></div>
+      <div class="field">
+        <label>Client ID</label>
+        <input type="text" id="dingtalkAppKey" data-i18n-placeholder="ph_dingtalk_id" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>Client Secret</label>
+        <div class="input-wrap">
+          <input type="password" id="dingtalkAppSecret" data-i18n-placeholder="ph_dingtalk_secret" autocomplete="off">
+          <button class="toggle-eye" onclick="togglePassword('dingtalkAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card feishu">
+      <div class="card-title"><span class="dot"></span><span data-i18n="feishu"></span></div>
+      <div class="field">
+        <label>App ID</label>
+        <input type="text" id="feishuAppId" data-i18n-placeholder="ph_feishu_id" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>App Secret</label>
+        <div class="input-wrap">
+          <input type="password" id="feishuAppSecret" data-i18n-placeholder="ph_feishu_secret" autocomplete="off">
+          <button class="toggle-eye" onclick="togglePassword('feishuAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card qq">
+      <div class="card-title"><span class="dot"></span>QQ</div>
+      <div class="field">
+        <label>App ID</label>
+        <input type="text" id="qqAppId" data-i18n-placeholder="ph_qq_id" autocomplete="off">
+      </div>
+      <div class="field">
+        <label>App Secret</label>
+        <div class="input-wrap">
+          <input type="password" id="qqAppSecret" data-i18n-placeholder="ph_qq_secret" autocomplete="off">
+          <button class="toggle-eye" onclick="togglePassword('qqAppSecret', this)" data-i18n-title="toggle_visibility"></button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card discord">
+      <div class="card-title"><span class="dot"></span>Discord</div>
+      <div class="field">
+        <label>Bot Token</label>
+        <div class="input-wrap">
+          <input type="password" id="discordBotToken" data-i18n-placeholder="ph_discord_token" autocomplete="off">
+          <button class="toggle-eye" onclick="togglePassword('discordBotToken', this)" data-i18n-title="toggle_visibility"></button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="discord_tip"></p>
+    </div>
+
+    <div class="card telegram">
+      <div class="card-title"><span class="dot"></span>Telegram</div>
+      <div class="field">
+        <label>Bot Token</label>
+        <div class="input-wrap">
+          <input type="password" id="telegramBotToken" data-i18n-placeholder="ph_telegram_token" autocomplete="off">
+          <button class="toggle-eye" onclick="togglePassword('telegramBotToken', this)" data-i18n-title="toggle_visibility"></button>
+        </div>
+      </div>
+      <p style="font-size:12px;color:#86868b;margin-top:8px;" data-i18n="telegram_tip"></p>
+    </div>
+
+    <button class="btn" id="saveBtn" onclick="save()" data-i18n="save_btn"></button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ====== i18n ======
+const i18nMessages = {
+  'zh': {
+    title: 'PokeClaw 配置',
+    subtitle: '在此页面配置 LLM 与钉钉、飞书、QQ、Discord、Telegram 的应用凭证',
+    loading: '加载中...',
+    llm_title: 'LLM 配置',
+    llm_api_key: 'API Key',
+    llm_base_url: 'Base URL',
+    llm_model_name: '模型名称',
+    ph_llm_api_key: '如 sk-xxx（留空表示不修改）',
+    ph_llm_base_url: '如 https://api.openai.com/v1（留空使用默认）',
+    ph_llm_model: '如 gpt-4o、gpt-4o-mini',
+    llm_tip: 'API Key 仅保存在设备本地，可通过设置 → LLM 配置 在应用内修改',
+    load_failed: '加载失败，请检查连接',
+    dingtalk: '钉钉',
+    feishu: '飞书',
+    ph_dingtalk_id: '输入 Client ID',
+    ph_dingtalk_secret: '输入 Client Secret',
+    ph_feishu_id: '输入 App ID',
+    ph_feishu_secret: '输入 App Secret',
+    ph_qq_id: '输入 QQ 机器人 App ID',
+    ph_qq_secret: '输入 App Secret',
+    ph_discord_token: '输入 Discord Bot Token',
+    discord_tip: '需在 Discord Developer Portal 开启 Message Content Intent',
+    ph_telegram_token: '输入 Telegram Bot Token',
+    telegram_tip: '通过 @BotFather 创建 Bot 并获取 Token',
+    toggle_visibility: '显示/隐藏',
+    save_btn: '保存配置',
+    saving: '保存中...',
+    save_success: '配置已保存，通道将自动重连',
+    save_failed: '保存失败',
+    unknown_error: '未知错误',
+  },
+  'en': {
+    title: 'PokeClaw Config',
+    subtitle: 'Configure LLM and credentials for DingTalk, Feishu, QQ, Discord, Telegram',
+    loading: 'Loading...',
+    llm_title: 'LLM Config',
+    llm_api_key: 'API Key',
+    llm_base_url: 'Base URL',
+    llm_model_name: 'Model Name',
+    ph_llm_api_key: 'e.g. sk-xxx (leave empty to keep current)',
+    ph_llm_base_url: 'e.g. https://api.openai.com/v1 (empty = default)',
+    ph_llm_model: 'e.g. gpt-4o, gpt-4o-mini',
+    llm_tip: 'API Key is stored locally only. You can also edit in Settings → LLM Config',
+    load_failed: 'Failed to load, please check connection',
+    dingtalk: 'DingTalk',
+    feishu: 'Feishu (Lark)',
+    ph_dingtalk_id: 'Enter Client ID',
+    ph_dingtalk_secret: 'Enter Client Secret',
+    ph_feishu_id: 'Enter App ID',
+    ph_feishu_secret: 'Enter App Secret',
+    ph_qq_id: 'Enter QQ Bot App ID',
+    ph_qq_secret: 'Enter App Secret',
+    ph_discord_token: 'Enter Discord Bot Token',
+    discord_tip: 'Enable Message Content Intent in Discord Developer Portal',
+    ph_telegram_token: 'Enter Telegram Bot Token',
+    telegram_tip: 'Create a bot via @BotFather and get the token',
+    toggle_visibility: 'Show/Hide',
+    save_btn: 'Save',
+    saving: 'Saving...',
+    save_success: 'Saved. Channels will reconnect automatically.',
+    save_failed: 'Save failed',
+    unknown_error: 'Unknown error',
+  },
+  'ja': {
+    title: 'PokeClaw 設定',
+    subtitle: 'LLM と DingTalk、Feishu、QQ、Discord、Telegram の資格情報を設定',
+    loading: '読み込み中...',
+    llm_title: 'LLM 設定',
+    llm_api_key: 'API Key',
+    llm_base_url: 'Base URL',
+    llm_model_name: 'モデル名',
+    ph_llm_api_key: '例: sk-xxx（空欄で現状維持）',
+    ph_llm_base_url: '例: https://api.openai.com/v1（空欄でデフォルト）',
+    ph_llm_model: '例: gpt-4o、gpt-4o-mini',
+    llm_tip: 'API Key は端末内にのみ保存されます。設定 → LLM 設定 からも変更可能',
+    load_failed: '読み込みに失敗しました。接続を確認してください',
+    dingtalk: 'DingTalk',
+    feishu: 'Feishu (Lark)',
+    ph_dingtalk_id: 'Client ID を入力',
+    ph_dingtalk_secret: 'Client Secret を入力',
+    ph_feishu_id: 'App ID を入力',
+    ph_feishu_secret: 'App Secret を入力',
+    ph_qq_id: 'QQ ボット App ID を入力',
+    ph_qq_secret: 'App Secret を入力',
+    ph_discord_token: 'Discord Bot Token を入力',
+    discord_tip: 'Discord Developer Portal で Message Content Intent を有効にしてください',
+    ph_telegram_token: 'Telegram Bot Token を入力',
+    telegram_tip: '@BotFather で Bot を作成して Token を取得してください',
+    toggle_visibility: '表示/非表示',
+    save_btn: '保存',
+    saving: '保存中...',
+    save_success: '設定を保存しました。チャネルは自動的に再接続されます。',
+    save_failed: '保存に失敗しました',
+    unknown_error: '不明なエラー',
+  },
+};
+
+function detectLang() {
+  const lang = (navigator.language || navigator.userLanguage || 'en').toLowerCase();
+  if (lang.startsWith('zh')) return 'zh';
+  if (lang.startsWith('ja')) return 'ja';
+  return 'en';
+}
+
+const currentLang = detectLang();
+const t = (key) => (i18nMessages[currentLang] || i18nMessages['en'])[key] || i18nMessages['en'][key] || key;
+
+function applyI18n() {
+  document.documentElement.lang = currentLang === 'zh' ? 'zh-CN' : currentLang;
+  document.title = t('title');
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.dataset.i18nTitle);
+  });
+}
+
+applyI18n();
+
+// ====== Icons ======
+const eyeOpen = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+const eyeClosed = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>';
+
+document.querySelectorAll('.toggle-eye').forEach(btn => { btn.innerHTML = eyeClosed; });
+
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (input.type === 'password') {
+    input.type = 'text';
+    btn.innerHTML = eyeOpen;
+  } else {
+    input.type = 'password';
+    btn.innerHTML = eyeClosed;
+  }
+}
+
+// ====== API ======
+const fields = ['dingtalkAppKey', 'dingtalkAppSecret', 'feishuAppId', 'feishuAppSecret', 'qqAppId', 'qqAppSecret', 'discordBotToken', 'telegramBotToken'];
+const llmFields = ['llmApiKey', 'llmBaseUrl', 'llmModelName'];
+
+async function load() {
+  try {
+    const [chanRes, llmRes] = await Promise.all([fetch('/api/channels'), fetch('/api/llm')]);
+    const chanJson = await chanRes.json();
+    const llmJson = await llmRes.json();
+    if (chanJson.code === 0 && chanJson.data) {
+      fields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el && chanJson.data[f]) el.value = chanJson.data[f];
+      });
+    }
+    if (llmJson.code === 0 && llmJson.data) {
+      llmFields.forEach(f => {
+        const el = document.getElementById(f);
+        if (el && llmJson.data[f] !== undefined) el.value = llmJson.data[f] || '';
+      });
+    }
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('content').style.display = 'block';
+  } catch (e) {
+    document.getElementById('loading').textContent = t('load_failed');
+  }
+}
+
+async function save() {
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  btn.textContent = t('saving');
+  try {
+    const chanBody = {};
+    fields.forEach(f => {
+      const el = document.getElementById(f);
+      if (el) chanBody[f] = el.value.trim();
+    });
+    const llmBody = {};
+    llmFields.forEach(f => {
+      const el = document.getElementById(f);
+      if (el) llmBody[f] = el.value.trim();
+    });
+    const [chanRes, llmRes] = await Promise.all([
+      fetch('/api/channels', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(chanBody) }),
+      fetch('/api/llm', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(llmBody) })
+    ]);
+    const chanJson = await chanRes.json();
+    const llmJson = await llmRes.json();
+    if (chanJson.code === 0 && llmJson.code === 0) {
+      showToast(t('save_success'), 'success');
+      setTimeout(load, 500);
+    } else {
+      const msg = chanJson.code !== 0 ? chanJson.message : llmJson.message;
+      showToast(t('save_failed') + ': ' + (msg || t('unknown_error')), 'error');
+    }
+  } catch (e) {
+    showToast(t('save_failed') + ': ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = t('save_btn');
+  }
+}
+
+function showToast(msg, type) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast ' + type;
+  requestAnimationFrame(() => { el.classList.add('show'); });
+  setTimeout(() => { el.classList.remove('show'); }, 2500);
+}
+
+load();
+</script>
+</body>
+</html>

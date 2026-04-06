@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBgPrimary"
+    android:orientation="vertical">
+
+    <!-- Toolbar -->
+    <io.agents.pokeclaw.widget.CommonToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="44pt" />
+
+    <!-- 滚动内容 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingVertical="8pt">
+
+            <!-- 权限分组 -->
+            <io.agents.pokeclaw.widget.MenuGroup
+                android:id="@+id/permissionsGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8pt" />
+
+            <!-- 模型分组 -->
+            <io.agents.pokeclaw.widget.MenuGroup
+                android:id="@+id/modelGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- Appearance -->
+            <io.agents.pokeclaw.widget.MenuGroup
+                android:id="@+id/appearanceGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- Tools -->
+            <io.agents.pokeclaw.widget.MenuGroup
+                android:id="@+id/toolsGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- Remote Control -->
+            <io.agents.pokeclaw.widget.MenuGroup
+                android:id="@+id/remoteGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- About -->
+            <io.agents.pokeclaw.widget.MenuGroup
+                android:id="@+id/aboutGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <!-- 通道分组 (hidden) -->
+            <io.agents.pokeclaw.widget.MenuGroup
+                android:id="@+id/channelGroup"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:visibility="gone" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="24pt"/>
+
+        </LinearLayout>
+
+    </ScrollView>
+
+</LinearLayout>

@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokeClaw — Interactive</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #08080a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Theme selector */
+.theme-picker {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 100;
+}
+.theme-picker button {
+  padding: 6px 14px;
+  border-radius: 16px;
+  border: 1px solid #333;
+  background: #1a1a1a;
+  color: #aaa;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.theme-picker button.active {
+  background: #333;
+  color: #fff;
+  border-color: #555;
+}
+.theme-picker button:hover { border-color: #555; }
+
+/* ========== PHONE ========== */
+.phone {
+  width: 390px;
+  height: 844px;
+  border-radius: 44px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  transition: background 0.3s, color 0.3s;
+}
+
+/* ========== SIDEBAR ========== */
+.sidebar {
+  position: absolute;
+  top: 0; left: 0;
+  width: 300px;
+  height: 100%;
+  z-index: 50;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  border-radius: 44px 0 0 44px;
+  overflow: hidden;
+}
+.sidebar.open { transform: translateX(0); }
+
+.sidebar-overlay {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 40;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.28s;
+}
+.sidebar-overlay.show { opacity: 1; pointer-events: auto; }
+
+.sidebar-header {
+  padding: 60px 20px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-header .logo { font-size: 18px; font-weight: 700; }
+.sidebar-header button {
+  background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.5;
+}
+
+.sidebar-new {
+  margin: 0 14px 12px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.15s;
+}
+
+.sidebar-section {
+  padding: 0 14px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.35;
+}
+
+.sidebar-item {
+  padding: 10px 20px;
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: background 0.12s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sidebar-item:hover { opacity: 0.8; }
+.sidebar-item.active { font-weight: 600; }
+.sidebar-item .icon { font-size: 16px; opacity: 0.5; width: 20px; text-align: center; }
+
+.sidebar-items { flex: 1; overflow-y: auto; }
+.sidebar-items::-webkit-scrollbar { width: 0; }
+
+.sidebar-bottom {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.sidebar-bottom-item {
+  padding: 10px 8px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 8px;
+  transition: background 0.12s;
+}
+.sidebar-bottom-item .icon { font-size: 16px; opacity: 0.5; }
+
+/* ========== MAIN CONTENT ========== */
+.sb { height: 54px; padding: 14px 20px 0; display: flex; justify-content: space-between; align-items: center; font-size: 15px; font-weight: 600; flex-shrink: 0; }
+.sb .m { font-size: 12px; opacity: 0.35; }
+
+.tb { height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.tb .left { display: flex; align-items: center; gap: 12px; }
+.tb .menu-btn { background: none; border: none; font-size: 22px; cursor: pointer; opacity: 0.8; padding: 4px; color: inherit; }
+.tb .t { font-size: 17px; font-weight: 700; letter-spacing: -0.3px; }
+.tb .ac { display: flex; gap: 14px; }
+.tb .ac button { background: none; border: none; font-size: 20px; cursor: pointer; opacity: 0.45; }
+
+.dv { height: 1px; flex-shrink: 0; opacity: 0.15; }
+
+.ct { flex: 1; overflow-y: auto; padding: 10px 16px; display: flex; flex-direction: column; gap: 3px; }
+.ct::-webkit-scrollbar { width: 0; }
+
+.mr { display: flex; align-items: flex-end; gap: 8px; margin-bottom: 2px; }
+.mr.u { justify-content: flex-end; }
+.mr.a { justify-content: flex-start; }
+
+.av { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; margin-bottom: 2px; }
+
+.mg { max-width: 75%; padding: 9px 14px; font-size: 15px; line-height: 1.45; }
+.mr.u .mg { border-radius: 18px 18px 4px 18px; }
+.mr.a .mg { border-radius: 18px 18px 18px 4px; }
+
+.ms { text-align: center; font-size: 12px; padding: 8px 0 4px; opacity: 0.3; }
+
+.tg { align-self: flex-start; margin: 3px 0 3px 36px; }
+.ti { display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 2px 0; opacity: 0.45; }
+.ti .d { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+
+.th { display: inline-flex; gap: 3px; padding: 5px 0; }
+.th span { width: 5px; height: 5px; border-radius: 50%; animation: p 1.4s infinite ease-in-out; }
+.th span:nth-child(2) { animation-delay: 0.16s; }
+.th span:nth-child(3) { animation-delay: 0.32s; }
+@keyframes p { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 0.9; } }
+
+.ib { padding: 8px 12px 28px; display: flex; gap: 8px; align-items: center; flex-shrink: 0; }
+.ib input { flex: 1; height: 40px; background: transparent; border-radius: 20px; padding: 0 16px; font-size: 15px; outline: none; font-family: inherit; }
+.input-hint {
+  display: flex; justify-content: center; gap: 16px;
+  font-size: 11px; opacity: 0.3; padding: 4px 0 0; flex-shrink: 0;
+}
+.input-hint b { font-weight: 600; }
+
+.bsn { background: transparent; border: none; font-size: 14px; font-weight: 700; cursor: pointer; padding: 0 4px; font-family: inherit; }
+.btk { background: transparent; border: none; font-size: 18px; cursor: pointer; padding: 0 2px; opacity: 0.4; }
+
+/* Permission banner */
+.perm-banner {
+  margin: 8px 14px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  flex-shrink: 0;
+  animation: bannerPulse 2s infinite ease-in-out;
+}
+@keyframes bannerPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.85; }
+}
+.perm-banner .perm-icon { font-size: 20px; }
+.perm-banner .perm-text { flex: 1; }
+.perm-banner .perm-title { font-size: 13px; font-weight: 600; }
+.perm-banner .perm-desc { font-size: 11px; opacity: 0.7; margin-top: 1px; }
+.perm-banner .perm-arrow { font-size: 16px; opacity: 0.5; }
+.perm-banner.warn { background: rgba(251,191,36,0.12); border: 1px solid rgba(251,191,36,0.25); }
+.perm-banner.warn .perm-title { color: #fbbf24; }
+.perm-banner.crit { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); }
+.perm-banner.crit .perm-title { color: #ef4444; }
+
+/* Model switcher bottom sheet */
+.model-sheet-overlay {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 60;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s;
+}
+.model-sheet-overlay.show { opacity: 1; pointer-events: auto; }
+
+.model-sheet {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  z-index: 70;
+  border-radius: 20px 20px 0 0;
+  padding: 12px 0 28px;
+  transform: translateY(100%);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.model-sheet.show { transform: translateY(0); }
+
+.model-sheet-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: rgba(128,128,128,0.3);
+  margin: 0 auto 12px;
+}
+.model-sheet-title {
+  font-size: 15px; font-weight: 700; padding: 0 20px 12px;
+}
+.model-option {
+  padding: 14px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: background 0.12s;
+  border-bottom: 0.5px solid rgba(128,128,128,0.1);
+}
+.model-option:hover { opacity: 0.8; }
+.model-option .mo-left { display: flex; flex-direction: column; gap: 2px; }
+.model-option .mo-name { font-size: 14px; font-weight: 500; }
+.model-option .mo-meta { font-size: 11px; opacity: 0.4; }
+.model-option .mo-check { font-size: 18px; opacity: 0; }
+.model-option.active .mo-check { opacity: 1; }
+.model-option .mo-dl { font-size: 12px; opacity: 0.35; }
+
+/* Theme-specific model sheet */
+.ember-d .model-sheet { background: #1f1a18; }
+.abyss-d .model-sheet { background: #151d2e; }
+.moss-d .model-sheet { background: #161e16; }
+.onyx-d .model-sheet { background: #1a1a1a; }
+.ember-l .model-sheet { background: #f7f0ea; }
+.abyss-l .model-sheet { background: #f0f4f9; }
+.moss-l .model-sheet { background: #f0f7f0; }
+.onyx-l .model-sheet { background: #f2f2f2; }
+
+/* Theme-specific active check color */
+.ember-d .model-option.active .mo-check { color: #e8845a; }
+.abyss-d .model-option.active .mo-check { color: #60a5fa; }
+.moss-d .model-option.active .mo-check { color: #4ade80; }
+.onyx-d .model-option.active .mo-check { color: #aaa; }
+.model-del {
+  font-size: 14px; opacity: 0.3; cursor: pointer; padding: 4px;
+  transition: opacity 0.15s;
+}
+.model-del:hover { opacity: 0.7; }
+
+/* Tool toggles */
+.tog {
+  font-size: 11px; font-weight: 700; padding: 4px 10px;
+  border-radius: 10px; cursor: pointer; transition: all 0.15s;
+  user-select: none;
+}
+.tog.on { color: #4ade80; background: rgba(74,222,128,0.1); }
+.tog.off { color: #ef4444; background: rgba(239,68,68,0.08); }
+
+.ember-l .model-option.active .mo-check { color: #c0542e; }
+.abyss-l .model-option.active .mo-check { color: #2563eb; }
+.moss-l .model-option.active .mo-check { color: #2d7a4f; }
+.onyx-l .model-option.active .mo-check { color: #555; }
+
+/* Pages */
+.page { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+
+/* Settings & Models shared */
+.settings-scroll { flex: 1; overflow-y: auto; padding: 0 0 20px; }
+.settings-scroll::-webkit-scrollbar { width: 0; }
+
+.set-section { font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; opacity: 0.35; padding: 16px 18px 6px; }
+.set-group { margin: 0 14px 4px; border-radius: 12px; overflow: hidden; border: 1px solid rgba(128,128,128,0.15); }
+
+/* Dark theme cards more visible */
+.ember-d .set-group { background: #251e1b; border-color: rgba(192,84,46,0.15); }
+.abyss-d .set-group { background: #182236; border-color: rgba(37,99,235,0.15); }
+.moss-d .set-group { background: #1a251a; border-color: rgba(45,122,79,0.15); }
+.onyx-d .set-group { background: #1e1e1e; border-color: rgba(255,255,255,0.08); }
+
+/* Light theme cards */
+.ember-l .set-group { background: #faf3ec; border-color: rgba(192,84,46,0.15); }
+.abyss-l .set-group { background: #f5f8fc; border-color: rgba(37,99,235,0.12); }
+.moss-l .set-group { background: #f2faf2; border-color: rgba(45,122,79,0.12); }
+.onyx-l .set-group { background: #f5f5f5; border-color: rgba(0,0,0,0.08); }
+
+.set-item {
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  transition: opacity 0.12s;
+  border-bottom: 0.5px solid rgba(128,128,128,0.12);
+}
+.set-item:last-child { border-bottom: none; }
+.set-item:hover { opacity: 0.8; }
+
+.set-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+.set-icon { font-size: 20px; width: 28px; text-align: center; }
+.set-title { font-size: 14px; font-weight: 500; }
+.set-desc { font-size: 12px; opacity: 0.45; margin-top: 1px; }
+
+.set-badge {
+  font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: 10px;
+}
+.set-badge.on { color: #4ade80; background: rgba(74,222,128,0.1); }
+.set-badge.off { color: #f87171; background: rgba(248,113,113,0.1); }
+
+.set-value { font-size: 13px; opacity: 0.4; }
+
+/* Models page */
+.model-active {
+  display: flex; align-items: center; gap: 14px; padding: 16px;
+}
+.model-active-icon { font-size: 32px; }
+.model-status { font-size: 12px; font-weight: 600; margin-top: 4px; }
+.model-status.ready { color: #4ade80; }
+
+.model-dl {
+  width: 32px; height: 32px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; opacity: 0.4; cursor: pointer;
+}
+.model-dl.downloaded { opacity: 0.6; color: #4ade80; font-size: 14px; }
+
+.storage-bar {
+  height: 6px; background: rgba(128,128,128,0.15); border-radius: 3px;
+  margin: 8px 16px 4px; overflow: hidden;
+}
+.storage-fill {
+  height: 100%; border-radius: 3px; background: #4ade80; transition: width 0.3s;
+}
+.storage-label {
+  font-size: 11px; opacity: 0.35; padding: 0 16px 12px;
+}
+
+/* (set-group backgrounds moved to inline with border definitions) */
+
+/* ============================================================
+   THEMES
+   ============================================================ */
+
+/* Ember Dark */
+.ember-d { background: #141010; color: #e8ddd5; border: 1.5px solid #2a2220; }
+.ember-d .sidebar { background: #0f0c0c; color: #e8ddd5; }
+.ember-d .sidebar-new { background: #2a2020; }
+.ember-d .sidebar-item.active { background: #221a18; }
+.ember-d .sidebar-bottom-item:hover { background: #1f1815; }
+.ember-d .dv { background: #fff; }
+.ember-d .mr.u .mg { background: #d45a30; color: #fef2ed; }
+.ember-d .mr.a .mg { background: #352a25; color: #e0d5cc; border: 1px solid #4a3d35; }
+.ember-d .av { background: #c0542e; }
+.ember-d .ti .d { background: #666; } .ember-d .ti .d.ok { background: #e8845a; }
+.ember-d .th span { background: #8a6e60; }
+.ember-d .ib input { border: 1px solid #2e2623; color: #e0d5cc; }
+.ember-d .ib input::placeholder { color: #5c4f47; }
+.ember-d .ib input:focus { border-color: #c0542e; }
+.ember-d .bsn { color: #e8845a; }
+
+/* Abyss Dark */
+.abyss-d { background: #0c111b; color: #cbd5e1; border: 1.5px solid #1a2234; }
+.abyss-d .sidebar { background: #080d16; color: #cbd5e1; }
+.abyss-d .sidebar-new { background: #162030; }
+.abyss-d .sidebar-item.active { background: #121c2c; }
+.abyss-d .sidebar-bottom-item:hover { background: #111a28; }
+.abyss-d .dv { background: #fff; }
+.abyss-d .mr.u .mg { background: #2563eb; color: #f0f5ff; }
+.abyss-d .mr.a .mg { background: #1e2d45; color: #d0dae8; border: 1px solid #2a3d5a; }
+.abyss-d .av { background: #1d4ed8; }
+.abyss-d .ti .d { background: #475569; } .abyss-d .ti .d.ok { background: #38bdf8; }
+.abyss-d .th span { background: #475569; }
+.abyss-d .ib input { border: 1px solid #1e293b; color: #cbd5e1; }
+.abyss-d .ib input::placeholder { color: #3b4963; }
+.abyss-d .ib input:focus { border-color: #3b82f6; }
+.abyss-d .bsn { color: #60a5fa; }
+
+/* Moss Dark */
+.moss-d { background: #0f1410; color: #d4e0d4; border: 1.5px solid #1c261c; }
+.moss-d .sidebar { background: #0a100a; color: #d4e0d4; }
+.moss-d .sidebar-new { background: #1a2a1a; }
+.moss-d .sidebar-item.active { background: #152015; }
+.moss-d .sidebar-bottom-item:hover { background: #131e13; }
+.moss-d .dv { background: #fff; }
+.moss-d .mr.u .mg { background: #2d7a4f; color: #eef7f0; }
+.moss-d .mr.a .mg { background: #243524; color: #d0e0d0; border: 1px solid #334833; }
+.moss-d .av { background: #2d7a4f; }
+.moss-d .ti .d { background: #4a6350; } .moss-d .ti .d.ok { background: #4ade80; }
+.moss-d .th span { background: #4a6350; }
+.moss-d .ib input { border: 1px solid #233023; color: #d4e0d4; }
+.moss-d .ib input::placeholder { color: #3d5040; }
+.moss-d .ib input:focus { border-color: #4ade80; }
+.moss-d .bsn { color: #6ee7a0; }
+
+/* Onyx Dark */
+.onyx-d { background: #111; color: #d4d4d4; border: 1.5px solid #222; }
+.onyx-d .sidebar { background: #0c0c0c; color: #d4d4d4; }
+.onyx-d .sidebar-new { background: #222; }
+.onyx-d .sidebar-item.active { background: #1a1a1a; }
+.onyx-d .sidebar-bottom-item:hover { background: #181818; }
+.onyx-d .dv { background: #fff; }
+.onyx-d .mr.u .mg { background: #444; color: #f0f0f0; }
+.onyx-d .mr.a .mg { background: #2c2c2c; color: #ddd; border: 1px solid #404040; }
+.onyx-d .av { background: #444; }
+.onyx-d .ti .d { background: #555; } .onyx-d .ti .d.ok { background: #a3a3a3; }
+.onyx-d .th span { background: #555; }
+.onyx-d .ib input { border: 1px solid #2a2a2a; color: #d4d4d4; }
+.onyx-d .ib input::placeholder { color: #4a4a4a; }
+.onyx-d .ib input:focus { border-color: #666; }
+.onyx-d .bsn { color: #999; }
+
+/* Ember Light */
+.ember-l { background: #f0e8e0; color: #3d2e24; border: 1.5px solid #d8ccc0; }
+.ember-l .sidebar { background: #e8ddd5; color: #3d2e24; }
+.ember-l .sidebar-new { background: #ddd0c5; }
+.ember-l .sidebar-item.active { background: #e0d4c8; }
+.ember-l .sidebar-bottom-item:hover { background: #ddd0c5; }
+.ember-l .dv { background: #c4b5a8; }
+.ember-l .mr.u .mg { background: #c0542e; color: #fff; }
+.ember-l .mr.a .mg { background: #e6d8ca; color: #4a3828; border: 1px solid #cfc0b0; }
+.ember-l .av { background: #c0542e; }
+.ember-l .ti .d { background: #c4b5a8; } .ember-l .ti .d.ok { background: #c0542e; }
+.ember-l .th span { background: #c4b5a8; }
+.ember-l .ib input { border: 1px solid #d0c4b8; color: #3d2e24; background: #f7f0ea; }
+.ember-l .ib input::placeholder { color: #b5a598; }
+.ember-l .ib input:focus { border-color: #c0542e; }
+.ember-l .bsn { color: #c0542e; }
+
+/* Abyss Light */
+.abyss-l { background: #e8edf4; color: #1e293b; border: 1.5px solid #c8d4e4; }
+.abyss-l .sidebar { background: #dde4ee; color: #1e293b; }
+.abyss-l .sidebar-new { background: #c8d4e4; }
+.abyss-l .sidebar-item.active { background: #d0daea; }
+.abyss-l .sidebar-bottom-item:hover { background: #ccd6e6; }
+.abyss-l .dv { background: #94a3b8; }
+.abyss-l .mr.u .mg { background: #2563eb; color: #fff; }
+.abyss-l .mr.a .mg { background: #d5dfee; color: #334155; border: 1px solid #b0c0d8; }
+.abyss-l .av { background: #2563eb; }
+.abyss-l .ti .d { background: #94a3b8; } .abyss-l .ti .d.ok { background: #2563eb; }
+.abyss-l .th span { background: #94a3b8; }
+.abyss-l .ib input { border: 1px solid #c8d4e4; color: #1e293b; background: #f0f4f9; }
+.abyss-l .ib input::placeholder { color: #94a3b8; }
+.abyss-l .ib input:focus { border-color: #3b82f6; }
+.abyss-l .bsn { color: #2563eb; }
+
+/* Moss Light */
+.moss-l { background: #e4efe4; color: #1a2e1a; border: 1.5px solid #c0d8c0; }
+.moss-l .sidebar { background: #d8e8d8; color: #1a2e1a; }
+.moss-l .sidebar-new { background: #c4d8c4; }
+.moss-l .sidebar-item.active { background: #cce0cc; }
+.moss-l .sidebar-bottom-item:hover { background: #c8dcc8; }
+.moss-l .dv { background: #8cb898; }
+.moss-l .mr.u .mg { background: #2d7a4f; color: #fff; }
+.moss-l .mr.a .mg { background: #d0e8d0; color: #2a4a2a; border: 1px solid #a8c8a8; }
+.moss-l .av { background: #2d7a4f; }
+.moss-l .ti .d { background: #8cb898; } .moss-l .ti .d.ok { background: #2d7a4f; }
+.moss-l .th span { background: #8cb898; }
+.moss-l .ib input { border: 1px solid #b8d0b8; color: #1a2e1a; background: #f0f7f0; }
+.moss-l .ib input::placeholder { color: #8cb898; }
+.moss-l .ib input:focus { border-color: #2d7a4f; }
+.moss-l .bsn { color: #2d7a4f; }
+
+/* Onyx Light */
+.onyx-l { background: #e8e8e8; color: #1a1a1a; border: 1.5px solid #ccc; }
+.onyx-l .sidebar { background: #dedede; color: #1a1a1a; }
+.onyx-l .sidebar-new { background: #ccc; }
+.onyx-l .sidebar-item.active { background: #d4d4d4; }
+.onyx-l .sidebar-bottom-item:hover { background: #d0d0d0; }
+.onyx-l .dv { background: #bbb; }
+.onyx-l .mr.u .mg { background: #444; color: #f5f5f5; }
+.onyx-l .mr.a .mg { background: #d8d8d8; color: #2a2a2a; border: 1px solid #bbb; }
+.onyx-l .av { background: #444; }
+.onyx-l .ti .d { background: #bbb; } .onyx-l .ti .d.ok { background: #666; }
+.onyx-l .th span { background: #bbb; }
+.onyx-l .ib input { border: 1px solid #ccc; color: #1a1a1a; background: #f2f2f2; }
+.onyx-l .ib input::placeholder { color: #aaa; }
+.onyx-l .ib input:focus { border-color: #888; }
+.onyx-l .bsn { color: #555; }
+</style>
+</head>
+<body>
+
+<div class="theme-picker" id="picker"></div>
+
+<div class="phone" id="phone">
+  <div class="sidebar-overlay" id="overlay"></div>
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">🦞 PokeClaw</div>
+      <button id="closeSidebar">✕</button>
+    </div>
+    <div class="sidebar-new" id="newChat">
+      <span>＋</span> New Chat
+    </div>
+    <div class="sidebar-section">Today</div>
+    <div class="sidebar-items">
+      <div class="sidebar-item active"><span class="icon">💬</span> Send hi to Mom on WhatsApp</div>
+      <div class="sidebar-item"><span class="icon">💬</span> Check battery level</div>
+      <div class="sidebar-item"><span class="icon">💬</span> Open Settings and turn off WiFi</div>
+    </div>
+    <div class="sidebar-section">Yesterday</div>
+    <div class="sidebar-items">
+      <div class="sidebar-item"><span class="icon">💬</span> Send photo to Dad</div>
+      <div class="sidebar-item"><span class="icon">💬</span> Open YouTube and search cats</div>
+      <div class="sidebar-item"><span class="icon">💬</span> Set alarm for 7am</div>
+    </div>
+    <div style="flex:1"></div>
+    <div class="dv" style="opacity:0.1; margin: 0 14px;"></div>
+    <div class="sidebar-bottom">
+      <div class="sidebar-bottom-item" onclick="goSettings()"><span class="icon">⚙️</span> Settings</div>
+      <div class="sidebar-bottom-item" onclick="goModels()"><span class="icon">📥</span> Models</div>
+      <div class="sidebar-bottom-item" onclick="goTools()"><span class="icon">🔧</span> Tools</div>
+    </div>
+  </div>
+
+  <!-- Model switcher bottom sheet -->
+  <div class="model-sheet-overlay" id="sheetOverlay"></div>
+  <div class="model-sheet" id="modelSheet">
+    <div class="model-sheet-handle"></div>
+    <div class="model-sheet-title">Switch Model</div>
+    <div class="model-option active" onclick="selectModel(this)">
+      <div class="mo-left"><div class="mo-name">FunctionGemma 270M</div><div class="mo-meta">mobile-actions · 289 MB</div></div>
+      <div class="mo-check">✓</div>
+    </div>
+    <div class="model-option" onclick="selectModel(this)">
+      <div class="mo-left"><div class="mo-name">Qwen3 0.6B</div><div class="mo-meta">general chat · ~300 MB</div></div>
+      <div class="mo-check">✓</div>
+    </div>
+    <div class="model-option" onclick="selectModel(this)">
+      <div class="mo-left"><div class="mo-name">Gemma 3 1B INT4</div><div class="mo-meta">general chat · ~500 MB</div></div>
+      <div class="mo-dl">Not downloaded</div>
+    </div>
+    <div class="model-option" onclick="selectModel(this)">
+      <div class="mo-left"><div class="mo-name">Gemma 4 E2B-IT</div><div class="mo-meta">most capable · 2.6 GB · 8GB+ RAM</div></div>
+      <div class="mo-dl">Not downloaded</div>
+    </div>
+  </div>
+
+  <!-- ===== CHAT PAGE ===== -->
+  <div class="page" id="pagChat">
+    <div class="sb"><span>12:37</span><span class="m">5G · 72%</span></div>
+    <div class="tb">
+      <div class="left">
+        <button class="menu-btn" id="menuBtn">☰</button>
+        <div class="t">PokeClaw</div>
+      </div>
+      <div class="ac"><button onclick="alert('New chat started')" title="New Chat">✎</button><button onclick="goSettings()" title="Settings">⚙</button></div>
+    </div>
+    <div class="dv"></div>
+
+    <!-- Permission banner -->
+    <div class="perm-banner crit" id="permBanner" onclick="goSettings()">
+      <div class="perm-icon">⚠️</div>
+      <div class="perm-text">
+        <div class="perm-title">1 permission needs attention</div>
+        <div class="perm-desc">Battery is restricted. Tap to fix.</div>
+      </div>
+      <div class="perm-arrow">→</div>
+    </div>
+
+    <div class="ct">
+      <div class="ms">Today</div>
+      <div class="mr u"><div class="mg">Open WhatsApp and send hi to Mom</div></div>
+      <div class="mr a"><div class="av">🦞</div><div class="mg">On it. Checking your screen.</div></div>
+      <div class="tg">
+        <div class="ti"><span class="d ok"></span><span>screen → found WhatsApp</span></div>
+        <div class="ti"><span class="d ok"></span><span>tap → opened WhatsApp</span></div>
+        <div class="ti"><span class="d ok"></span><span>screen → found Mom</span></div>
+        <div class="ti"><span class="d ok"></span><span>tap → opened chat</span></div>
+        <div class="ti"><span class="d ok"></span><span>type → "hi"</span></div>
+        <div class="ti"><span class="d ok"></span><span>tap → sent</span></div>
+      </div>
+      <div class="mr a"><div class="av">🦞</div><div class="mg">Done! Sent "hi" to Mom on WhatsApp.</div></div>
+      <div class="mr u"><div class="mg">Check my battery level</div></div>
+      <div class="mr a"><div class="av">🦞</div><div class="mg"><div class="th"><span></span><span></span><span></span></div></div></div>
+    </div>
+    <div class="dv"></div>
+    <div class="input-hint">
+      <span><b>Send</b> = chat with AI</span>
+      <span><b>🚀</b> = control your phone</span>
+    </div>
+    <div class="ib">
+      <input placeholder="Message...">
+      <button class="btk" title="Run as phone task">🚀</button>
+      <button class="bsn" title="Send as chat message">Send</button>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS PAGE ===== -->
+  <div class="page" id="pagSettings" style="display:none">
+    <div class="sb"><span>12:37</span><span class="m">5G · 72%</span></div>
+    <div class="tb">
+      <div class="left">
+        <button class="menu-btn" onclick="goChat()">←</button>
+        <div class="t">Settings</div>
+      </div>
+      <div class="ac"></div>
+    </div>
+    <div class="dv"></div>
+    <div class="settings-scroll">
+
+      <div class="set-section">Permissions</div>
+      <div class="set-group">
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">♿</span><div><div class="set-title">Accessibility Service</div><div class="set-desc">Required to control phone</div></div></div>
+          <div class="set-badge on">Enabled</div>
+        </div>
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">🔔</span><div><div class="set-title">Notifications</div><div class="set-desc">Keep agent running</div></div></div>
+          <div class="set-badge on">Enabled</div>
+        </div>
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">📱</span><div><div class="set-title">Display Over Apps</div><div class="set-desc">Show status overlay</div></div></div>
+          <div class="set-badge on">Enabled</div>
+        </div>
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">🔋</span><div><div class="set-title">Battery</div><div class="set-desc">Unrestricted background</div></div></div>
+          <div class="set-badge off">Restricted</div>
+        </div>
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">📁</span><div><div class="set-title">Storage</div><div class="set-desc">Save screenshots & logs</div></div></div>
+          <div class="set-badge on">Enabled</div>
+        </div>
+      </div>
+
+      <div class="set-section">Appearance</div>
+      <div class="set-group">
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">🎨</span><div><div class="set-title">Theme</div><div class="set-desc">Choose your color scheme</div></div></div>
+          <div class="set-value">Abyss Dark</div>
+        </div>
+      </div>
+
+      <div class="set-section">Remote Control</div>
+      <div class="set-group">
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">✈️</span><div><div class="set-title">Telegram Bot</div><div class="set-desc">Control this phone from another device</div></div></div>
+          <div class="set-badge on">Connected</div>
+        </div>
+        <div class="set-item" style="opacity:0.45">
+          <div class="set-left"><span class="set-icon">💬</span><div><div class="set-title">WhatsApp</div><div class="set-desc">Coming soon</div></div></div>
+          <div class="set-value">—</div>
+        </div>
+        <div class="set-item" style="opacity:0.45">
+          <div class="set-left"><span class="set-icon">💻</span><div><div class="set-title">Web Dashboard</div><div class="set-desc">Coming soon</div></div></div>
+          <div class="set-value">—</div>
+        </div>
+      </div>
+
+      <div class="set-section">About</div>
+      <div class="set-group">
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">🦞</span><div><div class="set-title">PokeClaw</div><div class="set-desc">v0.1.0 · On-device AI phone agent</div></div></div>
+          <div class="set-value"></div>
+        </div>
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">⭐</span><div><div class="set-title">GitHub</div><div class="set-desc">agents-io/PokeClaw</div></div></div>
+          <div class="set-value">→</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== TOOLS PAGE ===== -->
+  <div class="page" id="pagTools" style="display:none">
+    <div class="sb"><span>12:37</span><span class="m">5G · 72%</span></div>
+    <div class="tb">
+      <div class="left">
+        <button class="menu-btn" onclick="goChat()">←</button>
+        <div class="t">Tools</div>
+      </div>
+      <div class="ac"></div>
+    </div>
+    <div class="dv"></div>
+    <div class="settings-scroll">
+
+      <div class="set-section">Screen</div>
+      <div class="set-group">
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">get_screen_info</div><div class="set-desc">Read current screen UI tree</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">take_screenshot</div><div class="set-desc">Capture screen as image</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">scroll_to_find</div><div class="set-desc">Scroll until element found</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+      </div>
+
+      <div class="set-section">Actions</div>
+      <div class="set-group">
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">tap</div><div class="set-desc">Tap at screen coordinates (x, y)</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">long_press</div><div class="set-desc">Long press at coordinates</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">swipe</div><div class="set-desc">Swipe from point A to point B</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">type_text</div><div class="set-desc">Type text into focused field</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+      </div>
+
+      <div class="set-section">Navigation</div>
+      <div class="set-group">
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">open_app</div><div class="set-desc">Launch an app by name</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">system_key</div><div class="set-desc">Press back, home, or recents</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">wait</div><div class="set-desc">Wait for page to load</div></div></div>
+          <div class="tog on">ON</div>
+        </div>
+      </div>
+
+      <div class="set-section">Safety</div>
+      <div class="set-group">
+        <div class="set-item tool-toggle">
+          <div class="set-left"><div><div class="set-title">finish</div><div class="set-desc">End the current task</div></div></div>
+          <div class="tog on" style="opacity:0.3">ON</div>
+        </div>
+      </div>
+
+      <div class="set-section" style="opacity:0.25; padding-top:20px">
+        12 tools enabled · 0 disabled
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== MODELS PAGE ===== -->
+  <div class="page" id="pagModels" style="display:none">
+    <div class="sb"><span>12:37</span><span class="m">5G · 72%</span></div>
+    <div class="tb">
+      <div class="left">
+        <button class="menu-btn" onclick="goChat()">←</button>
+        <div class="t">Models</div>
+      </div>
+      <div class="ac"></div>
+    </div>
+    <div class="dv"></div>
+    <div class="settings-scroll">
+
+      <div class="set-section">Active Model</div>
+      <div class="set-group">
+        <div class="model-active" onclick="openModelSheet()" style="cursor:pointer">
+          <div class="model-active-icon">🦞</div>
+          <div class="model-active-info">
+            <div class="set-title">FunctionGemma 270M</div>
+            <div class="set-desc">mobile-actions · 289 MB · On-device</div>
+            <div class="model-status ready">● Ready</div>
+          </div>
+          <div style="opacity:0.3;font-size:14px">Switch →</div>
+        </div>
+      </div>
+
+      <div class="set-section">Available Models</div>
+      <div class="set-group">
+        <div class="set-item model-item">
+          <div class="set-left"><div><div class="set-title">FunctionGemma 270M</div><div class="set-desc">Best for phone tasks · 289 MB · 6GB+ RAM</div></div></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="model-dl downloaded">✓</div>
+            <div class="model-del" title="Delete model">🗑</div>
+          </div>
+        </div>
+        <div class="set-item model-item">
+          <div class="set-left"><div><div class="set-title">Gemma 3 1B INT4</div><div class="set-desc">General chat · ~500 MB · 6GB+ RAM</div></div></div>
+          <div class="model-dl">↓</div>
+        </div>
+        <div class="set-item model-item">
+          <div class="set-left"><div><div class="set-title">Qwen3 0.6B</div><div class="set-desc">Lightweight chat · ~300 MB · 6GB+ RAM</div></div></div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="model-dl downloaded">✓</div>
+            <div class="model-del" title="Delete model">🗑</div>
+          </div>
+        </div>
+        <div class="set-item model-item">
+          <div class="set-left"><div><div class="set-title">Gemma 4 E2B-IT</div><div class="set-desc">Most capable · 2.6 GB · 8GB+ RAM</div></div></div>
+          <div class="model-dl">↓</div>
+        </div>
+      </div>
+
+      <div class="set-section">Storage</div>
+      <div class="set-group">
+        <div class="set-item">
+          <div class="set-left"><span class="set-icon">💾</span><div><div class="set-title">Models on device</div><div class="set-desc">2 models · 589 MB used</div></div></div>
+          <div class="set-value"></div>
+        </div>
+        <div class="storage-bar">
+          <div class="storage-fill" style="width: 18%"></div>
+        </div>
+        <div class="storage-label">589 MB of 3.2 GB allocated</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const phone = document.getElementById('phone');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+const picker = document.getElementById('picker');
+
+const themes = [
+  { cls: 'ember-d', label: 'Ember' },
+  { cls: 'abyss-d', label: 'Abyss' },
+  { cls: 'moss-d', label: 'Moss' },
+  { cls: 'onyx-d', label: 'Onyx' },
+  { cls: 'ember-l', label: 'Ember ☀' },
+  { cls: 'abyss-l', label: 'Abyss ☀' },
+  { cls: 'moss-l', label: 'Moss ☀' },
+  { cls: 'onyx-l', label: 'Onyx ☀' },
+];
+
+let currentTheme = 'abyss-d';
+
+themes.forEach(t => {
+  const btn = document.createElement('button');
+  btn.textContent = t.label;
+  btn.className = t.cls === currentTheme ? 'active' : '';
+  btn.onclick = () => {
+    phone.className = 'phone ' + t.cls;
+    currentTheme = t.cls;
+    picker.querySelectorAll('button').forEach(b => b.className = '');
+    btn.className = 'active';
+  };
+  picker.appendChild(btn);
+});
+
+phone.className = 'phone ' + currentTheme;
+
+document.getElementById('menuBtn').onclick = () => {
+  sidebar.classList.add('open');
+  overlay.classList.add('show');
+};
+
+function closeSB() {
+  sidebar.classList.remove('open');
+  overlay.classList.remove('show');
+}
+
+document.getElementById('closeSidebar').onclick = closeSB;
+overlay.onclick = closeSB;
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+  document.getElementById(id).style.display = 'flex';
+}
+
+function goChat() { showPage('pagChat'); }
+function goSettings() { closeSB(); showPage('pagSettings'); }
+function goModels() { closeSB(); showPage('pagModels'); }
+function goTools() { closeSB(); showPage('pagTools'); }
+
+// Tool toggles
+document.querySelectorAll('.tog').forEach(t => {
+  t.onclick = () => {
+    if (t.style.opacity === '0.3') return; // finish is locked
+    if (t.classList.contains('on')) {
+      t.classList.remove('on'); t.classList.add('off'); t.textContent = 'OFF';
+    } else {
+      t.classList.remove('off'); t.classList.add('on'); t.textContent = 'ON';
+    }
+  };
+});
+
+// Model sheet
+const sheetOverlay = document.getElementById('sheetOverlay');
+const modelSheet = document.getElementById('modelSheet');
+
+function openModelSheet() {
+  sheetOverlay.classList.add('show');
+  modelSheet.classList.add('show');
+}
+function closeModelSheet() {
+  sheetOverlay.classList.remove('show');
+  modelSheet.classList.remove('show');
+}
+sheetOverlay.onclick = closeModelSheet;
+
+function selectModel(el) {
+  document.querySelectorAll('.model-option').forEach(o => o.classList.remove('active'));
+  el.classList.add('active');
+  setTimeout(closeModelSheet, 300);
+}
+</script>
+</body>
+</html>
