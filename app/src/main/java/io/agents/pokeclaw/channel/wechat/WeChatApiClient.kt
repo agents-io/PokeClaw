@@ -15,8 +15,8 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * 微信 iLink Bot API 客户端。
- * 严格对应官方 @tencent-weixin/openclaw-weixin@1.0.2 的 src/api/api.ts + src/api/session-guard.ts
+ * WeChat iLink Bot API client.
+ * Strictly mirrors the official @tencent-weixin/openclaw-weixin@1.0.2 src/api/api.ts + src/api/session-guard.ts
  */
 class WeChatApiClient(
     private var baseUrl: String = DEFAULT_BASE_URL,
@@ -60,34 +60,34 @@ class WeChatApiClient(
     fun setBotToken(token: String) { this.botToken = token }
     fun setBaseUrl(url: String) { this.baseUrl = url }
 
-    // ==================== HTTP 客户端 (api.ts DEFAULT_*_TIMEOUT_MS) ====================
+    // ==================== HTTP Client (api.ts DEFAULT_*_TIMEOUT_MS) ====================
 
-    /** 长轮询用（getUpdates/QR poll：SDK 超时 35s，readTimeout 留 5s 余量） */
+    /** Long-polling (getUpdates/QR poll: SDK timeout 35s, readTimeout with 5s margin) */
     private val longPollClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(40, TimeUnit.SECONDS)  // 35s server hold + 5s buffer
         .writeTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    /** 普通 API 用（sendMessage、getUploadUrl） */
+    /** Normal API use (sendMessage, getUploadUrl) */
     private val apiClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .writeTimeout(15, TimeUnit.SECONDS)
         .build()
 
-    /** 轻量 API 用（getConfig、sendTyping） */
+    /** Lightweight API use (getConfig, sendTyping) */
     private val configClient = OkHttpClient.Builder()
         .connectTimeout(10, TimeUnit.SECONDS)
         .readTimeout(10, TimeUnit.SECONDS)
         .writeTimeout(10, TimeUnit.SECONDS)
         .build()
 
-    // ==================== 请求构建 (api.ts buildHeaders + apiFetch) ====================
+    // ==================== Request Building (api.ts buildHeaders + apiFetch) ====================
 
     /**
      * X-WECHAT-UIN: random uint32 → decimal string → base64
-     * 对应 SDK 的 randomWechatUin()
+     * Corresponds to SDK's randomWechatUin()
      */
     private fun randomWechatUin(): String {
         val bytes = ByteArray(4).also { SecureRandom().nextBytes(it) }
@@ -120,8 +120,8 @@ class WeChatApiClient(
     }
 
     /**
-     * 通用 API POST 请求。返回响应 body 文本。
-     * 对应 SDK 的 apiFetch()
+     * Generic API POST request. Returns response body text.
+     * Corresponds to SDK apiFetch()
      */
     private fun apiFetch(endpoint: String, body: JSONObject, client: OkHttpClient, label: String): String? {
         val bodyStr = body.toString()
@@ -141,7 +141,7 @@ class WeChatApiClient(
             XLog.d(TAG, "$label: timeout")
             null
         } catch (e: java.io.InterruptedIOException) {
-            // Thread.interrupt() 导致 OkHttp 抛出，需要向上传播让 monitor 循环退出
+            // Thread.interrupt() causes OkHttp to throw; must propagate up to let the monitor loop exit
             Thread.currentThread().interrupt()
             throw InterruptedException("interrupted by disconnect")
         } catch (e: Exception) {
@@ -153,11 +153,11 @@ class WeChatApiClient(
         }
     }
 
-    // ==================== API 端点 (api.ts) ====================
+    // ==================== API Endpoints (api.ts) ====================
 
     /**
-     * 长轮询获取新消息。
-     * 对应 SDK 的 getUpdates()
+     * Long-poll for new messages.
+     * Corresponds to SDK getUpdates()
      */
     fun getUpdates(getUpdatesBuf: String): GetUpdatesResp? {
         val body = JSONObject().apply {
@@ -166,7 +166,7 @@ class WeChatApiClient(
         }
         val rawText = apiFetch("ilink/bot/getupdates", body, longPollClient, "getUpdates")
         if (rawText == null) {
-            // 超时返回空结果（与 SDK 的 AbortError 处理一致）
+            // Timeout returns empty result (consistent with SDK AbortError handling)
             return GetUpdatesResp(ret = 0, msgs = emptyList(), getUpdatesBuf = getUpdatesBuf)
         }
         if (rawText.isEmpty()) return GetUpdatesResp(ret = 0, msgs = emptyList(), getUpdatesBuf = getUpdatesBuf)
@@ -194,8 +194,8 @@ class WeChatApiClient(
     }
 
     /**
-     * 发送消息。
-     * 对应 SDK 的 sendMessage()
+     * Send a message.
+     * Corresponds to SDK sendMessage()
      */
     fun sendMessage(msgBody: JSONObject): Boolean {
         val body = JSONObject().apply {
@@ -204,14 +204,14 @@ class WeChatApiClient(
         }
         val rawText = apiFetch("ilink/bot/sendmessage", body, apiClient, "sendMessage")
         if (rawText != null && rawText.isNotEmpty() && rawText != "{}") {
-            XLog.i(TAG, "sendMessage 响应: $rawText")
+            XLog.i(TAG, "sendMessage response: $rawText")
         }
         return rawText != null
     }
 
     /**
-     * 获取上传 URL。
-     * 对应 SDK 的 getUploadUrl()，返回 upload_param。
+     * Get upload URL.
+     * Corresponds to SDK getUploadUrl(), returns upload_param.
      */
     fun getUploadUrl(
         filekey: String, mediaType: Int, toUserId: String,
@@ -246,8 +246,8 @@ class WeChatApiClient(
     }
 
     /**
-     * 获取 bot 配置（typing_ticket 等）。
-     * 对应 SDK 的 getConfig()
+     * Get bot config (typing_ticket, etc.).
+     * Corresponds to SDK getConfig()
      */
     fun getConfig(ilinkUserId: String, contextToken: String?): String? {
         val body = JSONObject().apply {
@@ -267,8 +267,8 @@ class WeChatApiClient(
     }
 
     /**
-     * 发送输入状态指示。
-     * 对应 SDK 的 sendTyping()
+     * Send typing indicator.
+     * Corresponds to SDK sendTyping()
      */
     fun sendTyping(ilinkUserId: String, typingTicket: String, status: Int = TypingStatus.TYPING) {
         val body = JSONObject().apply {
@@ -280,10 +280,10 @@ class WeChatApiClient(
         apiFetch("ilink/bot/sendtyping", body, configClient, "sendTyping")
     }
 
-    // ==================== 扫码登录 (login-qr.ts) ====================
+    // ==================== QR Code Login (login-qr.ts) ====================
 
     /**
-     * 获取登录二维码。
+     * Get the login QR code.
      */
     fun getQrCode(): QrCodeResult? {
         return try {
@@ -299,14 +299,14 @@ class WeChatApiClient(
             if (qrcode.isEmpty()) return null
             QrCodeResult(qrcode = qrcode, qrcodeImgContent = imgContent)
         } catch (e: Exception) {
-            XLog.e(TAG, "getQrCode 异常", e)
+            XLog.e(TAG, "getQrCode exception", e)
             null
         }
     }
 
     /**
-     * 轮询二维码扫描状态。
-     * 对应 SDK 的 pollQRStatus()，长轮询接口。
+     * Poll QR code scan status.
+     * Corresponds to SDK pollQRStatus(), a long-polling interface.
      */
     fun pollQrCodeStatus(qrcode: String): AuthResult? {
         return try {
@@ -335,7 +335,7 @@ class WeChatApiClient(
             XLog.d(TAG, "QR poll timeout, retrying")
             null
         } catch (e: Exception) {
-            XLog.e(TAG, "pollQrCodeStatus 异常", e)
+            XLog.e(TAG, "pollQrCodeStatus exception", e)
             null
         }
     }

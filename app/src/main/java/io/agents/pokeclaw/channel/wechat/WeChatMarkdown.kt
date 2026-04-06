@@ -4,13 +4,13 @@
 package io.agents.pokeclaw.channel.wechat
 
 /**
- * Markdown 转纯文本。
- * 严格对应官方 @tencent-weixin/openclaw-weixin@1.0.2 的 src/messaging/send.ts markdownToPlainText()
+ * Markdown to plain text conversion.
+ * Strictly mirrors the official @tencent-weixin/openclaw-weixin@1.0.2 src/messaging/send.ts markdownToPlainText()
  */
 object WeChatMarkdown {
 
     /**
-     * 将 Markdown 格式的文本转为纯文本，保留换行，去除 Markdown 语法。
+     * Convert Markdown-formatted text to plain text, preserving line breaks and removing Markdown syntax.
      */
     fun markdownToPlainText(text: String): String {
         var result = text
@@ -36,14 +36,14 @@ object WeChatMarkdown {
             m.groupValues[1].split("|").joinToString("  ") { it.trim() }
         }
 
-        // Strip remaining inline markdown (对应 SDK 的 stripMarkdown)
+        // Strip remaining inline markdown (corresponds to SDK stripMarkdown)
         result = stripMarkdown(result)
 
         return result
     }
 
     /**
-     * 去除内联 Markdown 语法标记。
+     * Strip inline Markdown syntax markers.
      */
     private fun stripMarkdown(text: String): String {
         var result = text

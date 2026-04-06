@@ -14,19 +14,19 @@ import androidx.annotation.ColorInt
 import io.agents.pokeclaw.R
 
 /**
- * 通用弹窗组件
+ * General-purpose alert dialog component
  *
- * 单按钮模式（只有确认）：
+ * Single-button mode (confirm only):
  * ```
- * AlertDialog.show(context, "提示", "操作成功")
+ * AlertDialog.show(context, "Notice", "Operation successful")
  * ```
  *
- * 双按钮模式（取消 + 确认）：
+ * Two-button mode (cancel + confirm):
  * ```
- * AlertDialog.show(context, "提示", "确定要删除吗？",
- *     cancelTitle = "取消",
- *     onAction = { /* 确认 */ },
- *     onCancel = { /* 取消 */ }
+ * AlertDialog.show(context, "Notice", "Are you sure you want to delete?",
+ *     cancelTitle = "Cancel",
+ *     onAction = { /* confirm */ },
+ *     onCancel = { /* cancel */ }
  * )
  * ```
  */
@@ -85,7 +85,7 @@ class AlertDialog private constructor(context: Context) : Dialog(context, R.styl
             }
         }
 
-        /** 危险操作弹窗：确认按钮为红色 */
+        /** Destructive action dialog: confirm button is red */
         @JvmStatic
         fun showWarm(
             context: Context,
@@ -111,7 +111,7 @@ class AlertDialog private constructor(context: Context) : Dialog(context, R.styl
             )
         }
 
-        /** 危险操作弹窗（反转）：确认在左边，取消在右边，用于不希望用户轻易点确认的场景 */
+        /** Destructive action dialog (reversed): confirm on the left, cancel on the right — for cases where you don't want users to confirm too easily */
         @JvmStatic
         fun showWarmReverse(
             context: Context,
@@ -123,7 +123,7 @@ class AlertDialog private constructor(context: Context) : Dialog(context, R.styl
             onAction: (() -> Unit)? = null,
             onCancel: (() -> Unit)? = null
         ): AlertDialog {
-            // 左右互换：cancel 位置放 action 样式，action 位置放 cancel 样式
+            // Swap left/right: action style goes on the cancel position, cancel style goes on the action position
             return show(
                 context = context,
                 title = title,
@@ -163,10 +163,10 @@ class AlertDialog private constructor(context: Context) : Dialog(context, R.styl
     }
 
     private fun initViews() {
-        // 标题
+        // Title
         findViewById<TextView>(R.id.tvTitle).text = title
 
-        // 内容
+        // Message
         findViewById<TextView>(R.id.tvMessage).apply {
             if (message.isNotEmpty()) {
                 text = message
@@ -178,7 +178,7 @@ class AlertDialog private constructor(context: Context) : Dialog(context, R.styl
         val btnCancel = findViewById<KButton>(R.id.btnCancel)
         val btnSpacer = findViewById<View>(R.id.btnSpacer)
 
-        // 确认按钮
+        // Confirm button
         btnAction.text = actionTitle
         actionBgColor?.let { btnAction.setBgColor(it) }
         actionTextColor?.let { btnAction.setTextColor(it) }
@@ -188,7 +188,7 @@ class AlertDialog private constructor(context: Context) : Dialog(context, R.styl
             onAction?.invoke()
         }
 
-        // 取消按钮
+        // Cancel button
         if (cancelTitle != null) {
             btnCancel.visibility = View.VISIBLE
             btnSpacer.visibility = View.VISIBLE

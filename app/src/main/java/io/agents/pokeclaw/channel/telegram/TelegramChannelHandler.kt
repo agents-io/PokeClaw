@@ -46,14 +46,14 @@ class TelegramChannelHandler(
 
     override fun init() {
         if (botToken.isEmpty()) {
-            XLog.w(TAG, "Telegram Bot Token 未配置，Telegram 通道将不可用")
+            XLog.w(TAG, "Telegram Bot Token not configured, Telegram channel will be unavailable")
             return
         }
 
         pollingActive = true
         pollingThread = Thread({
             var offset = 0L
-            XLog.i(TAG, "Telegram polling 线程启动")
+            XLog.i(TAG, "Telegram polling thread started")
             while (pollingActive) {
                 try {
                     val reqBody = JSONObject().apply {
@@ -71,15 +71,15 @@ class TelegramChannelHandler(
                     response.close()
 
                     if (body == null) {
-                        XLog.w(TAG, "Telegram getUpdates 响应 body 为空, code=$code")
+                        XLog.w(TAG, "Telegram getUpdates response body is empty, code=$code")
                         continue
                     }
 
                     val json = JSONObject(body)
                     if (!json.optBoolean("ok", false)) {
-                        XLog.e(TAG, "Telegram getUpdates 失败: code=$code, body=$body")
+                        XLog.e(TAG, "Telegram getUpdates failed: code=$code, body=$body")
                         if (code == 401 || code == 404) {
-                            XLog.e(TAG, "Telegram Bot Token 无效，停止轮询")
+                            XLog.e(TAG, "Telegram Bot Token invalid, stopping polling")
                             break
                         }
                         Thread.sleep(5000)
@@ -100,22 +100,22 @@ class TelegramChannelHandler(
                         val messageId = message.getInt("message_id")
                         lastChatId = chatId
 
-                        XLog.i(TAG, "[${channel.displayName}] 收到消息: $text, chatId=$chatId")
+                        XLog.i(TAG, "[${channel.displayName}] Message received: $text, chatId=$chatId")
                         ChannelManager.dispatchMessage(channel, text, messageId.toString())
                     }
                 } catch (_: java.net.SocketTimeoutException) {
-                    XLog.d(TAG, "Telegram polling 超时，继续轮询")
+                    XLog.d(TAG, "Telegram polling timeout, continuing to poll")
                 } catch (e: Exception) {
                     if (pollingActive) {
-                        XLog.w(TAG, "Telegram polling 异常，5 秒后重试", e)
+                        XLog.w(TAG, "Telegram polling exception, retrying in 5 seconds", e)
                         try { Thread.sleep(5000) } catch (_: InterruptedException) { break }
                     }
                 }
             }
-            XLog.i(TAG, "Telegram polling 线程已退出")
+            XLog.i(TAG, "Telegram polling thread exited")
         }, "telegram-polling").apply { isDaemon = true; start() }
 
-        XLog.i(TAG, "Telegram Long Polling 已启动")
+        XLog.i(TAG, "Telegram Long Polling started")
     }
 
     override fun disconnect() {
@@ -123,7 +123,7 @@ class TelegramChannelHandler(
         pollingThread?.interrupt()
         pollingThread = null
         lastChatId = null
-        XLog.i(TAG, "Telegram Long Polling 已停止")
+        XLog.i(TAG, "Telegram Long Polling stopped")
     }
 
     override fun reinitFromStorage() {
@@ -135,7 +135,7 @@ class TelegramChannelHandler(
     override fun sendMessage(content: String, messageID: String) {
         val chatId = lastChatId
         if (chatId == null) {
-            XLog.w(TAG, "Telegram 回复失败：没有可用的 chatId")
+            XLog.w(TAG, "Telegram reply failed: no available chatId")
             return
         }
         scope.launch {
@@ -148,7 +148,7 @@ class TelegramChannelHandler(
                     sendText(chatId, TelegramMarkdownUtils.escapePlain(content), "MarkdownV2")
                 }
             } catch (e: Exception) {
-                XLog.e(TAG, "Telegram 回复失败", e)
+                XLog.e(TAG, "Telegram reply failed", e)
             }
         }
     }
@@ -170,10 +170,10 @@ class TelegramChannelHandler(
                     .post(body)
                     .build()
                 val response = httpClient.newCall(request).execute()
-                XLog.i(TAG, "Telegram 图片发送响应: ${response.code}")
+                XLog.i(TAG, "Telegram image send response: ${response.code}")
                 response.close()
             } catch (e: Exception) {
-                XLog.e(TAG, "Telegram 发送图片失败", e)
+                XLog.e(TAG, "Telegram image send failed", e)
             }
         }
     }
@@ -199,10 +199,10 @@ class TelegramChannelHandler(
                     .post(body)
                     .build()
                 val response = httpClient.newCall(request).execute()
-                XLog.i(TAG, "Telegram 文件发送响应: ${response.code}")
+                XLog.i(TAG, "Telegram file send response: ${response.code}")
                 response.close()
             } catch (e: Exception) {
-                XLog.e(TAG, "Telegram 发送文件失败", e)
+                XLog.e(TAG, "Telegram file send failed", e)
             }
         }
     }
@@ -216,7 +216,7 @@ class TelegramChannelHandler(
     override fun sendMessageToUser(userId: String, content: String) {
         val chatId = userId.toLongOrNull()
         if (chatId == null) {
-            XLog.w(TAG, "Telegram sendMessageToUser 失败：无效的 chatId: $userId")
+            XLog.w(TAG, "Telegram sendMessageToUser failed: invalid chatId: $userId")
             return
         }
         scope.launch {
@@ -229,12 +229,12 @@ class TelegramChannelHandler(
                     sendText(chatId, TelegramMarkdownUtils.escapePlain(content), "MarkdownV2")
                 }
             } catch (e: Exception) {
-                XLog.e(TAG, "Telegram sendMessageToUser 失败", e)
+                XLog.e(TAG, "Telegram sendMessageToUser failed", e)
             }
         }
     }
 
-    // ---------- 内部工具方法 ----------
+    // ---------- Internal helper methods ----------
 
     private fun sendText(chatId: Long, text: String, parseMode: String?): Boolean {
         val json = JSONObject().apply {
@@ -251,9 +251,9 @@ class TelegramChannelHandler(
         val code = response.code
         if (code !in 200..299) {
             val respBody = response.body?.string()
-            XLog.w(TAG, "Telegram sendMessage 失败: code=$code, parseMode=$parseMode, resp=$respBody")
+            XLog.w(TAG, "Telegram sendMessage failed: code=$code, parseMode=$parseMode, resp=$respBody")
         } else {
-            XLog.i(TAG, "Telegram 回复成功: code=$code, parseMode=$parseMode")
+            XLog.i(TAG, "Telegram reply succeeded: code=$code, parseMode=$parseMode")
         }
         response.close()
         return code in 200..299

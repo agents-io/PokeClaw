@@ -27,7 +27,7 @@ import io.agents.pokeclaw.widget.CommonToolbar
 import io.agents.pokeclaw.widget.KButton
 
 /**
- * 通道配置页面（钉钉/飞书 AppKey、AppSecret 配置）
+ * Channel config screen (DingTalk/Feishu AppKey, AppSecret configuration)
  */
 class ChannelConfigActivity : BaseActivity() {
 
@@ -116,7 +116,7 @@ class ChannelConfigActivity : BaseActivity() {
             }
         }
 
-        // 密码可见切换
+        // Toggle password visibility
         ivToggle.setOnClickListener {
             isPasswordVisible = !isPasswordVisible
             if (isPasswordVisible) {
@@ -133,7 +133,7 @@ class ChannelConfigActivity : BaseActivity() {
             onSaveClicked(channelType)
         }
 
-        // 局域网配置提示
+        // LAN config hint
         val tvLanHint = findViewById<TextView>(R.id.tvLanConfigHint)
         val ivCopy = findViewById<ImageView>(R.id.ivCopyAddress)
         val address = ConfigServerManager.getAddress()
@@ -177,7 +177,7 @@ class ChannelConfigActivity : BaseActivity() {
             }
         }
 
-        // 只重连对应的通道，不影响其他通道
+        // Reconnect only the corresponding channel; do not affect other channels
         when (channelType) {
             ChannelType.DINGTALK -> ChannelManager.reinitDingTalkFromStorage()
             ChannelType.FEISHU -> ChannelManager.reinitFeiShuFromStorage()
@@ -186,7 +186,7 @@ class ChannelConfigActivity : BaseActivity() {
             ChannelType.TELEGRAM -> ChannelManager.reinitTelegramFromStorage()
         }
 
-        // 返回配置结果
+        // Return config result
         val isConfigured = when (channelType) {
             ChannelType.DISCORD, ChannelType.TELEGRAM -> value1.isNotEmpty()
             else -> value1.isNotEmpty() && value2.isNotEmpty()
@@ -208,7 +208,7 @@ class ChannelConfigActivity : BaseActivity() {
     }
 
     /**
-     * 通道配置结果
+     * Channel config result
      */
     data class ChannelConfigResult(
         val channelType: ChannelType,
@@ -216,7 +216,7 @@ class ChannelConfigActivity : BaseActivity() {
     ) : java.io.Serializable
 
     /**
-     * ActivityResultContract 用于 registerForActivityResult
+     * ActivityResultContract for use with registerForActivityResult
      */
     class ChannelConfigContract : ActivityResultContract<ChannelType, ChannelConfigResult?>() {
         override fun createIntent(context: Context, input: ChannelType): Intent {
@@ -240,17 +240,17 @@ class ChannelConfigActivity : BaseActivity() {
         private const val EXTRA_RESULT_CONFIG = "extra_result_config"
 
         /**
-         * 注册通道配置 Activity Result Launcher
-         * 使用方式：
+         * Register a channel config Activity Result Launcher
+         * Usage:
          * ```
          * private val channelConfigLauncher = ChannelConfigActivity.registerLauncher(this) { result ->
          *     result?.let {
-         *         // 处理配置结果
+         *         // Handle config result
          *         println("Channel: ${it.channelType}, Configured: ${it.isConfigured}")
          *     }
          * }
          *
-         * // 启动配置页面
+         * // Launch the config screen
          * channelConfigLauncher.launch(ChannelConfigActivity.ChannelType.DINGTALK)
          * ```
          */

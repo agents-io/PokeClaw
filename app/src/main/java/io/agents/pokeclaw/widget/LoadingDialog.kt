@@ -13,17 +13,17 @@ import android.widget.TextView
 import io.agents.pokeclaw.R
 
 /**
- * 轻量加载弹窗，匹配项目圆角卡片风格
+ * Lightweight loading dialog matching the project's rounded card style
  *
- * 无文字（纯 spinner）：
+ * No text (spinner only):
  * ```
  * val loading = LoadingDialog.show(context)
  * loading.dismiss()
  * ```
  *
- * 带提示文字：
+ * With message text:
  * ```
- * val loading = LoadingDialog.show(context, "正在加载…")
+ * val loading = LoadingDialog.show(context, "Loading…")
  * loading.dismiss()
  * ```
  */
@@ -62,7 +62,7 @@ class LoadingDialog private constructor(context: Context) : Dialog(context, R.st
                 WindowManager.LayoutParams.WRAP_CONTENT,
                 WindowManager.LayoutParams.WRAP_CONTENT
             )
-            // 背景不变暗，让加载弹窗更轻量
+            // Keep background from dimming to keep the loading dialog lightweight
             setDimAmount(0.3f)
         }
 
@@ -74,7 +74,7 @@ class LoadingDialog private constructor(context: Context) : Dialog(context, R.st
     }
 
     /**
-     * 更新提示文字（弹窗已显示后也可调用）
+     * Update the message text (can be called after the dialog is already shown)
      */
     fun setMessage(text: String?) {
         this.message = text

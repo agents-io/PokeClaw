@@ -15,10 +15,10 @@ import androidx.core.content.ContextCompat
 import io.agents.pokeclaw.R
 
 /**
- * 权限卡片组件
+ * Permission card component
  *
- * 未开启时显示 SwitchCompat（unchecked），开启后隐藏 Switch 显示 "已开启" 文字。
- * 卡片背景色随状态切换（成功/错误容器色）。
+ * When disabled, shows a SwitchCompat (unchecked); when enabled, hides the Switch and shows an "Enabled" label.
+ * Card background color switches based on state (success/error container color).
  */
 class PermissionCardView @JvmOverloads constructor(
     context: Context,
@@ -33,7 +33,7 @@ class PermissionCardView @JvmOverloads constructor(
     private val tvEnabled: TextView
 
     init {
-        // 默认卡片样式
+        // Default card style
         radius = dpToPx(12f)
         cardElevation = 0f
         setCardBackgroundColor(ContextCompat.getColor(context, R.color.colorContainerLow))
@@ -46,11 +46,11 @@ class PermissionCardView @JvmOverloads constructor(
         switchStatus = findViewById(R.id.switchStatus)
         tvEnabled = findViewById(R.id.tvEnabled)
 
-        // Switch 仅用于展示状态
+        // Switch is display-only
         switchStatus.isClickable = false
         switchStatus.isEnabled = false
 
-        // 读取 XML 属性
+        // Read XML attributes
         attrs?.let {
             val ta = context.obtainStyledAttributes(it, R.styleable.PermissionCardView)
             ta.getResourceId(R.styleable.PermissionCardView_cardIcon, 0).takeIf { it != 0 }
@@ -62,7 +62,7 @@ class PermissionCardView @JvmOverloads constructor(
     }
 
     /**
-     * 设置权限启用状态，自动切换 UI 样式
+     * Set permission enabled state; automatically switches UI style
      */
     fun setPermissionEnabled(enabled: Boolean) {
         if (enabled) {

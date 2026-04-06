@@ -23,7 +23,8 @@ public class OpenAppTool extends BaseTool {
     private static final String TAG = "OpenAppTool";
 
     /**
-     * Common "Allow" button labels on chain-launch intercept dialogs (covering major manufacturers)
+     * Common "Allow" button labels on chain-launch intercept dialogs (covering major manufacturers).
+     * These are the on-screen button text strings matched against the device UI — do not translate.
      * Xiaomi/MIUI: "允许" (Allow)
      * Huawei/EMUI/HarmonyOS: "允许" / "允许打开" (Allow / Allow to open)
      * OPPO/ColorOS: "允许" / "打开" (Allow / Open)

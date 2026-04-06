@@ -22,15 +22,15 @@ class DiscordChannelHandler(
     private var lastChannelId: String? = null
 
     private val callback = object : DiscordCallback<String> {
-        override fun onSuccess(result: String) { XLog.i(TAG, "Discord 回复成功: ${result.take(120)}") }
-        override fun onFailure(error: String) { XLog.e(TAG, "Discord 回复失败: $error") }
+        override fun onSuccess(result: String) { XLog.i(TAG, "Discord reply succeeded: ${result.take(120)}") }
+        override fun onFailure(error: String) { XLog.e(TAG, "Discord reply failed: $error") }
     }
 
     override fun isConnected(): Boolean = DiscordGatewayClient.getInstance().isConnected()
 
     override fun init() {
         if (botToken.isEmpty()) {
-            XLog.w(TAG, "Discord Bot Token 未配置，Discord 通道将不可用")
+            XLog.w(TAG, "Discord Bot Token not configured, Discord channel will be unavailable")
             return
         }
 
@@ -39,7 +39,7 @@ class DiscordChannelHandler(
             object : DiscordGatewayClient.OnDiscordMessageListener {
                 override fun onDiscordMessage(channelId: String, messageId: String, content: String) {
                     lastChannelId = channelId
-                    XLog.i(TAG, "[${channel.displayName}] 收到消息: $content, channelId=$channelId")
+                    XLog.i(TAG, "[${channel.displayName}] Message received: $content, channelId=$channelId")
                     ChannelManager.dispatchMessage(channel, content, messageId)
                 }
             }
@@ -47,9 +47,9 @@ class DiscordChannelHandler(
         scope.launch {
             try {
                 DiscordGatewayClient.getInstance().start(botToken)
-                XLog.i(TAG, "Discord Gateway 已启动")
+                XLog.i(TAG, "Discord Gateway started")
             } catch (e: Exception) {
-                XLog.e(TAG, "Discord Gateway 启动失败", e)
+                XLog.e(TAG, "Discord Gateway failed to start", e)
             }
         }
     }
@@ -59,9 +59,9 @@ class DiscordChannelHandler(
             DiscordGatewayClient.getInstance().setOnDiscordMessageListener(null)
             DiscordGatewayClient.getInstance().stop()
             lastChannelId = null
-            XLog.i(TAG, "Discord Gateway 已断开")
+            XLog.i(TAG, "Discord Gateway disconnected")
         } catch (e: Exception) {
-            XLog.w(TAG, "Discord 断开时异常", e)
+            XLog.w(TAG, "Exception on Discord disconnect", e)
         }
     }
 
@@ -74,18 +74,18 @@ class DiscordChannelHandler(
     override fun sendMessage(content: String, messageID: String) {
         val channelId = lastChannelId
         if (channelId.isNullOrEmpty()) {
-            XLog.w(TAG, "Discord 回复失败：没有可用的 channelId")
+            XLog.w(TAG, "Discord reply failed: no available channelId")
             return
         }
         if (content.isBlank()) {
-            XLog.w(TAG, "Discord 跳过空消息")
+            XLog.w(TAG, "Discord skipping empty message")
             return
         }
         scope.launch {
             try {
                 DiscordApiClient.getInstance().sendMessage(channelId, content, callback)
             } catch (e: Exception) {
-                XLog.e(TAG, "Discord 回复失败", e)
+                XLog.e(TAG, "Discord reply failed", e)
             }
         }
     }
@@ -96,7 +96,7 @@ class DiscordChannelHandler(
             try {
                 DiscordApiClient.getInstance().sendImage(channelId, imageBytes, callback = callback)
             } catch (e: Exception) {
-                XLog.e(TAG, "Discord 发送图片失败", e)
+                XLog.e(TAG, "Discord image send failed", e)
             }
         }
     }
@@ -110,7 +110,7 @@ class DiscordChannelHandler(
                     callback = callback
                 )
             } catch (e: Exception) {
-                XLog.e(TAG, "Discord 发送文件失败", e)
+                XLog.e(TAG, "Discord file send failed", e)
             }
         }
     }
@@ -127,7 +127,7 @@ class DiscordChannelHandler(
             try {
                 DiscordApiClient.getInstance().sendMessage(userId, content, callback)
             } catch (e: Exception) {
-                XLog.e(TAG, "Discord sendMessageToUser 失败", e)
+                XLog.e(TAG, "Discord sendMessageToUser failed", e)
             }
         }
     }

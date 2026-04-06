@@ -7,33 +7,33 @@ import android.content.Context
 import com.tencent.mmkv.MMKV
 
 /**
- * MMKV 键值存储工具类
+ * MMKV key-value storage utility
  *
- * 使用方式：
- *   // 在 Application.onCreate 中初始化
+ * Usage:
+ *   // Initialize in Application.onCreate
  *   KVUtils.init(context)
  *
- *   // 存取数据
+ *   // Read and write data
  *   KVUtils.putString("key", "value")
  *   val value = KVUtils.getString("key", "default")
  */
 object KVUtils {
 
 
-    // 钉钉配置
+    // DingTalk config
     const val KEY_DINGTALK_APP_KEY = "DEFAULT_DINGTALK_APP_KEY"
     const val KEY_DINGTALK_APP_SECRET = "DEFAULT_DINGTALK_APP_SECRET"
-    // 飞书配置
+    // Feishu config
     const val KEY_FEISHU_APP_ID = "DEFAULT_FEISHU_APP_ID"
     const val KEY_FEISHU_APP_SECRET = "DEFAULT_FEISHU_APP_SECRET"
-    // QQ 机器人配置
+    // QQ bot config
     const val KEY_QQ_APP_ID = "DEFAULT_QQ_APP_ID"
     const val KEY_QQ_APP_SECRET = "DEFAULT_QQ_APP_SECRET"
-    // Discord 机器人配置
+    // Discord bot config
     const val KEY_DISCORD_BOT_TOKEN = "DEFAULT_DISCORD_BOT_TOKEN"
-    // Telegram 机器人配置
+    // Telegram bot config
     const val KEY_TELEGRAM_BOT_TOKEN = "DEFAULT_TELEGRAM_BOT_TOKEN"
-    // 微信 iLink Bot 配置
+    // WeChat iLink Bot config
     const val KEY_WECHAT_BOT_TOKEN = "DEFAULT_WECHAT_BOT_TOKEN"
     const val KEY_WECHAT_API_BASE_URL = "DEFAULT_WECHAT_API_BASE_URL"
     const val KEY_WECHAT_UPDATES_CURSOR = "DEFAULT_WECHAT_UPDATES_CURSOR"
@@ -47,7 +47,7 @@ object KVUtils {
     private const val DEFAULT_DOUBLE = 0.0
 
     /**
-     * 在 Application.onCreate 中调用初始化
+     * Call to initialize in Application.onCreate
      */
     fun init(context: Context) {
         MMKV.initialize(context)
@@ -117,7 +117,7 @@ object KVUtils {
         return mmkv.decodeBytes(key)
     }
 
-    // ==================== 常用操作 ====================
+    // ==================== Common Operations ====================
     fun contains(key: String): Boolean {
         return mmkv.containsKey(key)
     }
@@ -139,47 +139,47 @@ object KVUtils {
     }
 
     /**
-     * 同步写入磁盘（默认是异步的）
+     * Flush to disk synchronously (default is async)
      */
     fun sync() {
         mmkv.sync()
     }
 
 
-    // ==================== 引导页 ====================
+    // ==================== Onboarding ====================
     private const val KEY_GUIDE_SHOWN = "KEY_GUIDE_SHOWN"
 
     fun isGuideShown(): Boolean = getBoolean(KEY_GUIDE_SHOWN, false)
 
     fun setGuideShown(shown: Boolean) = putBoolean(KEY_GUIDE_SHOWN, shown)
 
-    // ==================== 钉钉配置 ====================
+    // ==================== DingTalk Config ====================
     fun getDingtalkAppKey(): String = getString(KEY_DINGTALK_APP_KEY, "")
     fun setDingtalkAppKey(value: String) = putString(KEY_DINGTALK_APP_KEY, value)
     fun getDingtalkAppSecret(): String = getString(KEY_DINGTALK_APP_SECRET, "")
     fun setDingtalkAppSecret(value: String) = putString(KEY_DINGTALK_APP_SECRET, value)
 
-    // ==================== 飞书配置 ====================
+    // ==================== Feishu Config ====================
     fun getFeishuAppId(): String = getString(KEY_FEISHU_APP_ID, "")
     fun setFeishuAppId(value: String) = putString(KEY_FEISHU_APP_ID, value)
     fun getFeishuAppSecret(): String = getString(KEY_FEISHU_APP_SECRET, "")
     fun setFeishuAppSecret(value: String) = putString(KEY_FEISHU_APP_SECRET, value)
 
-    // ==================== QQ 机器人配置 ====================
+    // ==================== QQ Bot Config ====================
     fun getQqAppId(): String = getString(KEY_QQ_APP_ID, "")
     fun setQqAppId(value: String) = putString(KEY_QQ_APP_ID, value)
     fun getQqAppSecret(): String = getString(KEY_QQ_APP_SECRET, "")
     fun setQqAppSecret(value: String) = putString(KEY_QQ_APP_SECRET, value)
 
-    // ==================== Discord 机器人配置 ====================
+    // ==================== Discord Bot Config ====================
     fun getDiscordBotToken(): String = getString(KEY_DISCORD_BOT_TOKEN, "")
     fun setDiscordBotToken(value: String) = putString(KEY_DISCORD_BOT_TOKEN, value)
 
-    // ==================== Telegram 机器人配置 ====================
+    // ==================== Telegram Bot Config ====================
     fun getTelegramBotToken(): String = getString(KEY_TELEGRAM_BOT_TOKEN, "")
     fun setTelegramBotToken(value: String) = putString(KEY_TELEGRAM_BOT_TOKEN, value)
 
-    // ==================== 微信 iLink Bot 配置 ====================
+    // ==================== WeChat iLink Bot Config ====================
     fun getWechatBotToken(): String = getString(KEY_WECHAT_BOT_TOKEN, "")
     fun setWechatBotToken(value: String) = putString(KEY_WECHAT_BOT_TOKEN, value)
     fun getWechatApiBaseUrl(): String = getString(KEY_WECHAT_API_BASE_URL, "")
@@ -187,7 +187,7 @@ object KVUtils {
     fun getWechatUpdatesCursor(): String = getString(KEY_WECHAT_UPDATES_CURSOR, "")
     fun setWechatUpdatesCursor(value: String) = putString(KEY_WECHAT_UPDATES_CURSOR, value)
 
-    // ==================== 局域网配置服务 ====================
+    // ==================== LAN Config Service ====================
     private const val KEY_CONFIG_SERVER_ENABLED = "KEY_CONFIG_SERVER_ENABLED"
     fun isConfigServerEnabled(): Boolean = getBoolean(KEY_CONFIG_SERVER_ENABLED, false)
     fun setConfigServerEnabled(enabled: Boolean) = putBoolean(KEY_CONFIG_SERVER_ENABLED, enabled)
@@ -209,7 +209,7 @@ object KVUtils {
     fun getLocalModelPath(): String = getString(KEY_LOCAL_MODEL_PATH, "")
     fun setLocalModelPath(value: String) = putString(KEY_LOCAL_MODEL_PATH, value)
 
-    /** 是否已配置 LLM（API Key、Base URL 或本地模型路径非空即视为已配置） */
+    /** Returns true if LLM is configured (API key, base URL, or local model path is non-empty) */
     fun hasLlmConfig(): Boolean =
         getLlmApiKey().isNotEmpty() || getLlmBaseUrl().isNotEmpty() || getLocalModelPath().isNotEmpty()
 }

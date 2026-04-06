@@ -26,9 +26,10 @@ import okhttp3.ResponseBody;
 import okio.Buffer;
 
 /**
- * OkHttp 拦截器：将每次请求的原始数据、curl 命令和原始响应写入沙盒缓存目录的独立文件。
+ * OkHttp interceptor: writes raw request data, curl command, and raw response to individual files
+ * in the sandbox cache directory.
  * <p>
- * 文件路径: {cacheDir}/http_logs/yyyyMMdd_HHmmssSSS_{method}.txt
+ * File path: {cacheDir}/http_logs/yyyyMMdd_HHmmssSSS_{method}.txt
  */
 public class FileLoggingInterceptor implements Interceptor {
 
@@ -47,7 +48,7 @@ public class FileLoggingInterceptor implements Interceptor {
     public Response intercept(Chain chain) throws IOException {
         Request request = chain.request();
 
-        // 读取请求体
+        // Read request body
         String requestBodyStr = "";
         if (request.body() != null) {
             Buffer buffer = new Buffer();
@@ -55,28 +56,28 @@ public class FileLoggingInterceptor implements Interceptor {
             requestBodyStr = buffer.readUtf8();
         }
 
-        // 构建 curl 命令
+        // Build curl command
         String curl = buildCurl(request, requestBodyStr);
 
-        // 执行请求
+        // Execute request
         long startMs = System.nanoTime();
         Response response;
         try {
             response = chain.proceed(request);
         } catch (IOException e) {
-            // 请求失败也记录
+            // Log even on request failure
             writeToFile(request, requestBodyStr, curl, null, -1, e.toString(), 0);
             throw e;
         }
         long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMs);
 
-        // 读取响应体（需要重新包装以便后续消费）
+        // Read response body (needs to be re-wrapped for subsequent consumption)
         String responseBodyStr = "";
         ResponseBody responseBody = response.body();
         if (responseBody != null) {
             MediaType contentType = responseBody.contentType();
             responseBodyStr = responseBody.string();
-            // 重新包装 ResponseBody，因为 string() 只能消费一次
+            // Re-wrap ResponseBody because string() can only be consumed once
             response = response.newBuilder()
                     .body(ResponseBody.create(contentType, responseBodyStr))
                     .build();
@@ -94,7 +95,7 @@ public class FileLoggingInterceptor implements Interceptor {
         for (int i = 0; i < request.headers().size(); i++) {
             String name = request.headers().name(i);
             String value = request.headers().value(i);
-            // 隐藏 Authorization 的具体值
+            // Mask the actual Authorization value
             if ("Authorization".equalsIgnoreCase(name)) {
                 value = value.length() > 15 ? value.substring(0, 15) + "..." : value;
             }
@@ -103,7 +104,7 @@ public class FileLoggingInterceptor implements Interceptor {
 
         // Body
         if (body != null && !body.isEmpty()) {
-            // 截断过长的 body，curl 里只保留前 2000 字符
+            // Truncate overly long body; keep only the first 2000 characters in curl
             String truncated = body.length() > 2000 ? body.substring(0, 2000) + "...[TRUNCATED]" : body;
             sb.append(" \\\n  -d '").append(truncated.replace("'", "'\\''")).append("'");
         }
@@ -148,9 +149,9 @@ public class FileLoggingInterceptor implements Interceptor {
                 writer.write(responseBody.isEmpty() ? "(empty)\n" : responseBody + "\n");
             }
 
-            XLog.d(TAG, "日志已写入: " + file.getAbsolutePath());
+            XLog.d(TAG, "Log written to: " + file.getAbsolutePath());
         } catch (Exception e) {
-            XLog.e(TAG, "写入日志文件失败", e);
+            XLog.e(TAG, "Failed to write log file", e);
         }
     }
 }

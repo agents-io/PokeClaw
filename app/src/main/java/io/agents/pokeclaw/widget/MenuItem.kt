@@ -17,7 +17,7 @@ import androidx.core.view.isVisible
 import io.agents.pokeclaw.R
 
 /**
- * 菜单项组件 - 带图标、标题、尾部文字/箭头的可点击项
+ * Menu item component - clickable row with leading icon, title, and trailing text/arrow
  */
 class MenuItem @JvmOverloads constructor(
     context: Context,
@@ -43,40 +43,40 @@ class MenuItem @JvmOverloads constructor(
         ivTrailing = findViewById(R.id.ivTrailing)
         divider = findViewById(R.id.divider)
 
-        // 默认显示尾部箭头
+        // Show trailing arrow by default
         setShowTrailingIcon(true)
     }
 
     /**
-     * 设置左侧图标
+     * Set leading icon
      */
     fun setLeadingIcon(@DrawableRes iconRes: Int) {
         ivLeading.setImageResource(iconRes)
     }
 
     /**
-     * 设置左侧图标颜色
+     * Set leading icon color
      */
     fun setLeadingIconColor(color: Int) {
         ivLeading.setColorFilter(color)
     }
 
     /**
-     * 设置标题
+     * Set title
      */
     fun setTitle(title: CharSequence) {
         tvTitle.text = title
     }
 
     /**
-     * 设置标题文字颜色
+     * Set title text color
      */
     fun setTitleColor(color: Int) {
         tvTitle.setTextColor(color)
     }
 
     /**
-     * 设置尾部文字
+     * Set trailing text
      */
     fun setTrailingText(text: CharSequence?) {
         tvTrailing.isVisible = !text.isNullOrEmpty()
@@ -84,28 +84,28 @@ class MenuItem @JvmOverloads constructor(
     }
 
     /**
-     * 设置尾部文字颜色
+     * Set trailing text color
      */
     fun setTrailingTextColor(color: Int) {
         tvTrailing.setTextColor(color)
     }
 
     /**
-     * 设置尾部图标
+     * Set trailing icon
      */
     fun setTrailingIcon(@DrawableRes iconRes: Int) {
         ivTrailing.setImageResource(iconRes)
     }
 
     /**
-     * 设置尾部图标颜色
+     * Set trailing icon color
      */
     fun setTrailingIconColor(color: Int) {
         ivTrailing.setColorFilter(color)
     }
 
     /**
-     * 设置是否显示尾部图标
+     * Set whether to show trailing icon
      */
     fun setShowTrailingIcon(show: Boolean) {
         ivTrailing.visibility = if (show) View.VISIBLE else View.GONE
@@ -117,28 +117,28 @@ class MenuItem @JvmOverloads constructor(
     }
 
     /**
-     * 设置是否显示分隔线
+     * Set whether to show divider
      */
     fun setShowDivider(show: Boolean) {
         divider.isVisible = show
     }
 
     /**
-     * 获取尾部文字
+     * Get trailing text
      */
     fun getTrailingText(): CharSequence? {
         return tvTrailing.text
     }
 
     /**
-     * 设置是否显示红点
+     * Set whether to show red dot
      */
     fun setShowRedDot(show: Boolean) {
         viewRedDot.visibility = if (show) View.VISIBLE else View.GONE
     }
 
     /**
-     * 获取标题文字
+     * Get title text
      */
     fun getTitle(): CharSequence? {
         return tvTitle.text

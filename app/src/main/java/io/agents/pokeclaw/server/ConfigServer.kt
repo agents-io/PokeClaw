@@ -16,8 +16,8 @@ import io.agents.pokeclaw.utils.XLog
 import fi.iki.elonen.NanoHTTPD
 
 /**
- * 局域网 HTTP 配置服务器
- * 提供 H5 页面用于在电脑浏览器上配置钉钉/飞书 key
+ * LAN HTTP configuration server
+ * Provides an H5 page for configuring DingTalk/FeiShu keys in a desktop browser
  */
 class ConfigServer(
     private val context: Context,
@@ -34,7 +34,7 @@ class ConfigServer(
     private val gson = Gson()
 
     override fun serve(session: IHTTPSession): Response {
-        // CORS 预检请求
+        // CORS preflight request
         if (session.method == Method.OPTIONS) {
             return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_PLAINTEXT, ""))
         }
@@ -98,7 +98,7 @@ class ConfigServer(
     }
 
     private fun handlePostChannels(session: IHTTPSession): Response {
-        // NanoHTTPD 要求先 parseBody 才能读取 POST body
+        // NanoHTTPD requires parseBody before reading POST body
         val files = mutableMapOf<String, String>()
         session.parseBody(files)
         val body = files["postData"] ?: ""
@@ -120,7 +120,7 @@ class ConfigServer(
         var reinitDiscord = false
         var reinitTelegram = false
 
-        // 钉钉配置
+        // DingTalk config
         if (json.has("dingtalkAppKey")) {
             val value = json.get("dingtalkAppKey").asString
             KVUtils.setDingtalkAppKey(value)
@@ -128,14 +128,14 @@ class ConfigServer(
         }
         if (json.has("dingtalkAppSecret")) {
             val value = json.get("dingtalkAppSecret").asString
-            // 如果是脱敏值则跳过
+            // Skip if value is masked
             if (!isMaskedValue(value)) {
                 KVUtils.setDingtalkAppSecret(value)
                 reinitDingtalk = true
             }
         }
 
-        // 飞书配置
+        // FeiShu config
         if (json.has("feishuAppId")) {
             val value = json.get("feishuAppId").asString
             KVUtils.setFeishuAppId(value)
@@ -149,7 +149,7 @@ class ConfigServer(
             }
         }
 
-        // QQ 配置
+        // QQ config
         if (json.has("qqAppId")) {
             val value = json.get("qqAppId").asString
             KVUtils.setQqAppId(value)
@@ -163,7 +163,7 @@ class ConfigServer(
             }
         }
 
-        // Discord 配置
+        // Discord config
         if (json.has("discordBotToken")) {
             val value = json.get("discordBotToken").asString
             if (!isMaskedValue(value)) {
@@ -172,7 +172,7 @@ class ConfigServer(
             }
         }
 
-        // Telegram 配置
+        // Telegram config
         if (json.has("telegramBotToken")) {
             val value = json.get("telegramBotToken").asString
             if (!isMaskedValue(value)) {
@@ -181,7 +181,7 @@ class ConfigServer(
             }
         }
 
-        // 重新初始化对应通道
+        // Re-initialize the corresponding channel
         if (reinitDingtalk) {
             ChannelManager.reinitDingTalkFromStorage()
         }
@@ -198,7 +198,7 @@ class ConfigServer(
             ChannelManager.reinitTelegramFromStorage()
         }
 
-        // 通知 Settings 页面刷新绑定状态
+        // Notify Settings page to refresh binding status
         if (reinitDingtalk || reinitFeishu || reinitQQ || reinitDiscord || reinitTelegram) {
             ConfigServerManager.notifyConfigChanged()
         }
@@ -264,7 +264,7 @@ class ConfigServer(
         return corsResponse(newFixedLengthResponse(Response.Status.OK, MIME_JSON, result.toString()))
     }
 
-    // ==================== Debug (仅 DEBUG 构建) ====================
+    // ==================== Debug (DEBUG builds only) ====================
     
     private fun handleGetScreenFull(): Response {
         val service = io.agents.pokeclaw.service.ClawAccessibilityService.getInstance()
@@ -386,7 +386,7 @@ class ConfigServer(
                 """{"code":-1,"message":"missing path param"}"""
             )
         )
-        // 安全校验：只允许访问 cache 目录下的文件
+        // Security check: only allow access to files inside the cache directory
         val cacheDir = context.cacheDir.absolutePath
         val file = java.io.File(path)
         if (!file.exists() || !file.absolutePath.startsWith(cacheDir)) {
@@ -407,7 +407,7 @@ class ConfigServer(
     }
 
     /**
-     * 脱敏：只显示后4位，前面用 * 替代
+     * Mask: show only last 4 characters, replace the rest with *
      */
     private fun maskSecret(secret: String): String {
         if (secret.isEmpty()) return ""
@@ -416,7 +416,7 @@ class ConfigServer(
     }
 
     /**
-     * 判断是否为脱敏后的值（包含 *）
+     * Check whether a value has been masked (contains *)
      */
     private fun isMaskedValue(value: String): Boolean {
         return value.contains("*")

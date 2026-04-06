@@ -17,7 +17,7 @@ import io.agents.pokeclaw.base.BaseActivity
 import io.agents.pokeclaw.widget.CommonToolbar
 
 /**
- * Web 页面 - 通用浏览器
+ * Web screen - general-purpose browser
  */
 class WebActivity : BaseActivity() {
 
@@ -30,10 +30,10 @@ class WebActivity : BaseActivity() {
         private const val EXTRA_TITLE = "extra_title"
 
         /**
-         * 打开 Web 页面
-         * @param context 上下文
-         * @param url 网页地址
-         * @param title 默认标题（可选，如果不传则显示网页标题）
+         * Open a web page
+         * @param context context
+         * @param url page URL
+         * @param title default title (optional; if not provided, the page title is shown)
          */
         fun start(context: Context, url: String, title: String? = null) {
             val intent = Intent(context, WebActivity::class.java).apply {
@@ -65,11 +65,11 @@ class WebActivity : BaseActivity() {
     private fun initToolbar(defaultTitle: String?) {
         toolbar = findViewById(R.id.toolbar)
         toolbar.apply {
-            // 设置默认标题（如果有）
+            // Set default title if provided
             if (!defaultTitle.isNullOrEmpty()) {
                 setTitle(defaultTitle)
             }
-            // 显示返回按钮
+            // Show back button
             showBackButton(true) { finish() }
         }
     }
@@ -101,7 +101,7 @@ class WebActivity : BaseActivity() {
             webChromeClient = object : WebChromeClient() {
                 override fun onReceivedTitle(view: WebView?, title: String?) {
                     super.onReceivedTitle(view, title)
-                    // 网页加载完成后，回显网页标题
+                    // Reflect the page title once the page has loaded
                     if (!title.isNullOrEmpty()) {
                         toolbar.setTitle(title)
                     }
@@ -110,7 +110,7 @@ class WebActivity : BaseActivity() {
                 override fun onProgressChanged(view: WebView?, newProgress: Int) {
                     super.onProgressChanged(view, newProgress)
                     progressBar.progress = newProgress
-                    // 加载完成时隐藏进度条
+                    // Hide progress bar when loading completes
                     if (newProgress >= 100) {
                         progressBar.visibility = View.GONE
                     } else {

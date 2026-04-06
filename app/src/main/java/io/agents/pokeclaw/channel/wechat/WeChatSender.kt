@@ -8,19 +8,19 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * 消息发送。
- * 严格对应官方 @tencent-weixin/openclaw-weixin@1.0.2 的:
+ * Message sending.
+ * Strictly mirrors the official @tencent-weixin/openclaw-weixin@1.0.2:
  * - src/messaging/send.ts (sendMessageWeixin, sendImageMessageWeixin, sendFileMessageWeixin, sendMediaItems)
- * - src/messaging/send-media.ts (sendWeixinMediaFile - MIME 路由)
+ * - src/messaging/send-media.ts (sendWeixinMediaFile - MIME routing)
  */
 object WeChatSender {
 
     private const val TAG = "WeChatSender"
 
-    // ==================== 文本消息 (send.ts sendMessageWeixin) ====================
+    // ==================== Text Message (send.ts sendMessageWeixin) ====================
 
     /**
-     * 发送纯文本消息。自动做 markdown → plaintext 转换。
+     * Send a plain text message. Automatically converts markdown → plaintext.
      */
     fun sendText(
         apiClient: WeChatApiClient,
@@ -33,8 +33,8 @@ object WeChatSender {
     }
 
     /**
-     * 发送纯文本（不做 markdown 转换）。
-     * 供消息合并缓冲使用：每条消息单独转换后合并，再通过此方法发送。
+     * Send plain text (without markdown conversion).
+     * Used by the message merge buffer: each message is converted individually, then merged and sent via this method.
      */
     fun sendRawText(
         apiClient: WeChatApiClient,
@@ -55,7 +55,7 @@ object WeChatSender {
         return apiClient.sendMessage(msg)
     }
 
-    // ==================== 图片消息 (send.ts sendImageMessageWeixin) ====================
+    // ==================== Image Message (send.ts sendImageMessageWeixin) ====================
 
     fun sendImage(
         apiClient: WeChatApiClient,
@@ -71,8 +71,8 @@ object WeChatSender {
             XLog.e(TAG, "sendImage: upload failed")
             return false
         }
-        // 对应 SDK send.ts:194: Buffer.from(uploaded.aeskey).toString("base64")
-        // uploaded.aeskey 是 hex 字符串，Buffer.from(hexStr) 默认 UTF-8 → 32 bytes → base64
+        // Corresponds to SDK send.ts:194: Buffer.from(uploaded.aeskey).toString("base64")
+        // uploaded.aeskey is a hex string; Buffer.from(hexStr) defaults to UTF-8 → 32 bytes → base64
         val aesKeyBase64 = android.util.Base64.encodeToString(
             uploaded.aeskeyHex.toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP
         )
@@ -90,7 +90,7 @@ object WeChatSender {
         return sendSingleItem(apiClient, to, contextToken, imageItem)
     }
 
-    // ==================== 视频消息 (send.ts sendVideoMessageWeixin) ====================
+    // ==================== Video Message (send.ts sendVideoMessageWeixin) ====================
 
     fun sendVideo(
         apiClient: WeChatApiClient,
@@ -120,7 +120,7 @@ object WeChatSender {
         return sendSingleItem(apiClient, to, contextToken, videoItem)
     }
 
-    // ==================== 文件消息 (send.ts sendFileMessageWeixin) ====================
+    // ==================== File Message (send.ts sendFileMessageWeixin) ====================
 
     fun sendFile(
         apiClient: WeChatApiClient,
@@ -152,11 +152,11 @@ object WeChatSender {
         return sendSingleItem(apiClient, to, contextToken, fileItem)
     }
 
-    // ==================== MIME 路由 (send-media.ts sendWeixinMediaFile) ====================
+    // ==================== MIME Routing (send-media.ts sendWeixinMediaFile) ====================
 
     /**
-     * 根据文件扩展名路由到图片/视频/文件发送。
-     * 对应 SDK 的 sendWeixinMediaFile。
+     * Route to image/video/file sending based on file extension.
+     * Corresponds to SDK sendWeixinMediaFile.
      */
     fun sendMediaFile(
         apiClient: WeChatApiClient,
@@ -182,11 +182,11 @@ object WeChatSender {
         }
     }
 
-    // ==================== 内部工具 ====================
+    // ==================== Internal Utilities ====================
 
     /**
-     * 发送单个 media item。
-     * 对应 SDK send.ts 的 sendMediaItems：每个 item 单独一个请求，item_list 只有一项。
+     * Send a single media item.
+     * Corresponds to SDK send.ts sendMediaItems: each item is a separate request with a single-entry item_list.
      */
     private fun sendSingleItem(
         apiClient: WeChatApiClient,
@@ -199,7 +199,7 @@ object WeChatSender {
         return apiClient.sendMessage(msg)
     }
 
-    /** 构建 msg JSON 对象（所有发送方法共用） */
+    /** Build the msg JSON object (shared by all send methods) */
     private fun buildMsgJson(
         to: String,
         clientId: String,

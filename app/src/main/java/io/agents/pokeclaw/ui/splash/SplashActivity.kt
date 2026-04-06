@@ -11,7 +11,7 @@ import io.agents.pokeclaw.base.BaseActivity
 import io.agents.pokeclaw.ui.chat.ComposeChatActivity
 
 /**
- * 启动页 - 始终进入首页，未配置 LLM 也可进入，可在设置中配置
+ * Splash screen - always navigates to the home screen; LLM does not need to be configured first, it can be set up in Settings
  */
 class SplashActivity : BaseActivity() {
 
@@ -20,7 +20,7 @@ class SplashActivity : BaseActivity() {
         setContentView(R.layout.activity_splash)
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
-            override fun handleOnBackPressed() { /* 启动页不允许返回 */ }
+            override fun handleOnBackPressed() { /* Back press disabled on splash screen */ }
         })
 
         val intent = Intent(this, ComposeChatActivity::class.java)

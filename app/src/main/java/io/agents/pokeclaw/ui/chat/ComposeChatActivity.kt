@@ -292,9 +292,10 @@ class ComposeChatActivity : ComponentActivity() {
 
     private fun loadModel(modelPath: String) {
         try {
-            loadModelWithBackend(modelPath, Backend.CPU())
+            // Try GPU first for better performance
+            loadModelWithBackend(modelPath, Backend.GPU())
         } catch (gpuError: Exception) {
-            XLog.w(TAG, "Load failed: ${gpuError.message}, retrying with CPU")
+            XLog.w(TAG, "GPU load failed: ${gpuError.message}, falling back to CPU")
             try {
                 engine?.close()
                 engine = null

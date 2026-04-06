@@ -18,8 +18,8 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
- * Discord REST API 客户端
- * 用于发送消息、上传图片和文件
+ * Discord REST API client
+ * Used for sending messages, uploading images and files
  */
 class DiscordApiClient private constructor() {
 
@@ -56,7 +56,7 @@ class DiscordApiClient private constructor() {
     private fun authHeader(): String = "${DiscordConstants.AUTH_PREFIX}$botToken"
 
     /**
-     * 发送文本消息到指定频道
+     * Send a text message to the specified channel
      */
     fun sendMessage(channelId: String, content: String, callback: DiscordCallback<String>?) {
         val json = JsonObject().apply {
@@ -76,7 +76,7 @@ class DiscordApiClient private constructor() {
     }
 
     /**
-     * 发送图片到指定频道（multipart 上传）
+     * Send an image to the specified channel (multipart upload)
      */
     fun sendImage(channelId: String, imageBytes: ByteArray, filename: String = "image.png", callback: DiscordCallback<String>?) {
         val imageBody = imageBytes.toRequestBody("image/png".toMediaType())
@@ -96,7 +96,7 @@ class DiscordApiClient private constructor() {
     }
 
     /**
-     * 发送文件到指定频道（multipart 上传）
+     * Send a file to the specified channel (multipart upload)
      */
     fun sendFile(channelId: String, fileBytes: ByteArray, filename: String, mimeType: String = "application/octet-stream", callback: DiscordCallback<String>?) {
         val fileBody = fileBytes.toRequestBody(mimeType.toMediaType())
@@ -124,12 +124,12 @@ class DiscordApiClient private constructor() {
             override fun onFailure(call: Call, e: IOException) {
                 if (attempt < MAX_RETRIES) {
                     val delay = (attempt + 1) * 1000L
-                    XLog.w(TAG, "请求失败(${attempt + 1}/$MAX_RETRIES): ${e.message}，${delay}ms 后重试")
+                    XLog.w(TAG, "Request failed (${attempt + 1}/$MAX_RETRIES): ${e.message}, retrying in ${delay}ms")
                     try { Thread.sleep(delay) } catch (_: InterruptedException) {}
                     executeRequestWithRetry(request, callback, attempt + 1)
                 } else {
-                    XLog.e(TAG, "请求失败(已达最大重试): ${e.message}")
-                    callback?.onFailure(e.message ?: "请求失败")
+                    XLog.e(TAG, "Request failed (max retries reached): ${e.message}")
+                    callback?.onFailure(e.message ?: "Request failed")
                 }
             }
 
@@ -138,7 +138,7 @@ class DiscordApiClient private constructor() {
                 if (response.isSuccessful) {
                     callback?.onSuccess(responseBody)
                 } else {
-                    XLog.e(TAG, "请求失败: HTTP ${response.code} $responseBody")
+                    XLog.e(TAG, "Request failed: HTTP ${response.code} $responseBody")
                     callback?.onFailure("HTTP ${response.code}: $responseBody")
                 }
             }

@@ -177,5 +177,5 @@ public class ScrollToFindTool extends BaseTool {
         }
     }
 
-    // getScreenSize() 由 BaseTool 提供
+    // getScreenSize() is provided by BaseTool
 }

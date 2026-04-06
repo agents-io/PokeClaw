@@ -14,7 +14,7 @@ import androidx.core.view.isVisible
 import io.agents.pokeclaw.R
 
 /**
- * 菜单组组件 - 带标题的圆角卡片容器
+ * Menu group component - rounded card container with a title
  */
 class MenuGroup @JvmOverloads constructor(
     context: Context,
@@ -34,7 +34,7 @@ class MenuGroup @JvmOverloads constructor(
     }
 
     /**
-     * 设置标题，null 或空字符串时隐藏标题
+     * Set title; hides the title when null or empty
      */
     fun setTitle(title: CharSequence?) {
         tvTitle.isVisible = !title.isNullOrEmpty()
@@ -42,28 +42,28 @@ class MenuGroup @JvmOverloads constructor(
     }
 
     /**
-     * 设置标题文字颜色
+     * Set title text color
      */
     fun setTitleColor(color: Int) {
         tvTitle.setTextColor(color)
     }
 
     /**
-     * 设置卡片背景颜色
+     * Set card background color
      */
     fun setCardBackgroundColor(color: Int) {
         cardContainer.setCardBackgroundColor(color)
     }
 
     /**
-     * 添加菜单项
+     * Add a menu item
      */
     fun addMenuItem(item: MenuItem) {
         itemsContainer.addView(item)
     }
 
     /**
-     * 添加菜单项（带配置）
+     * Add a menu item (with configuration)
      */
     fun addMenuItem(
         leadingIcon: Int,
@@ -88,19 +88,19 @@ class MenuGroup @JvmOverloads constructor(
     }
 
     /**
-     * 移除所有菜单项
+     * Remove all menu items
      */
     fun clearMenuItems() {
         itemsContainer.removeAllViews()
     }
 
     /**
-     * 获取菜单项数量
+     * Get menu item count
      */
     fun getMenuItemCount(): Int = itemsContainer.childCount
 
     /**
-     * 获取指定位置的菜单项
+     * Get menu item at given index
      */
     fun getMenuItemAt(index: Int): MenuItem? {
         return itemsContainer.getChildAt(index) as? MenuItem

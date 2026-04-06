@@ -9,27 +9,27 @@ import org.json.JSONObject
 import java.util.concurrent.ConcurrentHashMap
 
 /**
- * 收消息解析 + contextToken 管理。
- * 对应官方 @tencent-weixin/openclaw-weixin 的 src/messaging/inbound.ts
- * 1.0.2：contextToken 仅内存缓存
- * 2.0.1：新增 contextToken 持久化（内存 + 磁盘），进程重启后可恢复
+ * Inbound message parsing + contextToken management.
+ * Corresponds to the official @tencent-weixin/openclaw-weixin src/messaging/inbound.ts
+ * 1.0.2: contextToken in-memory cache only
+ * 2.0.1: added contextToken persistence (memory + disk), survives process restart
  */
 object WeChatInbound {
 
     private const val TAG = "WeChatInbound"
 
-    /** MMKV key 前缀，存储 contextToken JSON */
+    /** MMKV key prefix for storing contextToken JSON */
     private const val KV_PREFIX = "WECHAT_CONTEXT_TOKENS_"
 
     // ==================== Context Token Store (inbound.ts) ====================
-    // contextToken 由 getupdates 下发，每条消息一个，回复时必须原样带回。
-    // 内存 map 为主查找，MMKV 持久化确保 App 重启后可恢复（对应 2.0.1 的磁盘持久化）。
+    // contextToken is issued by getupdates, one per message, and must be echoed back when replying.
+    // In-memory map is the primary lookup; MMKV persistence ensures recovery after app restart (corresponds to 2.0.1 disk persistence).
 
     private val contextTokenStore = ConcurrentHashMap<String, String>()
 
     private fun contextTokenKey(accountId: String, userId: String): String = "$accountId:$userId"
 
-    /** 存储 contextToken（内存 + MMKV 持久化）。对应 2.0.1 inbound.ts setContextToken */
+    /** Store contextToken (memory + MMKV persistence). Corresponds to 2.0.1 inbound.ts setContextToken */
     fun setContextToken(accountId: String, userId: String, token: String) {
         contextTokenStore[contextTokenKey(accountId, userId)] = token
         persistContextTokens(accountId)
@@ -43,7 +43,7 @@ object WeChatInbound {
         contextTokenStore.clear()
     }
 
-    /** 根据 contextToken 值反查 userId（遍历 store） */
+    /** Reverse-lookup userId from contextToken value (iterates store) */
     fun findUserIdByContextToken(accountId: String, contextToken: String): String? {
         if (contextToken.isEmpty()) return null
         val prefix = "$accountId:"
@@ -55,9 +55,9 @@ object WeChatInbound {
         return null
     }
 
-    // ==================== 持久化（2.0.1 新增） ====================
+    // ==================== Persistence (added in 2.0.1) ====================
 
-    /** 将指定 account 的全部 contextToken 持久化到 MMKV */
+    /** Persist all contextTokens for the specified account to MMKV */
     private fun persistContextTokens(accountId: String) {
         val prefix = "$accountId:"
         val tokens = JSONObject()
@@ -70,8 +70,8 @@ object WeChatInbound {
     }
 
     /**
-     * 从 MMKV 恢复 contextToken 到内存。App 启动 / 通道重连时调用。
-     * 对应 2.0.1 inbound.ts restoreContextTokens
+     * Restore contextTokens from MMKV to memory. Call on app start / channel reconnect.
+     * Corresponds to 2.0.1 inbound.ts restoreContextTokens
      */
     fun restoreContextTokens(accountId: String) {
         val raw = KVUtils.getString(KV_PREFIX + accountId, "")
@@ -93,8 +93,8 @@ object WeChatInbound {
     }
 
     /**
-     * 清除指定 account 的全部 contextToken（内存 + MMKV）。
-     * 对应 2.0.1 inbound.ts clearContextTokensForAccount
+     * Clear all contextTokens for the specified account (memory + MMKV).
+     * Corresponds to 2.0.1 inbound.ts clearContextTokensForAccount
      */
     fun clearContextTokensForAccount(accountId: String) {
         val prefix = "$accountId:"
@@ -105,10 +105,10 @@ object WeChatInbound {
         XLog.i(TAG, "clearContextTokensForAccount: cleared tokens for account=$accountId")
     }
 
-    // ==================== 消息解析 (inbound.ts) ====================
+    // ==================== Message Parsing (inbound.ts) ====================
 
     /**
-     * 从 getupdates 返回的 JSON 消息中解析出 WeChatMessage。
+     * Parse a WeChatMessage from the JSON message returned by getupdates.
      */
     fun parseMessage(json: JSONObject): WeChatMessage? {
         val fromUserId = json.optString("from_user_id", "")
@@ -209,34 +209,34 @@ object WeChatInbound {
         )
     }
 
-    // ==================== 提取消息文本 (inbound.ts bodyFromItemList) ====================
+    // ==================== Extract Message Text (inbound.ts bodyFromItemList) ====================
 
     /**
-     * 从 item_list 提取文本内容。
-     * 支持：纯文本、语音转文字、引用消息上下文。
+     * Extract text content from item_list.
+     * Supports: plain text, voice-to-text, and quoted message context.
      */
     fun bodyFromItemList(itemList: List<WeChatMessageItem>?): String {
         if (itemList.isNullOrEmpty()) return ""
         for (item in itemList) {
-            // 文本消息
+            // Text message
             if (item.type == MessageItemType.TEXT && !item.textItem?.text.isNullOrEmpty()) {
                 val text = item.textItem!!.text!!
                 val ref = item.refMsg ?: return text
 
-                // 引用的是媒体消息：只返回当前文本
+                // Quoted message is media: return current text only
                 if (ref.messageItem != null && isMediaItem(ref.messageItem)) return text
 
-                // 构建引用上下文
+                // Build quote context
                 val parts = mutableListOf<String>()
                 ref.title?.let { parts.add(it) }
                 ref.messageItem?.let {
                     val refBody = bodyFromItemList(listOf(it))
                     if (refBody.isNotEmpty()) parts.add(refBody)
                 }
-                return if (parts.isEmpty()) text else "[引用: ${parts.joinToString(" | ")}]\n$text"
+                return if (parts.isEmpty()) text else "[Quote: ${parts.joinToString(" | ")}]\n$text"
             }
 
-            // 语音转文字
+            // Voice-to-text
             if (item.type == MessageItemType.VOICE && !item.voiceItem?.text.isNullOrEmpty()) {
                 return item.voiceItem!!.text!!
             }
@@ -244,7 +244,7 @@ object WeChatInbound {
         return ""
     }
 
-    /** 判断是否为媒体类型 */
+    /** Determine whether the type is a media type */
     fun isMediaItem(item: WeChatMessageItem): Boolean {
         return item.type in listOf(
             MessageItemType.IMAGE,

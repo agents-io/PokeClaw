@@ -22,15 +22,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 
 /**
- * SettingsActivity 的 ViewModel
+ * ViewModel for SettingsActivity
  */
 class SettingsViewModel : ViewModel() {
 
-    // 设置项数据 Flow（用于动态更新）
+    // Settings data Flow (for dynamic updates)
     private val _settingItems = MutableStateFlow<Map<String, SettingValue>>(emptyMap())
     val settingItems: StateFlow<Map<String, SettingValue>> = _settingItems
 
-    // 菜单点击事件
+    // Menu click event
     private val _menuClickEvent = MutableStateFlow<MenuAction?>(null)
     val menuClickEvent: StateFlow<MenuAction?> = _menuClickEvent
 
@@ -62,7 +62,7 @@ class SettingsViewModel : ViewModel() {
     }
 
     /**
-     * 更新设置项值
+     * Update a setting value
      */
     fun updateSettingValue(key: String, value: SettingValue) {
         _settingItems.value = _settingItems.value.toMutableMap().apply {
@@ -71,28 +71,28 @@ class SettingsViewModel : ViewModel() {
     }
 
     /**
-     * 更新尾部文字
+     * Update trailing text
      */
     fun updateTrailingText(key: String, text: String) {
         updateSettingValue(key, SettingValue.Text(text))
     }
 
     /**
-     * 处理菜单项点击
+     * Handle menu item click
      */
     fun onMenuItemClick(action: MenuAction) {
         _menuClickEvent.value = action
     }
 
     /**
-     * 清空菜单点击事件
+     * Clear menu click event
      */
     fun clearMenuClickEvent() {
         _menuClickEvent.value = null
     }
 
     /**
-     * 微信 iLink 扫码登录流程
+     * WeChat iLink QR code login flow
      */
     fun startWeChatQrLogin(context: Context) {
         viewModelScope.launch {
@@ -111,7 +111,7 @@ class SettingsViewModel : ViewModel() {
                     return@launch
                 }
 
-                // 用 qrcode 值通过 ZXing 本地生成二维码 Bitmap
+                // Use qrcode value to generate QR code Bitmap locally via ZXing
                 val qrBitmap = generateQrBitmap(qrResult.qrcodeImgContent, 512)
                 if (qrBitmap == null) {
                     Toast.makeText(context, R.string.wechat_qr_failed, Toast.LENGTH_SHORT).show()
@@ -128,7 +128,7 @@ class SettingsViewModel : ViewModel() {
                 pollingJob = startWeChatQrPolling(context, dialog, apiClient, qrResult.qrcode)
             } catch (e: Exception) {
                 loadingDialog.dismiss()
-                XLog.e("SettingsViewModel", "微信扫码登录失败", e)
+                XLog.e("SettingsViewModel", "WeChat QR code login failed", e)
                 Toast.makeText(context, R.string.wechat_qr_failed, Toast.LENGTH_SHORT).show()
             }
         }
@@ -149,7 +149,7 @@ class SettingsViewModel : ViewModel() {
                         apiClient.pollQrCodeStatus(qrcode)
                     }
                     if (authResult != null) {
-                        // 扫码确认成功，保存 token 和 baseurl
+                        // QR scan confirmed successfully, save token and baseurl
                         KVUtils.setWechatBotToken(authResult.botToken)
                         KVUtils.setWechatApiBaseUrl(authResult.baseUrl)
                         ChannelManager.reinitWeChatFromStorage()
@@ -162,7 +162,7 @@ class SettingsViewModel : ViewModel() {
                         break
                     }
                 } catch (_: Exception) {
-                    // 网络异常静默重试
+                    // Network error — silently retry
                 }
             }
         }
@@ -170,7 +170,7 @@ class SettingsViewModel : ViewModel() {
 
 
     /**
-     * 切换局域网配置服务开关
+     * Toggle LAN config server on/off
      */
     fun toggleConfigServer(context: Context): String {
         return if (ConfigServerManager.isRunning()) {
@@ -258,7 +258,7 @@ class SettingsViewModel : ViewModel() {
     }
 
     fun unbindWeChat() {
-        // 清除持久化的 contextToken（对应 2.0.1 clearContextTokensForAccount）
+        // Clear persisted contextToken (corresponds to 2.0.1 clearContextTokensForAccount)
         val accountId = KVUtils.getWechatBotToken().substringBefore(":").ifEmpty { "default" }
         io.agents.pokeclaw.channel.wechat.WeChatInbound.clearContextTokensForAccount(accountId)
         KVUtils.setWechatBotToken("")
@@ -269,7 +269,7 @@ class SettingsViewModel : ViewModel() {
     }
 
     /**
-     * 设置值密封类
+     * Sealed class for setting values
      */
     sealed class SettingValue {
         data class Text(val text: String) : SettingValue()
@@ -277,7 +277,7 @@ class SettingsViewModel : ViewModel() {
     }
 
     /**
-     * 用 ZXing 将文本编码为二维码 Bitmap
+     * Encode text as a QR code Bitmap using ZXing
      */
     private fun generateQrBitmap(content: String, size: Int): android.graphics.Bitmap? {
         return try {
@@ -295,13 +295,13 @@ class SettingsViewModel : ViewModel() {
             }
             bitmap
         } catch (e: Exception) {
-            XLog.e("SettingsViewModel", "生成二维码失败", e)
+            XLog.e("SettingsViewModel", "Failed to generate QR code", e)
             null
         }
     }
 
     /**
-     * 菜单动作枚举
+     * Menu action enum
      */
     enum class MenuAction {
         DINGDING, FEISHU, QQ, DISCORD, TELEGRAM, WECHAT,

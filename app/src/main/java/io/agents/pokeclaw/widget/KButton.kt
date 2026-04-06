@@ -12,19 +12,19 @@ import io.agents.pokeclaw.R
 import androidx.core.content.withStyledAttributes
 
 /**
- * 基础按钮
- * 纯文字按钮，支持自定义背景色、圆角、边框色
+ * Basic button
+ * Text-only button with customizable background color, corner radius, and border color
  *
- * XML 用法:
+ * XML usage:
  *   <io.agents.pokeclaw.widget.KButton
  *       android:layout_width="match_parent"
  *       android:layout_height="48dp"
  *       android:layout_marginHorizontal="16dp"
- *       android:text="确定" />
+ *       android:text="Confirm" />
  *
- * 代码用法:
+ * Code usage:
  *   KButton(context).apply {
- *       text = "确定"
+ *       text = "Confirm"
  *       setBgColor(Color.RED)
  *       setBorderColor(Color.GRAY)
  *       setCornerRadius(12f)

@@ -9,7 +9,7 @@ public class AccessTokenResponse {
     @SerializedName("access_token")
     private String access_token;
 
-    // QQ API 返回的 expires_in 是字符串类型 "7200"，用 String 接收避免 Gson 解析失败
+    // The QQ API returns expires_in as the string "7200"; use String to avoid Gson parse failure
     @SerializedName("expires_in")
     private String expires_in;
 

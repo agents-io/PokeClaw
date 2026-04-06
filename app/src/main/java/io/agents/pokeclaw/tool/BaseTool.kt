@@ -10,7 +10,7 @@ abstract class BaseTool {
     companion object {
         /** Tool description language: true = Chinese, false = English */
         @JvmField
-        var useChineseDescription: Boolean = true
+        var useChineseDescription: Boolean = false
 
         /** Maximum value for the wait_after parameter (milliseconds) */
         private const val MAX_WAIT_AFTER_MS = 10000L

@@ -34,7 +34,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.net.toUri
 
 /**
- * 设置页面
+ * Settings screen
  */
 class SettingsActivity : BaseActivity() {
 
@@ -58,18 +58,18 @@ class SettingsActivity : BaseActivity() {
         ViewModelProvider(this)[SettingsViewModel::class.java]
     }
 
-    // 保存 MenuItem 引用以便动态更新
+    // Keep MenuItem references for dynamic updates
     private val menuItems = mutableMapOf<String, MenuItem>()
 
-    // 注册 LLM 配置页返回后刷新
+    // Register launcher to refresh after returning from LLM config screen
     private val llmConfigLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { _ ->
         viewModel.refresh()
     }
 
-    // 注册通道配置结果回调
+    // Register channel config result callback
     private val channelConfigLauncher = ChannelConfigActivity.registerLauncher(this) { result ->
         result?.let {
-            // 配置成功后刷新设置项（刷新"已绑定"/"未绑定"状态）
+            // Refresh settings after successful config (refresh "Bound"/"Unbound" status)
             viewModel.refresh()
         }
     }
@@ -243,7 +243,7 @@ class SettingsActivity : BaseActivity() {
             setTrailingText(if (granted) "Enabled" else "Disabled")
         }
 
-        // 通道 (hidden)
+        // Channel (hidden)
         val channelGroup = findViewById<MenuGroup>(R.id.channelGroup)
         channelGroup.setTitle(getString(R.string.settings_group_channel))
 
@@ -408,7 +408,7 @@ class SettingsActivity : BaseActivity() {
     private fun observeViewModel() {
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                // 监听设置项变化，动态更新 UI
+                // Observe settings changes and dynamically update UI
                 launch {
                     viewModel.settingItems.collect { items ->
                         items.forEach { (key, value) ->
@@ -417,14 +417,14 @@ class SettingsActivity : BaseActivity() {
                                     menuItems[key]?.setTrailingText(value.text)
                                 }
                                 is SettingsViewModel.SettingValue.Switch -> {
-                                    // 如果有开关，可以在这里更新
+                                    // Update switch state here if needed
                                 }
                             }
                         }
                     }
                 }
 
-                // 监听 H5 页面配置变更（含 LLM/通道），刷新 UI 并重新初始化 Agent 与通道
+                // Observe H5 config changes (includes LLM/channel), refresh UI and re-initialize Agent and channels
                 launch {
                     ConfigServerManager.configChanged.collect {
                         viewModel.refresh()
@@ -433,7 +433,7 @@ class SettingsActivity : BaseActivity() {
                     }
                 }
 
-                // 监听菜单点击事件
+                // Observe menu click events
                 launch {
                     viewModel.menuClickEvent.collect { action ->
                         when (action) {
@@ -517,7 +517,7 @@ class SettingsActivity : BaseActivity() {
     }
 
     /**
-     * 显示解除绑定确认弹窗
+     * Show unbind confirmation dialog
      */
     private fun showUnbindDialog(channelName: String, onUnbind: () -> Unit) {
         AlertDialog.showWarm(

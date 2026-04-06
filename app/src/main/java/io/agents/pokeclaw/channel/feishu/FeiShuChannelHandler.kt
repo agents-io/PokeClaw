@@ -41,7 +41,7 @@ class FeiShuChannelHandler(
             .onP2MessageReceiveV1(object : ImService.P2MessageReceiveV1Handler() {
                 override fun handle(event: P2MessageReceiveV1) {
                     try {
-                        XLog.i(TAG, "[${channel.displayName}] 收到消息事件: ${Jsons.DEFAULT.toJson(event.event)}")
+                        XLog.i(TAG, "[${channel.displayName}] Message event received: ${Jsons.DEFAULT.toJson(event.event)}")
 
                         val messageId = event.event.message.messageId
                         val messageType = event.event.message.messageType
@@ -50,7 +50,7 @@ class FeiShuChannelHandler(
                         val fiveMinutesInMillis = 5 * 60 * 1000
                         val currentTime = System.currentTimeMillis()
                         if (createTime != null && (currentTime - createTime.toLong() > fiveMinutesInMillis)) {
-                            XLog.i(TAG, "[${channel.displayName}] 忽略超过5分钟的消息: messageId=$messageId")
+                            XLog.i(TAG, "[${channel.displayName}] Ignoring message older than 5 minutes: messageId=$messageId")
                             return
                         }
 
@@ -76,7 +76,7 @@ class FeiShuChannelHandler(
 
     override fun init() {
         if (appId.isEmpty() || appSecret.isEmpty()) {
-            XLog.w(TAG, "飞书 AppId/AppSecret 未配置，飞书通道将不可用")
+            XLog.w(TAG, "FeiShu AppId/AppSecret not configured, FeiShu channel will be unavailable")
             return
         }
 
@@ -89,9 +89,9 @@ class FeiShuChannelHandler(
         scope.launch {
             try {
                 wsClient?.start()
-                XLog.i(TAG, "飞书 WebSocket 客户端已启动")
+                XLog.i(TAG, "FeiShu WebSocket client started")
             } catch (e: Exception) {
-                XLog.e(TAG, "飞书 WebSocket 客户端启动失败", e)
+                XLog.e(TAG, "FeiShu WebSocket client failed to start", e)
             }
         }
     }
@@ -107,7 +107,7 @@ class FeiShuChannelHandler(
             autoReconnectField.isAccessible = true
             autoReconnectField.set(oldWsClient, false)
         } catch (e: Exception) {
-            XLog.w(TAG, "飞书: 禁用自动重连失败(字段可能已变更)", e)
+            XLog.w(TAG, "FeiShu: failed to disable auto-reconnect (field may have changed)", e)
         }
 
         try {
@@ -115,7 +115,7 @@ class FeiShuChannelHandler(
             disconnectMethod.isAccessible = true
             disconnectMethod.invoke(oldWsClient)
         } catch (e: Exception) {
-            XLog.w(TAG, "飞书: 调用 disconnect 失败(方法可能已变更)", e)
+            XLog.w(TAG, "FeiShu: disconnect call failed (method may have changed)", e)
         }
 
         try {
@@ -124,10 +124,10 @@ class FeiShuChannelHandler(
             val executor = executorField.get(oldWsClient) as? java.util.concurrent.ExecutorService
             executor?.shutdownNow()
         } catch (e: Exception) {
-            XLog.w(TAG, "飞书: 关闭线程池失败(字段可能已变更)", e)
+            XLog.w(TAG, "FeiShu: failed to shut down thread pool (field may have changed)", e)
         }
 
-        XLog.i(TAG, "飞书 WebSocket 客户端已断开")
+        XLog.i(TAG, "FeiShu WebSocket client disconnected")
     }
 
     override fun reinitFromStorage() {
@@ -140,7 +140,7 @@ class FeiShuChannelHandler(
     override fun sendMessage(content: String, messageID: String) {
         val client = apiClient
         if (client == null) {
-            XLog.w(TAG, "飞书回复失败：客户端未初始化")
+            XLog.w(TAG, "FeiShu reply failed: client not initialized")
             return
         }
 
@@ -161,9 +161,9 @@ class FeiShuChannelHandler(
                         )
                         .build()
                 )
-                XLog.i(TAG, "飞书回复响应: code=${resp.code}, msg=${resp.msg}, type=$msgType")
+                XLog.i(TAG, "FeiShu reply response: code=${resp.code}, msg=${resp.msg}, type=$msgType")
             } catch (e: Exception) {
-                XLog.e(TAG, "飞书回复失败", e)
+                XLog.e(TAG, "FeiShu reply failed", e)
             }
         }
     }
@@ -175,10 +175,10 @@ class FeiShuChannelHandler(
                 if (imageKey != null) {
                     replyImage(imageKey, messageID)
                 } else {
-                    XLog.e(TAG, "飞书图片上传失败，imageKey 为空")
+                    XLog.e(TAG, "FeiShu image upload failed: imageKey is empty")
                 }
             } catch (e: Exception) {
-                XLog.e(TAG, "飞书发送图片失败", e)
+                XLog.e(TAG, "FeiShu image send failed", e)
             }
         }
     }
@@ -186,7 +186,7 @@ class FeiShuChannelHandler(
     override fun sendFile(file: File, messageID: String) {
         val client = apiClient
         if (client == null) {
-            XLog.w(TAG, "飞书发送文件失败：客户端未初始化")
+            XLog.w(TAG, "FeiShu file send failed: client not initialized")
             return
         }
 
@@ -222,9 +222,9 @@ class FeiShuChannelHandler(
                                 )
                                 .build()
                         )
-                        XLog.i(TAG, "飞书图片发送成功: ${file.name}")
+                        XLog.i(TAG, "FeiShu image sent successfully: ${file.name}")
                     } else {
-                        XLog.e(TAG, "飞书图片上传失败: code=${uploadResp.code}, msg=${uploadResp.msg}")
+                        XLog.e(TAG, "FeiShu image upload failed: code=${uploadResp.code}, msg=${uploadResp.msg}")
                     }
                 } else {
                     val uploadResp = client.im().file().create(
@@ -251,18 +251,18 @@ class FeiShuChannelHandler(
                                 )
                                 .build()
                         )
-                        XLog.i(TAG, "飞书文件发送成功: ${file.name}")
+                        XLog.i(TAG, "FeiShu file sent successfully: ${file.name}")
                     } else {
-                        XLog.e(TAG, "飞书文件上传失败: code=${uploadResp.code}, msg=${uploadResp.msg}")
+                        XLog.e(TAG, "FeiShu file upload failed: code=${uploadResp.code}, msg=${uploadResp.msg}")
                     }
                 }
             } catch (e: Exception) {
-                XLog.e(TAG, "飞书发送文件失败", e)
+                XLog.e(TAG, "FeiShu file send failed", e)
             }
         }
     }
 
-    // ---------- 内部工具方法 ----------
+    // ---------- Internal helper methods ----------
 
     private fun uploadImage(imageBytes: ByteArray): String? {
         val client = apiClient ?: return null
@@ -282,14 +282,14 @@ class FeiShuChannelHandler(
                     .build()
             )
             if (resp.success()) {
-                XLog.i(TAG, "飞书图片上传成功: imageKey=${resp.data.imageKey}")
+                XLog.i(TAG, "FeiShu image uploaded successfully: imageKey=${resp.data.imageKey}")
                 resp.data.imageKey
             } else {
-                XLog.e(TAG, "飞书图片上传失败: code=${resp.code}, msg=${resp.msg}")
+                XLog.e(TAG, "FeiShu image upload failed: code=${resp.code}, msg=${resp.msg}")
                 null
             }
         } catch (e: Exception) {
-            XLog.e(TAG, "飞书图片上传异常", e)
+            XLog.e(TAG, "FeiShu image upload exception", e)
             null
         } finally {
             tempFile.delete()
@@ -299,7 +299,7 @@ class FeiShuChannelHandler(
     private fun replyImage(imageKey: String, messageID: String) {
         val client = apiClient
         if (client == null) {
-            XLog.w(TAG, "飞书图片回复失败：客户端未初始化")
+            XLog.w(TAG, "FeiShu image reply failed: client not initialized")
             return
         }
         scope.launch {
@@ -316,9 +316,9 @@ class FeiShuChannelHandler(
                         )
                         .build()
                 )
-                XLog.i(TAG, "飞书图片回复响应: code=${resp.code}, msg=${resp.msg}")
+                XLog.i(TAG, "FeiShu image reply response: code=${resp.code}, msg=${resp.msg}")
             } catch (e: Exception) {
-                XLog.e(TAG, "飞书图片回复失败", e)
+                XLog.e(TAG, "FeiShu image reply failed", e)
             }
         }
     }

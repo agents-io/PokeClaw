@@ -15,8 +15,8 @@ import javax.crypto.Cipher
 import javax.crypto.spec.SecretKeySpec
 
 /**
- * CDN 加密上传/下载。
- * 严格对应官方 @tencent-weixin/openclaw-weixin@1.0.2 的:
+ * CDN encrypted upload/download.
+ * Strictly mirrors the official @tencent-weixin/openclaw-weixin@1.0.2:
  * - src/cdn/aes-ecb.ts
  * - src/cdn/cdn-url.ts
  * - src/cdn/cdn-upload.ts
@@ -48,7 +48,7 @@ object WeChatCdn {
         return cipher.doFinal(ciphertext)
     }
 
-    /** PKCS7 填充后的密文大小 */
+    /** Ciphertext size after PKCS7 padding */
     fun aesEcbPaddedSize(plaintextSize: Int): Int {
         return ((plaintextSize + 1 + 15) / 16) * 16
     }
@@ -67,11 +67,11 @@ object WeChatCdn {
         }"
     }
 
-    // ==================== CDN 上传 (cdn-upload.ts) ====================
+    // ==================== CDN Upload (cdn-upload.ts) ====================
 
     /**
-     * 加密并上传到 CDN，返回 downloadParam（x-encrypted-param 响应头）。
-     * 最多重试 UPLOAD_MAX_RETRIES 次，4xx 立即中止。
+     * Encrypt and upload to CDN, returning downloadParam (x-encrypted-param response header).
+     * Retries up to UPLOAD_MAX_RETRIES times; aborts immediately on 4xx.
      */
     fun uploadBufferToCdn(
         plaintext: ByteArray,
@@ -98,32 +98,32 @@ object WeChatCdn {
                 response.close()
 
                 if (code in 400..499) {
-                    XLog.e(TAG, "CDN 4xx 错误, 中止: code=$code, err=$errMsg")
+                    XLog.e(TAG, "CDN 4xx error, aborting: code=$code, err=$errMsg")
                     return null
                 }
                 if (code != 200) {
-                    XLog.e(TAG, "CDN 服务器错误 attempt=$attempt: code=$code, err=$errMsg")
+                    XLog.e(TAG, "CDN server error attempt=$attempt: code=$code, err=$errMsg")
                     continue
                 }
                 if (param.isNullOrEmpty()) {
-                    XLog.e(TAG, "CDN 缺少 x-encrypted-param attempt=$attempt")
+                    XLog.e(TAG, "CDN missing x-encrypted-param attempt=$attempt")
                     continue
                 }
                 downloadParam = param
-                XLog.d(TAG, "CDN 上传成功 attempt=$attempt")
+                XLog.d(TAG, "CDN upload succeeded attempt=$attempt")
                 break
             } catch (e: Exception) {
-                XLog.e(TAG, "CDN 上传异常 attempt=$attempt", e)
+                XLog.e(TAG, "CDN upload exception attempt=$attempt", e)
                 if (attempt == UPLOAD_MAX_RETRIES) return null
             }
         }
         return downloadParam
     }
 
-    // ==================== 上传流水线 (upload.ts uploadMediaToCdn) ====================
+    // ==================== Upload Pipeline (upload.ts uploadMediaToCdn) ====================
 
     /**
-     * 完整的 CDN 上传流水线：
+     * Full CDN upload pipeline:
      * hash → genKey → getUploadUrl → encrypt+POST → return UploadedFileInfo
      */
     fun uploadMedia(
@@ -152,11 +152,11 @@ object WeChatCdn {
             aeskeyHex = aeskeyHex
         )
         if (uploadParam == null) {
-            XLog.e(TAG, "getUploadUrl 未返回 upload_param")
+            XLog.e(TAG, "getUploadUrl did not return upload_param")
             return null
         }
 
-        // 2. 加密上传到 CDN
+        // 2. Encrypt and upload to CDN
         val downloadParam = uploadBufferToCdn(
             plaintext = plaintext,
             uploadParam = uploadParam,
@@ -165,7 +165,7 @@ object WeChatCdn {
             aesKey = aesKey
         )
         if (downloadParam == null) {
-            XLog.e(TAG, "CDN 上传失败")
+            XLog.e(TAG, "CDN upload failed")
             return null
         }
 
@@ -178,11 +178,11 @@ object WeChatCdn {
         )
     }
 
-    // ==================== 下载解密 (pic-decrypt.ts) ====================
+    // ==================== Download Decryption (pic-decrypt.ts) ====================
 
     /**
-     * 解析 aes_key（兼容两种格式）。
-     * 对应 pic-decrypt.ts parseAesKey:
+     * Parse aes_key (compatible with two formats).
+     * Corresponds to pic-decrypt.ts parseAesKey:
      * - base64(raw 16 bytes) → images
      * - base64(hex string of 16 bytes) → file / voice / video
      */
@@ -195,18 +195,18 @@ object WeChatCdn {
                     hexToBytes(String(decoded))
                 }
                 else -> {
-                    XLog.e(TAG, "parseAesKey: 无效长度 ${decoded.size}")
+                    XLog.e(TAG, "parseAesKey: invalid length ${decoded.size}")
                     null
                 }
             }
         } catch (e: Exception) {
-            XLog.e(TAG, "parseAesKey 异常", e)
+            XLog.e(TAG, "parseAesKey exception", e)
             null
         }
     }
 
     /**
-     * 下载并解密 CDN 媒体文件。
+     * Download and decrypt a CDN media file.
      */
     fun downloadAndDecrypt(
         encryptedQueryParam: String,
@@ -223,12 +223,12 @@ object WeChatCdn {
             if (encrypted == null) return null
             decryptAesEcb(encrypted, key)
         } catch (e: Exception) {
-            XLog.e(TAG, "CDN 下载解密失败", e)
+            XLog.e(TAG, "CDN download decryption failed", e)
             null
         }
     }
 
-    // ==================== 工具方法 ====================
+    // ==================== Utility Methods ====================
 
     fun md5Hex(data: ByteArray): String {
         return MessageDigest.getInstance("MD5").digest(data).toHexString()
@@ -238,7 +238,7 @@ object WeChatCdn {
         return ByteArray(bytes).also { SecureRandom().nextBytes(it) }.toHexString()
     }
 
-    /** 对应 SDK 的 generateId(prefix) → "prefix:{timestamp}-{8-char-hex}" */
+    /** Corresponds to SDK generateId(prefix) → "prefix:{timestamp}-{8-char-hex}" */
     fun generateId(prefix: String): String {
         val ts = System.currentTimeMillis()
         val hex = randomHex(4) // 4 bytes = 8 hex chars

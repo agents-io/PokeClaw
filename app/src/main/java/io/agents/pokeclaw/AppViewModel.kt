@@ -104,7 +104,7 @@ class AppViewModel : ViewModel() {
             PowerManager.SCREEN_DIM_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
             "PokeClaw::ScreenWakeLock"
         ).apply {
-            acquire()
+            acquire(10 * 60 * 1000L) // 10 minute timeout to prevent battery drain
         }
         XLog.i(TAG, "Wake lock acquired")
     }

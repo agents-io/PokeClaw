@@ -31,12 +31,12 @@ public class OkHttpClientBuilderAdapter implements HttpClientBuilder {
     private Duration readTimeout = Duration.ofSeconds(300);
 
     /**
-     * 是否将请求/响应原始数据输出到文件（沙盒缓存目录）
+     * Whether to write raw request/response data to a file (sandbox cache directory)
      */
     private boolean fileLoggingEnabled = false;
     private File cacheDir;
 
-    /** 是否在 logcat 打印请求 body（默认关闭，LLM 请求体很大且重复） */
+    /** Whether to print the request body to logcat (off by default; LLM request bodies are large and repetitive) */
     private boolean logRequestBody = false;
 
     public OkHttpClientBuilderAdapter() {
@@ -79,18 +79,18 @@ public class OkHttpClientBuilderAdapter implements HttpClientBuilder {
     public HttpClient build() {
         final boolean logReqBody = this.logRequestBody;
 
-        // 自定义拦截器：始终打印响应，请求 body 由 logRequestBody 控制
+        // Custom interceptor: always print response; request body controlled by logRequestBody flag
         Interceptor llmLoggingInterceptor = chain -> {
             Request request = chain.request();
             long startMs = System.nanoTime();
 
-            // 请求：只打 URL + method，body 按开关控制
+            // Request: log URL + method only; body controlled by flag
             XLog.d(TAG, "--> " + request.method() + " " + request.url());
             if (logReqBody && request.body() != null) {
                 okio.Buffer buf = new okio.Buffer();
                 request.body().writeTo(buf);
                 String body = buf.readUtf8();
-                // 截断超长 body，避免 logcat 溢出
+                // Truncate overly long body to avoid logcat overflow
                 if (body.length() > 4000) {
                     XLog.d(TAG, "Request body: " + body.substring(0, 4000) + "...[truncated, total=" + body.length() + "]");
                 } else {
@@ -101,13 +101,13 @@ public class OkHttpClientBuilderAdapter implements HttpClientBuilder {
             Response response = chain.proceed(request);
             long durationMs = TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startMs);
 
-            // 响应：始终打印 body
+            // Response: always print body
             ResponseBody responseBody = response.body();
             String respStr = "";
             if (responseBody != null) {
                 MediaType contentType = responseBody.contentType();
                 respStr = responseBody.string();
-                // 重新包装（string() 只能消费一次）
+                // Re-wrap (string() can only be consumed once)
                 response = response.newBuilder()
                         .body(ResponseBody.create(contentType, respStr))
                         .build();

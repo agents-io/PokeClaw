@@ -50,10 +50,10 @@ public class QBotWebSocketManager {
     private int shardCount = 1;
     private int currentShard = 0;
 
-    /** 收到 QQ 消息时回调（单聊/群聊），由 ChannelManager 设置 */
+    /** Callback for received QQ messages (direct/group), set by ChannelManager */
     private volatile OnQQMessageListener qqMessageListener;
 
-    /** 消息 ID 去重缓存，防止 WebSocket 重连后重复处理同一消息（最多保留 100 条） */
+    /** Message ID dedup cache to avoid reprocessing the same message after WebSocket reconnect (max 100 entries) */
     private final java.util.Set<String> recentMessageIds = java.util.Collections.newSetFromMap(
             new java.util.LinkedHashMap<String, Boolean>(100, 0.75f, false) {
                 @Override
@@ -69,7 +69,7 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 连接状态监听器接口
+     * Connection state listener interface
      */
     public interface ConnectionStateListener {
         void onConnectionStateChanged(boolean connected);
@@ -102,8 +102,8 @@ public class QBotWebSocketManager {
     }
 
     /**
-     * 添加连接状态监听器
-     * @param listener 监听器
+     * Add a connection state listener
+     * @param listener the listener
      */
     public void addConnectionStateListener(ConnectionStateListener listener) {
         if (!connectionStateListeners.contains(listener)) {
@@ -112,16 +112,16 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 移除连接状态监听器
-     * @param listener 监听器
+     * Remove a connection state listener
+     * @param listener the listener
      */
     public void removeConnectionStateListener(ConnectionStateListener listener) {
         connectionStateListeners.remove(listener);
     }
     
     /**
-     * 通知所有监听器连接状态改变
-     * @param connected 是否连接
+     * Notify all listeners of a connection state change
+     * @param connected whether connected
      */
     private void notifyConnectionStateChanged(boolean connected) {
         mainHandler.post(new Runnable() {
@@ -135,15 +135,15 @@ public class QBotWebSocketManager {
     }
 
     /**
-     * 设置事件回调
-     * @param callback 事件回调
+     * Set the event callback
+     * @param callback the event callback
      */
     public void setEventCallback(QBotCallback<String> callback) {
         this.eventCallback = callback;
     }
     
     /**
-     * 开始WebSocket连接
+     * Start WebSocket connection
      */
     public void start() {
         stopped = false;
@@ -152,13 +152,13 @@ public class QBotWebSocketManager {
             public void onSuccess(GatewayResponse gatewayResponse) {
                 gatewayUrl = gatewayResponse.getUrl();
                 shardCount = gatewayResponse.getShards();
-                XLog.d(TAG, "获取到网关地址: " + gatewayUrl + ", 建议分片数: " + shardCount);
+                XLog.d(TAG, "Gateway URL obtained: " + gatewayUrl + ", recommended shard count: " + shardCount);
                 connectWebSocket(gatewayUrl);
             }
             
             @Override
             public void onFailure(QBotException e) {
-                XLog.e(TAG, "获取网关地址失败: " + e.getMessage());
+                XLog.e(TAG, "Failed to get gateway URL: " + e.getMessage());
                 if (eventCallback != null) {
                     eventCallback.onFailure(e);
                 }
@@ -167,7 +167,7 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 关闭WebSocket连接
+     * Close WebSocket connection
      */
     public void stop() {
         stopped = true;
@@ -175,7 +175,7 @@ public class QBotWebSocketManager {
         mainHandler.removeCallbacksAndMessages(null);
         heartbeatHandler.removeCallbacksAndMessages(null);
         if (webSocket != null) {
-            webSocket.close(1000, "关闭连接");
+            webSocket.close(1000, "close connection");
             webSocket = null;
         }
         isConnected = false;
@@ -185,7 +185,7 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 获取网关地址
+     * Get gateway address
      */
     private void getGatewayUrl(QBotCallback<GatewayResponse> callback) {
         QBotApiClient apiClient = QBotApiClient.getInstance();
@@ -193,7 +193,7 @@ public class QBotWebSocketManager {
             @Override
             public void onSuccess(AccessTokenResponse response) {
                 String authHeader = apiClient.getAuthorizationHeader();
-                XLog.d(TAG, "使用 Authorization: " + (authHeader != null ? authHeader.substring(0, Math.min(authHeader.length(), 20)) + "..." : "null"));
+                XLog.d(TAG, "Using Authorization: " + (authHeader != null ? authHeader.substring(0, Math.min(authHeader.length(), 20)) + "..." : "null"));
 
                 String gatewayUrl = QBotConstants.API_BASE_URL + QBotConstants.GET_GATEWAY_URL;
                 Request request = new Request.Builder()
@@ -205,7 +205,7 @@ public class QBotWebSocketManager {
                 httpClient.newCall(request).enqueue(new Callback() {
                     @Override
                     public void onFailure(Call call, IOException e) {
-                        callback.onFailure(new QBotException("获取网关地址失败: " + e.getMessage()));
+                        callback.onFailure(new QBotException("Failed to get gateway URL: " + e.getMessage()));
                     }
 
                     @Override
@@ -214,14 +214,14 @@ public class QBotWebSocketManager {
                         if (response.isSuccessful()) {
                             GatewayResponse gatewayResponse = gson.fromJson(responseBody, GatewayResponse.class);
                             if (gatewayResponse.getUrl() == null || gatewayResponse.getUrl().isEmpty()) {
-                                XLog.e(TAG, "网关返回无 url, body=" + responseBody);
-                                callback.onFailure(new QBotException("网关返回数据异常: 无 url"));
+                                XLog.e(TAG, "Gateway returned no url, body=" + responseBody);
+                                callback.onFailure(new QBotException("Gateway response data error: no url"));
                             } else {
                                 callback.onSuccess(gatewayResponse);
                             }
                         } else {
-                            XLog.e(TAG, "获取网关失败 code=" + response.code() + ", body=" + responseBody);
-                            callback.onFailure(new QBotException("获取网关地址失败: " + response.code() + " " + responseBody));
+                            XLog.e(TAG, "Failed to get gateway: code=" + response.code() + ", body=" + responseBody);
+                            callback.onFailure(new QBotException("Failed to get gateway URL: " + response.code() + " " + responseBody));
                         }
                     }
                 });
@@ -235,14 +235,14 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 连接WebSocket
+     * Connect WebSocket
      */
     private void connectWebSocket(String url) {
-        // 关闭旧连接，避免多个 WebSocket 并存
+        // Close old connection to avoid multiple concurrent WebSockets
         WebSocket oldSocket = webSocket;
         if (oldSocket != null) {
             try {
-                oldSocket.close(1000, "新连接替换");
+                oldSocket.close(1000, "replaced by new connection");
             } catch (Exception ignored) {}
             webSocket = null;
         }
@@ -254,35 +254,35 @@ public class QBotWebSocketManager {
         webSocket = httpClient.newWebSocket(request, new WebSocketListener() {
             @Override
             public void onOpen(WebSocket webSocket, Response response) {
-                XLog.d(TAG, "WebSocket连接成功, response=" + response);
+                XLog.d(TAG, "WebSocket connected, response=" + response);
                 isConnected = true;
                 notifyConnectionStateChanged(true);
             }
             
             @Override
             public void onMessage(WebSocket webSocket, String text) {
-                XLog.d(TAG, "收到原始消息, 长度=" + text.length());
+                XLog.d(TAG, "Received raw message, length=" + text.length());
                 handleWebSocketMessage(text);
             }
             
             @Override
             public void onMessage(WebSocket webSocket, ByteString bytes) {
-                XLog.d(TAG, "收到二进制消息, 长度=" + bytes.size());
+                XLog.d(TAG, "Received binary message, length=" + bytes.size());
             }
             
             @Override
             public void onClosing(WebSocket webSocket, int code, String reason) {
-                XLog.w(TAG, "WebSocket关闭中: code=" + code + ", reason=" + reason);
-                // onClosed 会紧接着触发，这里只标记状态，不处理重连逻辑
+                XLog.w(TAG, "WebSocket closing: code=" + code + ", reason=" + reason);
+                // onClosed will fire immediately after; only mark state here, no reconnect logic
                 isConnected = false;
                 notifyConnectionStateChanged(false);
             }
 
             @Override
             public void onClosed(WebSocket webSocket, int code, String reason) {
-                // 如果当前 webSocket 已经被新连接替换，忽略旧连接的回调
+                // If the current webSocket has been replaced by a new connection, ignore callbacks from the old one
                 if (webSocket != QBotWebSocketManager.this.webSocket) return;
-                XLog.w(TAG, "WebSocket已关闭: code=" + code + ", reason=" + reason);
+                XLog.w(TAG, "WebSocket closed: code=" + code + ", reason=" + reason);
                 isConnected = false;
                 notifyConnectionStateChanged(false);
                 handleWebSocketClose(code, reason);
@@ -290,9 +290,9 @@ public class QBotWebSocketManager {
 
             @Override
             public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-                // 如果当前 webSocket 已经被新连接替换，忽略旧连接的回调
+                // If the current webSocket has been replaced by a new connection, ignore callbacks from the old one
                 if (webSocket != QBotWebSocketManager.this.webSocket) return;
-                XLog.e(TAG, "WebSocket连接失败: " + (t != null ? t.getMessage() : "null") + ", response=" + response);
+                XLog.e(TAG, "WebSocket connection failed: " + (t != null ? t.getMessage() : "null") + ", response=" + response);
                 isConnected = false;
                 notifyConnectionStateChanged(false);
                 if (!stopped) {
@@ -303,14 +303,14 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 处理WebSocket消息
+     * Handle WebSocket message
      */
     private void handleWebSocketMessage(String message) {
         try {
             WebSocketMessage wsMessage = gson.fromJson(message, WebSocketMessage.class);
             int op = wsMessage.getOp();
             String t = wsMessage.getT();
-            XLog.d(TAG, "收到消息: op=" + op + ", t=" + t + ", s=" + wsMessage.getS());
+            XLog.d(TAG, "Message received: op=" + op + ", t=" + t + ", s=" + wsMessage.getS());
             
             switch (op) {
                 case QBotConstants.OP_HELLO:
@@ -323,49 +323,49 @@ public class QBotWebSocketManager {
                     handleHeartbeatAck();
                     break;
                 case 7:
-                    XLog.w(TAG, "收到重连请求(OP=7)，准备重连");
+                    XLog.w(TAG, "Reconnect request received (OP=7), preparing to reconnect");
                     handleReconnectRequest();
                     break;
                 case 9:
                     handleInvalidSession(wsMessage);
                     break;
                 default:
-                    XLog.w(TAG, "未知OpCode: " + op);
+                    XLog.w(TAG, "Unknown OpCode: " + op);
             }
         } catch (Exception e) {
-            XLog.e(TAG, "解析WebSocket消息失败: " + e.getMessage(), e);
+            XLog.e(TAG, "Failed to parse WebSocket message: " + e.getMessage(), e);
         }
     }
     
     /**
-     * 处理Hello消息
+     * Handle Hello message
      */
     private void handleHello(WebSocketMessage message) {
         try {
             JsonObject helloData = gson.fromJson(gson.toJson(message.getD()), JsonObject.class);
             heartbeatInterval = helloData.get("heartbeat_interval").getAsLong();
-            XLog.d(TAG, "心跳间隔: " + heartbeatInterval + "ms");
+            XLog.d(TAG, "Heartbeat interval: " + heartbeatInterval + "ms");
             
-            // 开始发送心跳
+            // Start sending heartbeats
             startHeartbeat();
             
-            // 发送Identify消息
+            // Send Identify message
             sendIdentify();
         } catch (Exception e) {
-            XLog.e(TAG, "处理Hello消息失败: " + e.getMessage());
+            XLog.e(TAG, "Failed to process Hello message: " + e.getMessage());
         }
     }
     
     /**
-     * 处理Dispatch消息
+     * Handle Dispatch message
      */
     private void handleDispatch(WebSocketMessage message) {
-        // 更新seq
+        // Update seq
         if (message.getS() != null) {
             lastSeq = message.getS();
         }
         
-        // 处理不同类型的事件
+        // Handle different event types
         String eventType = message.getT();
         if (eventType != null) {
             switch (eventType) {
@@ -382,7 +382,7 @@ public class QBotWebSocketManager {
                     handleGroupAtMessage(message);
                     break;
                 default:
-                    // 其他事件
+                    // Other events
                     if (eventCallback != null) {
                         eventCallback.onSuccess(gson.toJson(message));
                     }
@@ -391,56 +391,56 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 处理Ready事件
+     * Handle Ready event
      */
     private void handleReady(WebSocketMessage message) {
         try {
             JsonObject readyData = gson.fromJson(gson.toJson(message.getD()), JsonObject.class);
             sessionId = readyData.get("session_id").getAsString();
-            XLog.d(TAG, "获取到SessionId: " + sessionId);
-            XLog.d(TAG, "WebSocket连接已就绪，开始接收事件");
+            XLog.d(TAG, "SessionId obtained: " + sessionId);
+            XLog.d(TAG, "WebSocket connection ready, starting to receive events");
             
             if (eventCallback != null) {
                 eventCallback.onSuccess(gson.toJson(message));
             }
         } catch (Exception e) {
-            XLog.e(TAG, "处理Ready事件失败: " + e.getMessage());
+            XLog.e(TAG, "Failed to process Ready event: " + e.getMessage());
         }
     }
     
     /**
-     * 处理Resumed事件
+     * Handle Resumed event
      */
     private void handleResumed(WebSocketMessage message) {
-        XLog.d(TAG, "连接已恢复");
+        XLog.d(TAG, "Connection resumed");
         if (eventCallback != null) {
             eventCallback.onSuccess(gson.toJson(message));
         }
     }
     
     /**
-     * 处理单聊消息事件
-     * 用户在单聊发送消息给机器人时触发
+     * Handle direct message event
+     * Triggered when a user sends a direct message to the bot
      */
     private void handleC2CMessage(WebSocketMessage message) {
         try {
             String messageData = gson.toJson(message.getD());
             C2CMessage c2cMessage = gson.fromJson(messageData, C2CMessage.class);
             
-            XLog.d(TAG, "收到单聊消息:");
-            XLog.d(TAG, "  消息ID: " + c2cMessage.getId());
-            XLog.d(TAG, "  用户OpenID: " + (c2cMessage.getAuthor() != null ? c2cMessage.getAuthor().getUserOpenid() : "null"));
-            XLog.d(TAG, "  内容: " + c2cMessage.getContent());
-            XLog.d(TAG, "  时间: " + c2cMessage.getTimestamp());
+            XLog.d(TAG, "Direct message received:");
+            XLog.d(TAG, "  Message ID: " + c2cMessage.getId());
+            XLog.d(TAG, "  User OpenID: " + (c2cMessage.getAuthor() != null ? c2cMessage.getAuthor().getUserOpenid() : "null"));
+            XLog.d(TAG, "  Content: " + c2cMessage.getContent());
+            XLog.d(TAG, "  Timestamp: " + c2cMessage.getTimestamp());
 
             if (c2cMessage.getAttachments() != null && !c2cMessage.getAttachments().isEmpty()) {
-                XLog.d(TAG, "  附件数量: " + c2cMessage.getAttachments().size());
+                XLog.d(TAG, "  Attachment count: " + c2cMessage.getAttachments().size());
             }
 
-            // 消息 ID 去重
+            // Message ID dedup
             String msgId = c2cMessage.getId();
             if (msgId != null && !recentMessageIds.add(msgId)) {
-                XLog.d(TAG, "单聊消息去重，跳过: " + msgId);
+                XLog.d(TAG, "Direct message duplicate, skipping: " + msgId);
                 return;
             }
 
@@ -456,29 +456,29 @@ public class QBotWebSocketManager {
                 eventCallback.onSuccess(gson.toJson(message));
             }
         } catch (Exception e) {
-            XLog.e(TAG, "处理单聊消息失败: " + e.getMessage());
+            XLog.e(TAG, "Failed to process direct message: " + e.getMessage());
         }
     }
 
     /**
-     * 处理群聊@机器人消息事件
-     * 用户在群里@机器人时收到的消息
+     * Handle group @bot message event
+     * Triggered when a user @mentions the bot in a group
      */
     private void handleGroupAtMessage(WebSocketMessage message) {
         try {
             String messageData = gson.toJson(message.getD());
             GroupAtMessage groupMessage = gson.fromJson(messageData, GroupAtMessage.class);
             
-            XLog.d(TAG, "收到群聊@机器人消息:");
-            XLog.d(TAG, "  消息ID: " + groupMessage.getId());
-            XLog.d(TAG, "  群OpenID: " + groupMessage.getGroupOpenid());
-            XLog.d(TAG, "  发送者OpenID: " + (groupMessage.getAuthor() != null ? groupMessage.getAuthor().getMemberOpenid() : "null"));
-            XLog.d(TAG, "  内容: " + groupMessage.getContent());
+            XLog.d(TAG, "Group @bot message received:");
+            XLog.d(TAG, "  Message ID: " + groupMessage.getId());
+            XLog.d(TAG, "  Group OpenID: " + groupMessage.getGroupOpenid());
+            XLog.d(TAG, "  Sender OpenID: " + (groupMessage.getAuthor() != null ? groupMessage.getAuthor().getMemberOpenid() : "null"));
+            XLog.d(TAG, "  Content: " + groupMessage.getContent());
 
-            // 消息 ID 去重
+            // Message ID dedup
             String msgId = groupMessage.getId();
             if (msgId != null && !recentMessageIds.add(msgId)) {
-                XLog.d(TAG, "群聊消息去重，跳过: " + msgId);
+                XLog.d(TAG, "Group message duplicate, skipping: " + msgId);
                 return;
             }
 
@@ -495,16 +495,16 @@ public class QBotWebSocketManager {
                 eventCallback.onSuccess(gson.toJson(message));
             }
         } catch (Exception e) {
-            XLog.e(TAG, "处理群聊@机器人消息失败: " + e.getMessage());
+            XLog.e(TAG, "Failed to process group @bot message: " + e.getMessage());
         }
     }
 
     /**
-     * 处理无效会话
+     * Handle invalid session
      */
     private void handleInvalidSession(WebSocketMessage message) {
         try {
-            // OP 9 的 d 字段是一个布尔值（true=可恢复，false=不可恢复），不是 JsonObject
+            // The d field of OP 9 is a boolean (true=resumable, false=not resumable), not a JsonObject
             Object d = message.getD();
             boolean canResume = false;
             if (d instanceof Boolean) {
@@ -514,28 +514,28 @@ public class QBotWebSocketManager {
             }
 
             if (canResume) {
-                XLog.d(TAG, "会话可以恢复，尝试Resume");
+                XLog.d(TAG, "Session can be resumed, attempting Resume");
                 sendResume();
             } else {
-                XLog.d(TAG, "会话无效，需要重新Identify");
+                XLog.d(TAG, "Session invalid, need to re-Identify");
                 sessionId = null;
                 lastSeq = null;
                 sendIdentify();
             }
         } catch (Exception e) {
-            XLog.e(TAG, "处理无效会话失败: " + e.getMessage());
+            XLog.e(TAG, "Failed to handle invalid session: " + e.getMessage());
             sessionId = null;
             lastSeq = null;
         }
     }
     
     /**
-     * 处理服务器要求重连
+     * Handle server-requested reconnect
      */
     private void handleReconnectRequest() {
-        XLog.d(TAG, "服务器要求重连，断开当前连接并重新连接");
+        XLog.d(TAG, "Server requested reconnect, disconnecting and reconnecting");
         if (webSocket != null) {
-            webSocket.close(1000, "服务器要求重连");
+            webSocket.close(1000, "server requested reconnect");
             webSocket = null;
         }
         heartbeatHandler.removeCallbacksAndMessages(null);
@@ -551,64 +551,64 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 处理心跳响应
+     * Handle heartbeat ACK
      */
     private void handleHeartbeatAck() {
         heartbeatAckReceived = true;
-        XLog.d(TAG, "收到心跳响应");
+        XLog.d(TAG, "Heartbeat ACK received");
     }
     
     /**
-     * 处理WebSocket关闭错误码
-     * @param code 关闭码
-     * @param reason 关闭原因
+     * Handle WebSocket close error code
+     * @param code close code
+     * @param reason close reason
      */
     private void handleWebSocketClose(int code, String reason) {
-        XLog.d(TAG, "处理WebSocket关闭: code=" + code + ", reason=" + reason);
+        XLog.d(TAG, "Handling WebSocket close: code=" + code + ", reason=" + reason);
         
         switch (code) {
             case 4004:
-                // 4004: Authentication fail — token 可能过期，刷新后重连
-                Log.w(TAG, "鉴权失败(4004)，清除旧token，刷新后重连");
-                // 清除旧 token 强制刷新
+                // 4004: Authentication fail — token may have expired, refresh and reconnect
+                Log.w(TAG, "Auth failed (4004), clearing old token, reconnecting after refresh");
+                // Clear old token to force refresh
                 QBotApiClient.getInstance().clearToken();
                 heartbeatHandler.postDelayed(() -> {
-                    Log.d(TAG, "4004 延迟重连，重新获取token");
-                    start(); // start() 会重新获取 token → gateway → connect
+                    Log.d(TAG, "4004 delayed reconnect, re-fetching token");
+                    start(); // start() re-fetches token → gateway → connect
                 }, 3000);
                 break;
 
             case QBotConstants.WS_ERROR_SESSION_TIMEOUT:
-                // 4009: 连接过期，可以尝试 Resume
-                XLog.d(TAG, "连接过期，尝试Resume重连");
+                // 4009: Connection expired, can attempt Resume
+                XLog.d(TAG, "Connection expired, attempting Resume reconnect");
                 reconnect();
                 break;
 
             case QBotConstants.WS_ERROR_BOT_OFFLINE:
-                // 4914: 机器人已下架，只允许连接沙箱环境
-                XLog.e(TAG, "机器人已下架，只允许连接沙箱环境，请断开连接并检验当前连接环境");
+                // 4914: Bot is offline, only sandbox connection allowed
+                XLog.e(TAG, "Bot is offline, only sandbox connection allowed; please disconnect and verify the connection environment");
                 if (eventCallback != null) {
-                    eventCallback.onFailure(new QBotException("机器人已下架，只允许连接沙箱环境"));
+                    eventCallback.onFailure(new QBotException("Bot is offline, only sandbox connection allowed"));
                 }
                 break;
                 
             case QBotConstants.WS_ERROR_BOT_BANNED:
-                // 4915: 机器人已封禁，不允许连接
-                XLog.e(TAG, "机器人已封禁，不允许连接，请申请解封后再连接");
+                // 4915: Bot is banned, connection not allowed
+                XLog.e(TAG, "Bot is banned, connection not allowed; please request unban before connecting");
                 if (eventCallback != null) {
-                    eventCallback.onFailure(new QBotException("机器人已封禁，不允许连接"));
+                    eventCallback.onFailure(new QBotException("Bot is banned, connection not allowed"));
                 }
                 break;
                 
             case QBotConstants.WS_ERROR_RATE_LIMITED:
-                // 4008: 发送 payload 过快，可以重连
-                XLog.w(TAG, "发送payload过快，稍后重连");
+                // 4008: Sending payload too fast, can reconnect
+                XLog.w(TAG, "Sending payload too fast, reconnecting later");
                 new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                     @Override
                     public void run() {
                         reconnect();
                     }
-                }, 5000); // 延迟5秒重连
+                }, 5000); // Delay 5 seconds before reconnect
                 break;
                 
             case QBotConstants.WS_ERROR_INVALID_OPCODE:
@@ -617,8 +617,8 @@ public class QBotWebSocketManager {
             case QBotConstants.WS_ERROR_INVALID_VERSION:
             case QBotConstants.WS_ERROR_INVALID_INTENT:
             case QBotConstants.WS_ERROR_INTENT_NO_PERMISSION:
-                // 这些错误需要重新 Identify
-                XLog.e(TAG, "连接错误(code=" + code + ")，清除会话信息并重新Identify");
+                // These errors require re-Identify
+                XLog.e(TAG, "Connection error (code=" + code + "), clearing session info and re-Identifying");
                 sessionId = null;
                 lastSeq = null;
                 reconnect();
@@ -626,35 +626,35 @@ public class QBotWebSocketManager {
                 
             case QBotConstants.WS_ERROR_SEQ_ERROR:
             case QBotConstants.WS_ERROR_INVALID_SESSION_ID:
-                // seq错误或session id无效，需要重新 Identify
-                XLog.w(TAG, "Session无效，清除会话信息并重新Identify");
+                // seq error or invalid session id, need to re-Identify
+                XLog.w(TAG, "Session invalid, clearing session info and re-Identifying");
                 sessionId = null;
                 lastSeq = null;
                 reconnect();
                 break;
                 
             case QBotConstants.WS_ERROR_SHARD_REQUIRED:
-                // 需要分片
-                XLog.w(TAG, "需要分片处理，建议使用多个连接");
+                // Sharding required
+                XLog.w(TAG, "Sharding required, recommend using multiple connections");
                 reconnect();
                 break;
                 
             default:
-                // 内部错误 (4900-4913) 或其他未知错误
+                // Internal error (4900-4913) or other unknown error
                 if (code >= QBotConstants.WS_ERROR_INTERNAL_MIN && code <= QBotConstants.WS_ERROR_INTERNAL_MAX) {
-                    XLog.w(TAG, "服务器内部错误(" + code + ")，稍后重连");
+                    XLog.w(TAG, "Server internal error (" + code + "), reconnecting later");
                     new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
                         @Override
                         public void run() {
                             reconnect();
                         }
-                    }, 3000); // 延迟3秒重连
+                    }, 3000); // Delay 3 seconds before reconnect
                 } else if (code == 1000) {
-                    // 正常关闭
-                    XLog.d(TAG, "WebSocket正常关闭");
+                    // Normal close
+                    XLog.d(TAG, "WebSocket closed normally");
                 } else {
-                    // 其他未知错误，尝试重连
-                    XLog.w(TAG, "未知错误码: " + code + "，尝试重连");
+                    // Other unknown error, attempt reconnect
+                    XLog.w(TAG, "Unknown error code: " + code + ", attempting reconnect");
                     reconnect();
                 }
                 break;
@@ -662,22 +662,22 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 开始发送心跳
+     * Start sending heartbeat
      */
     private void startHeartbeat() {
-        XLog.d(TAG, "开始心跳, 间隔=" + heartbeatInterval + "ms");
+        XLog.d(TAG, "Starting heartbeat, interval=" + heartbeatInterval + "ms");
         heartbeatAckReceived = true;
         heartbeatHandler.postDelayed(new Runnable() {
             @Override
             public void run() {
                 if (!isConnected) {
-                    XLog.w(TAG, "心跳检测: 连接已断开");
+                    XLog.w(TAG, "Heartbeat check: connection is down");
                     return;
                 }
                 if (!heartbeatAckReceived) {
-                    XLog.w(TAG, "心跳超时：未收到上次心跳ACK，断开重连");
+                    XLog.w(TAG, "Heartbeat timeout: no ACK received for last heartbeat, disconnecting and reconnecting");
                     if (webSocket != null) {
-                        webSocket.close(1000, "心跳超时");
+                        webSocket.close(1000, "heartbeat timeout");
                         webSocket = null;
                     }
                     isConnected = false;
@@ -693,7 +693,7 @@ public class QBotWebSocketManager {
     }
     
     /**
-     * 发送心跳
+     * Send heartbeat
      */
     private void sendHeartbeat() {
         JsonObject heartbeatMessage = new JsonObject();
@@ -701,14 +701,14 @@ public class QBotWebSocketManager {
         heartbeatMessage.add("d", lastSeq != null ? gson.toJsonTree(lastSeq) : null);
         
         String message = gson.toJson(heartbeatMessage);
-        XLog.d(TAG, "发送心跳: " + message);
+        XLog.d(TAG, "Sending heartbeat: " + message);
         if (webSocket != null) {
             webSocket.send(message);
         }
     }
     
     /**
-     * 发送Identify消息
+     * Send Identify message
      */
     private void sendIdentify() {
         QBotApiClient apiClient = QBotApiClient.getInstance();
@@ -719,12 +719,12 @@ public class QBotWebSocketManager {
         
         JsonObject data = new JsonObject();
         data.addProperty("token", token);
-        // 只订阅必要的事件，避免因缺少权限被 4004 拒绝连接：
-        // - GROUP_AND_C2C_EVENT (1<<25): 群聊 @机器人消息 + 单聊消息（核心功能）
-        // 如需频道消息，可按需加上 INTENT_PUBLIC_GUILD_MESSAGES (1<<30)，但需要在 QQ 开放平台申请权限
+        // Subscribe only to necessary events to avoid 4004 rejection from missing permissions:
+        // - GROUP_AND_C2C_EVENT (1<<25): group @bot messages + direct messages (core feature)
+        // For channel messages, add INTENT_PUBLIC_GUILD_MESSAGES (1<<30), but requires applying for permission on the QQ Open Platform
         int intents = QBotConstants.INTENT_GROUP_AND_C2C_EVENT;
         data.addProperty("intents", intents);
-        XLog.d(TAG, "设置Intents: " + intents + " (GROUP_AND_C2C_EVENT=" + QBotConstants.INTENT_GROUP_AND_C2C_EVENT + ")");
+        XLog.d(TAG, "Setting Intents: " + intents + " (GROUP_AND_C2C_EVENT=" + QBotConstants.INTENT_GROUP_AND_C2C_EVENT + ")");
         
         com.google.gson.JsonArray shard = new com.google.gson.JsonArray();
         shard.add(currentShard);
@@ -740,18 +740,18 @@ public class QBotWebSocketManager {
         identifyMessage.add("d", data);
         
         String message = gson.toJson(identifyMessage);
-        XLog.d(TAG, "发送Identify: " + message);
+        XLog.d(TAG, "Sending Identify: " + message);
         if (webSocket != null) {
             webSocket.send(message);
         }
     }
     
     /**
-     * 发送Resume消息
+     * Send Resume message
      */
     private void sendResume() {
         if (sessionId == null || lastSeq == null) {
-            XLog.e(TAG, "无法Resume: sessionId或lastSeq为空");
+            XLog.e(TAG, "Cannot Resume: sessionId or lastSeq is null");
             return;
         }
         
@@ -769,23 +769,23 @@ public class QBotWebSocketManager {
         resumeMessage.add("d", data);
         
         String message = gson.toJson(resumeMessage);
-        XLog.d(TAG, "发送Resume: " + message);
+        XLog.d(TAG, "Sending Resume: " + message);
         if (webSocket != null) {
             webSocket.send(message);
         }
     }
     
     /**
-     * 重连（带防并发保护）
+     * Reconnect (with concurrency protection)
      */
     private synchronized void reconnect() {
         if (stopped) return;
         if (isReconnecting) {
-            XLog.d(TAG, "已在重连中，跳过重复请求");
+            XLog.d(TAG, "Already reconnecting, skipping duplicate request");
             return;
         }
         isReconnecting = true;
-        XLog.w(TAG, "尝试重连WebSocket, 当前状态=" + isConnected + ", gatewayUrl=" + (gatewayUrl != null));
+        XLog.w(TAG, "Attempting WebSocket reconnect, current state=" + isConnected + ", gatewayUrl=" + (gatewayUrl != null));
         heartbeatHandler.removeCallbacksAndMessages(null);
         if (gatewayUrl != null) {
             connectWebSocket(gatewayUrl);

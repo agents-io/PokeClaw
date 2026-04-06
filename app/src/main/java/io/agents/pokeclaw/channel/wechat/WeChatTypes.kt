@@ -4,11 +4,11 @@
 package io.agents.pokeclaw.channel.wechat
 
 /**
- * 微信 iLink Bot 协议常量和数据类。
- * 严格对应官方 @tencent-weixin/openclaw-weixin@1.0.2 的 src/api/types.ts
+ * WeChat iLink Bot protocol constants and data classes.
+ * Strictly mirrors the official @tencent-weixin/openclaw-weixin@1.0.2 src/api/types.ts
  */
 
-// ==================== 协议常量 ====================
+// ==================== Protocol Constants ====================
 
 object MessageType {
     const val NONE = 0
@@ -43,19 +43,19 @@ object TypingStatus {
     const val CANCEL = 2
 }
 
-/** session 过期错误码 */
+/** Session expiry error code */
 const val SESSION_EXPIRED_ERRCODE = -14
 
-/** 扫码登录 bot_type（login-qr.ts:23） */
+/** QR code login bot_type (login-qr.ts:23) */
 const val DEFAULT_ILINK_BOT_TYPE = "3"
 
 const val DEFAULT_BASE_URL = "https://ilinkai.weixin.qq.com"
 const val CDN_BASE_URL = "https://novac2c.cdn.weixin.qq.com/c2c"
 const val CHANNEL_VERSION = "2.0.1"
 
-// ==================== 数据类 ====================
+// ==================== Data Classes ====================
 
-/** CDN 媒体引用 */
+/** CDN media reference */
 data class CdnMedia(
     val encryptQueryParam: String? = null,
     val aesKey: String? = null,
@@ -118,7 +118,7 @@ data class WeChatMessageItem(
     val refMsg: RefMessage? = null
 )
 
-/** 完整消息（对应 WeixinMessage） */
+/** Full message (corresponds to WeixinMessage) */
 data class WeChatMessage(
     val seq: Int? = null,
     val messageId: Long? = null,
@@ -136,7 +136,7 @@ data class WeChatMessage(
     val contextToken: String? = null
 )
 
-/** getUpdates 响应 */
+/** getUpdates response */
 data class GetUpdatesResp(
     val ret: Int? = null,
     val errcode: Int? = null,
@@ -146,7 +146,7 @@ data class GetUpdatesResp(
     val longpollingTimeoutMs: Long? = null
 )
 
-/** CDN 上传完成后的信息 */
+/** Info returned after CDN upload completes */
 data class UploadedFileInfo(
     val filekey: String,
     val downloadEncryptedQueryParam: String,
@@ -155,11 +155,11 @@ data class UploadedFileInfo(
     val fileSizeCiphertext: Int
 )
 
-/** 扫码结果 */
+/** QR code scan result */
 data class QrCodeResult(val qrcode: String, val qrcodeImgContent: String)
 data class AuthResult(val botToken: String, val baseUrl: String, val botId: String?, val userId: String?)
 
-/** sendMessage 请求体 */
+/** sendMessage request body */
 data class SendMessageReq(
     val fromUserId: String = "",
     val toUserId: String,

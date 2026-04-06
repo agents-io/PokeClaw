@@ -20,50 +20,50 @@ import io.agents.pokeclaw.R
 import com.google.android.material.bottomsheet.BottomSheetDialog
 
 /**
- * 通用输入底部弹窗
+ * General-purpose input bottom sheet dialog
  *
- * 基本用法：
+ * Basic usage:
  * ```
- * InputDialog.show(context, "修改昵称") { text ->
- *     // 处理输入内容
+ * InputDialog.show(context, "Edit nickname") { text ->
+ *     // handle input
  * }
  * ```
  *
- * 完整参数：
+ * Full parameters:
  * ```
  * InputDialog.show(
  *     context = this,
- *     title = "修改昵称",
- *     presetText = "当前昵称",
- *     hint = "请输入新昵称",
+ *     title = "Edit nickname",
+ *     presetText = "current nickname",
+ *     hint = "Enter new nickname",
  *     minLength = 2,
  *     maxLength = 20,
- *     confirmText = "保存",
- *     onComplete = { text -> /* 处理 */ }
+ *     confirmText = "Save",
+ *     onComplete = { text -> /* handle */ }
  * )
  * ```
  *
- * 数字输入：
+ * Numeric input:
  * ```
  * InputDialog.show(
  *     context = this,
- *     title = "设置数量",
+ *     title = "Set quantity",
  *     numberOnly = true,
  *     canZero = false,
- *     onComplete = { text -> /* 处理 */ }
+ *     onComplete = { text -> /* handle */ }
  * )
  * ```
  *
- * 自定义校验：
+ * Custom validation:
  * ```
  * InputDialog.show(
  *     context = this,
- *     title = "输入邮箱",
+ *     title = "Enter email",
  *     inputValidate = { text ->
  *         if (text.contains("@")) ValidateResult(true)
- *         else ValidateResult(false, "请输入有效的邮箱地址")
+ *         else ValidateResult(false, "Please enter a valid email address")
  *     },
- *     onComplete = { text -> /* 处理 */ }
+ *     onComplete = { text -> /* handle */ }
  * )
  * ```
  */
@@ -80,7 +80,7 @@ class InputDialog private constructor(context: Context) : BottomSheetDialog(cont
     private var inputValidate: ((String) -> ValidateResult)? = null
     private var onComplete: ((String) -> Unit)? = null
 
-    /** 校验结果 */
+    /** Validation result */
     data class ValidateResult(
         val isValid: Boolean,
         val message: String? = null
@@ -124,7 +124,7 @@ class InputDialog private constructor(context: Context) : BottomSheetDialog(cont
         val view = LayoutInflater.from(context).inflate(R.layout.dialog_input, null)
         setContentView(view)
 
-        // 设置底部弹窗背景透明，使用布局自身的圆角背景
+        // Make bottom sheet background transparent; use the layout's own rounded background
         findViewById<View>(com.google.android.material.R.id.design_bottom_sheet)
             ?.setBackgroundColor(context.getColor(R.color.colorBgPrimary))
 
@@ -137,10 +137,10 @@ class InputDialog private constructor(context: Context) : BottomSheetDialog(cont
     }
 
     private fun initViews(view: View) {
-        // 标题
+        // Title
         view.findViewById<TextView>(R.id.tvTitle).text = title
 
-        // 关闭按钮
+        // Close button
         view.findViewById<ImageView>(R.id.btnClose).setOnClickListener { dismiss() }
 
         val etInput = view.findViewById<EditText>(R.id.etInput)
@@ -148,31 +148,31 @@ class InputDialog private constructor(context: Context) : BottomSheetDialog(cont
         val inputContainer = view.findViewById<FrameLayout>(R.id.inputContainer)
         val btnConfirm = view.findViewById<KButton>(R.id.btnConfirm)
 
-        // 预置文本和提示
+        // Preset text and hint
         etInput.setText(presetText)
         etInput.hint = hint
         etInput.setSelection(etInput.text.length)
 
-        // 数字输入模式
+        // Numeric input mode
         if (numberOnly) {
             etInput.inputType = InputType.TYPE_CLASS_NUMBER
         }
 
-        // 最大长度限制
+        // Max length limit
         if (maxLength > 0) {
             etInput.filters = arrayOf(InputFilter.LengthFilter(maxLength))
         }
 
-        // 清除按钮显隐
+        // Clear button visibility
         btnClear.visibility = if (presetText.isNotEmpty()) View.VISIBLE else View.GONE
         etInput.doAfterTextChanged { text ->
             btnClear.visibility = if (text?.isNotEmpty() == true) View.VISIBLE else View.GONE
         }
 
-        // 清除按钮点击
+        // Clear button click
         btnClear.setOnClickListener { etInput.text.clear() }
 
-        // 焦点变化时切换输入框边框颜色
+        // Toggle input field border color on focus change
         etInput.setOnFocusChangeListener { _, hasFocus ->
             inputContainer.setBackgroundResource(
                 if (hasFocus) R.drawable.bg_input_field_focused
@@ -180,7 +180,7 @@ class InputDialog private constructor(context: Context) : BottomSheetDialog(cont
             )
         }
 
-        // 键盘 Done 按钮触发确认
+        // Keyboard Done button triggers confirm
         etInput.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 performConfirm(etInput)
@@ -188,18 +188,18 @@ class InputDialog private constructor(context: Context) : BottomSheetDialog(cont
             } else false
         }
 
-        // 确认按钮
+        // Confirm button
         confirmText?.let { btnConfirm.text = it }
         btnConfirm.setOnClickListener { performConfirm(etInput) }
 
-        // 自动弹出键盘
+        // Auto-show keyboard
         etInput.requestFocus()
     }
 
     private fun performConfirm(etInput: EditText) {
         val text = etInput.text.toString().trim()
 
-        // 自定义校验优先
+        // Custom validation takes priority
         inputValidate?.let { validate ->
             val result = validate(text)
             if (!result.isValid) {
@@ -211,7 +211,7 @@ class InputDialog private constructor(context: Context) : BottomSheetDialog(cont
             return
         }
 
-        // 默认校验
+        // Default validation
         if (minLength > 0 && text.length < minLength) {
             showToast(context.getString(R.string.input_dialog_need_more, minLength))
             return

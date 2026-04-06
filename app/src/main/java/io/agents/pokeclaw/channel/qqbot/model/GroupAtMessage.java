@@ -8,7 +8,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 /**
- * QQ 群聊 @ 机器人消息事件 GROUP_AT_MESSAGE_CREATE 的 payload
+ * Payload for the QQ group @bot message event GROUP_AT_MESSAGE_CREATE
  */
 public class GroupAtMessage {
     @SerializedName("id")

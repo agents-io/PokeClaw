@@ -8,7 +8,7 @@ import com.google.gson.annotations.SerializedName;
 import java.util.List;
 
 /**
- * QQ 单聊消息事件 C2C_MESSAGE_CREATE 的 payload
+ * Payload for the QQ direct message event C2C_MESSAGE_CREATE
  */
 public class C2CMessage {
     @SerializedName("id")

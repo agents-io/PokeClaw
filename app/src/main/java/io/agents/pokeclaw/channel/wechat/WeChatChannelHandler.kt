@@ -13,11 +13,11 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 /**
- * 微信通道处理器。
- * 严格对应官方 @tencent-weixin/openclaw-weixin@1.0.2 的:
- * - src/monitor/monitor.ts (monitorWeixinProvider 长轮询主循环)
+ * WeChat channel handler.
+ * Strictly mirrors the official @tencent-weixin/openclaw-weixin@1.0.2:
+ * - src/monitor/monitor.ts (monitorWeixinProvider long-polling main loop)
  * - src/channel.ts (outbound sendText/sendMedia)
- * - src/messaging/send-media.ts (MIME 路由)
+ * - src/messaging/send-media.ts (MIME routing)
  */
 class WeChatChannelHandler(
     private val scope: CoroutineScope,
@@ -35,21 +35,21 @@ class WeChatChannelHandler(
 
     private val apiClient = WeChatApiClient()
 
-    /** 当前 bot 的 accountId（用于 contextToken 管理和 session guard） */
+    /** Current bot accountId (used for contextToken management and session guard) */
     private val accountId: String get() = botToken.substringBefore(":").ifEmpty { "default" }
 
     override fun isConnected(): Boolean = pollingActive
 
     override fun init() {
         if (botToken.isEmpty() || apiBaseUrl.isEmpty()) {
-            XLog.w(TAG, "微信 Bot Token 或 API 地址未配置，微信通道将不可用")
+            XLog.w(TAG, "WeChat Bot Token or API address not configured, WeChat channel will be unavailable")
             return
         }
 
         apiClient.setBotToken(botToken)
         apiClient.setBaseUrl(apiBaseUrl)
 
-        // 从 MMKV 恢复 contextToken（对应 2.0.1 restoreContextTokens）
+        // Restore contextToken from MMKV (corresponds to 2.0.1 restoreContextTokens)
         WeChatInbound.restoreContextTokens(accountId)
 
         pollingActive = true
@@ -57,24 +57,24 @@ class WeChatChannelHandler(
             runMonitorLoop()
         }, "wechat-monitor").apply { isDaemon = true; start() }
 
-        XLog.i(TAG, "微信通道已启动")
+                XLog.i(TAG, "WeChat channel started")
     }
 
     /**
-     * 长轮询主循环。
-     * 严格对应 monitor.ts 的 monitorWeixinProvider()
+     * Long-polling main loop.
+     * Strictly mirrors monitorWeixinProvider() in monitor.ts
      */
     private fun runMonitorLoop() {
-        // 从 MMKV 恢复游标
+        // Restore cursor from MMKV
         var getUpdatesBuf = KVUtils.getWechatUpdatesCursor()
         var nextTimeoutMs = DEFAULT_LONG_POLL_TIMEOUT_MS
         var consecutiveFailures = 0
 
-        XLog.i(TAG, "monitor 启动: baseUrl=$apiBaseUrl, cursor=${if (getUpdatesBuf.isEmpty()) "(空)" else "...${getUpdatesBuf.takeLast(20)}"}")
+        XLog.i(TAG, "monitor started: baseUrl=$apiBaseUrl, cursor=${if (getUpdatesBuf.isEmpty()) "(empty)" else "...${getUpdatesBuf.takeLast(20)}"}")
 
         while (pollingActive) {
             try {
-                // session guard 检查
+                // session guard check
                 if (WeChatApiClient.isSessionPaused(accountId)) {
                     val remainMs = WeChatApiClient.getRemainingPauseMs(accountId)
                     XLog.w(TAG, "session paused, sleeping ${remainMs / 1000}s")
@@ -89,12 +89,12 @@ class WeChatChannelHandler(
                     continue
                 }
 
-                // 自适应超时（monitor.ts: 使用服务端返回的 longpolling_timeout_ms）
+                // Adaptive timeout (monitor.ts: uses server-returned longpolling_timeout_ms)
                 resp.longpollingTimeoutMs?.let {
                     if (it > 0) nextTimeoutMs = it
                 }
 
-                // 检查 API 错误（monitor.ts: 同时检查 ret 和 errcode）
+                // Check API errors (monitor.ts: checks both ret and errcode)
                 val isApiError = (resp.ret != null && resp.ret != 0) ||
                         (resp.errcode != null && resp.errcode != 0)
                 if (isApiError) {
@@ -110,20 +110,20 @@ class WeChatChannelHandler(
                     }
 
                     consecutiveFailures++
-                    XLog.e(TAG, "getUpdates 错误: ret=${resp.ret}, errcode=${resp.errcode}, errmsg=${resp.errmsg} ($consecutiveFailures/$MAX_CONSECUTIVE_FAILURES)")
+                    XLog.e(TAG, "getUpdates error: ret=${resp.ret}, errcode=${resp.errcode}, errmsg=${resp.errmsg} ($consecutiveFailures/$MAX_CONSECUTIVE_FAILURES)")
                     handleConsecutiveFailures(consecutiveFailures)
                     continue
                 }
 
                 consecutiveFailures = 0
 
-                // 更新游标（无论是否有新消息都要更新，防止重复）
+                // Update cursor (update regardless of whether there are new messages, to avoid duplicates)
                 if (!resp.getUpdatesBuf.isNullOrEmpty() && resp.getUpdatesBuf != getUpdatesBuf) {
                     getUpdatesBuf = resp.getUpdatesBuf
                     KVUtils.setWechatUpdatesCursor(getUpdatesBuf)
                 }
 
-                // 处理消息
+                // Process messages
                 val msgs = resp.msgs ?: emptyList()
                 for (msg in msgs) {
                     processInboundMessage(msg)
@@ -134,19 +134,19 @@ class WeChatChannelHandler(
             } catch (e: Exception) {
                 if (pollingActive) {
                     consecutiveFailures++
-                    XLog.w(TAG, "monitor 异常 ($consecutiveFailures/$MAX_CONSECUTIVE_FAILURES)", e)
+                    XLog.w(TAG, "monitor exception ($consecutiveFailures/$MAX_CONSECUTIVE_FAILURES)", e)
                     handleConsecutiveFailures(consecutiveFailures)
                 }
             }
         }
-        XLog.i(TAG, "monitor 已退出")
+        XLog.i(TAG, "monitor exited")
     }
 
-    /** 处理连续失败退避（monitor.ts: 3 次失败 → 30s 退避） */
+    /** Handle consecutive failure backoff (monitor.ts: 3 failures → 30s backoff) */
     private fun handleConsecutiveFailures(count: Int) {
         try {
             if (count >= MAX_CONSECUTIVE_FAILURES) {
-                XLog.e(TAG, "$MAX_CONSECUTIVE_FAILURES 次连续失败，退避 ${BACKOFF_DELAY_MS / 1000}s")
+                XLog.e(TAG, "$MAX_CONSECUTIVE_FAILURES consecutive failures, backing off ${BACKOFF_DELAY_MS / 1000}s")
                 Thread.sleep(BACKOFF_DELAY_MS)
             } else {
                 Thread.sleep(RETRY_DELAY_MS)
@@ -157,19 +157,19 @@ class WeChatChannelHandler(
     }
 
     /**
-     * 处理收到的单条消息。
-     * 对应 monitor.ts 中的消息处理部分 + inbound.ts 的 contextToken 管理。
+     * Handle a single received message.
+     * Corresponds to the message handling section in monitor.ts + contextToken management in inbound.ts.
      */
     private fun processInboundMessage(msg: WeChatMessage) {
         val fromUserId = msg.fromUserId
         if (fromUserId.isEmpty()) return
 
-        // 缓存 contextToken（对应 inbound.ts setContextToken）
+        // Cache contextToken (corresponds to inbound.ts setContextToken)
         if (!msg.contextToken.isNullOrEmpty()) {
             WeChatInbound.setContextToken(accountId, fromUserId, msg.contextToken)
         }
 
-        // 打印完整的 item_list 详情（便于调试图片/语音/文件等消息结构）
+        // Log full item_list details (useful for debugging image/voice/file message structures)
         msg.itemList?.forEachIndexed { index, item ->
             val typeStr = when (item.type) {
                 MessageItemType.TEXT -> "TEXT"
@@ -208,10 +208,10 @@ class WeChatChannelHandler(
             }
         }
 
-        // 提取文本（支持纯文本、语音转文字、引用消息）
+        // Extract text (supports plain text, voice-to-text, and quoted messages)
         val body = WeChatInbound.bodyFromItemList(msg.itemList)
         if (body.isEmpty()) {
-            // 纯媒体消息（图片/视频/文件无附带文本），回复提示
+            // Pure media message (image/video/file with no accompanying text), reply with prompt
             val app = io.agents.pokeclaw.ClawApplication.instance
             val mediaTypes = msg.itemList?.filter { WeChatInbound.isMediaItem(it) }?.map {
                 when (it.type) {
@@ -223,24 +223,24 @@ class WeChatChannelHandler(
                 }
             } ?: emptyList()
             if (mediaTypes.isNotEmpty()) {
-                XLog.i(TAG, "收到纯媒体消息: types=$mediaTypes, from=${fromUserId.takeLast(16)}")
+                XLog.i(TAG, "Pure media message received: types=$mediaTypes, from=${fromUserId.takeLast(16)}")
                 val tip = app.getString(io.agents.pokeclaw.R.string.wechat_unsupported_media, mediaTypes.joinToString("+"))
                 val contextToken = msg.contextToken ?: ""
                 scope.launch {
                     WeChatSender.sendText(apiClient, fromUserId, tip, contextToken.ifEmpty { null })
                 }
             } else {
-                XLog.d(TAG, "消息无内容，跳过: from=${fromUserId.takeLast(16)}")
+                XLog.d(TAG, "Message has no content, skipping: from=${fromUserId.takeLast(16)}")
             }
             return
         }
 
-        XLog.i(TAG, "[${channel.displayName}] 收到消息: ${body.take(80)}, from=${fromUserId.takeLast(16)}")
+        XLog.i(TAG, "[${channel.displayName}] Message received: ${body.take(80)}, from=${fromUserId.takeLast(16)}")
         lastFromUserId = fromUserId
         ChannelManager.dispatchMessage(channel, body, msg.contextToken ?: "")
     }
 
-    // ==================== ChannelHandler 接口实现 ====================
+    // ==================== ChannelHandler Interface Implementation ====================
 
     override fun flushMessages() {
         flushMessageBuffer()
@@ -252,7 +252,7 @@ class WeChatChannelHandler(
         pollingThread?.interrupt()
         pollingThread = null
         WeChatInbound.clearAll()
-        XLog.i(TAG, "微信通道已停止")
+        XLog.i(TAG, "WeChat channel stopped")
     }
 
     override fun reinitFromStorage() {
@@ -262,30 +262,30 @@ class WeChatChannelHandler(
         init()
     }
 
-    // ==================== 消息合并缓冲（规避 iLink 频率限制） ====================
-    // 策略：从第一条消息开始计时，BUFFER_DELAY_MS 后 flush。
-    // 但至少攒够 MIN_BUFFER_COUNT 条才发，不够的话继续等下一个窗口。
-    // 图片/文件不缓冲，但发送前会强制 flush 文本缓冲区。
+    // ==================== Message Merge Buffer (to avoid iLink rate limits) ====================
+    // Strategy: start timer from the first message, flush after BUFFER_DELAY_MS.
+    // But only send if at least MIN_BUFFER_COUNT messages have accumulated; otherwise wait for the next window.
+    // Images/files are not buffered, but flush the text buffer before sending.
 
     private val messageBuffer = mutableListOf<String>()
     private var bufferUserId: String? = null
     private var bufferContextToken: String? = null
     private var flushJob: kotlinx.coroutines.Job? = null
 
-    /** 从第一条消息开始的缓冲窗口时间（毫秒） */
+    /** Buffer window duration from the first message (milliseconds) */
     private val BUFFER_DELAY_MS = 12000L
-    /** 至少攒够这么多条才合并发送（不够的话继续等） */
+    /** Minimum number of messages to accumulate before merging and sending (wait if below this) */
     private val MIN_BUFFER_COUNT = 8
 
     /**
-     * 强制 flush（不管条数），用于：图片/文件发送前、用户切换、disconnect。
+     * Force flush (regardless of count), used for: before image/file send, user switch, disconnect.
      */
     private fun flushMessageBuffer() {
         doFlush(force = true)
     }
 
     /**
-     * 定时器触发的 flush：检查是否达到最小条数。
+     * Timer-triggered flush: checks whether the minimum message count has been reached.
      */
     private fun tryFlush() {
         doFlush(force = false)
@@ -297,15 +297,15 @@ class WeChatChannelHandler(
         val token: String?
         synchronized(messageBuffer) {
             if (messageBuffer.isEmpty()) return
-            // 非强制模式下，不够 MIN_BUFFER_COUNT 条就不发，等下一个窗口
+            // In non-force mode, do not send if below MIN_BUFFER_COUNT; wait for the next window
             if (!force && messageBuffer.size < MIN_BUFFER_COUNT) {
-                // 重新启动一个定时器等下一个窗口
+                // Restart a timer to wait for the next window
                 flushJob?.cancel()
                 flushJob = scope.launch {
                     kotlinx.coroutines.delay(BUFFER_DELAY_MS)
                     tryFlush()
                 }
-                XLog.d(TAG, "缓冲不足 $MIN_BUFFER_COUNT 条（当前 ${messageBuffer.size}），继续等待")
+                XLog.d(TAG, "Buffer below $MIN_BUFFER_COUNT messages (current ${messageBuffer.size}), continuing to wait")
                 return
             }
             messages = messageBuffer.toList()
@@ -317,15 +317,15 @@ class WeChatChannelHandler(
             flushJob?.cancel()
             flushJob = null
         }
-        // 每条消息单独做 markdown → plaintext，再合并（分隔符不经过 markdown 处理）
+        // Each message is individually converted markdown → plaintext, then merged (separator is not markdown-processed)
         val converted = messages.map { WeChatMarkdown.markdownToPlainText(it) }
         val merged = converted.joinToString("\n\n---\n\n")
-        XLog.i(TAG, "合并发送 ${messages.size} 条消息 (${merged.length} 字符)")
+        XLog.i(TAG, "Merged send of ${messages.size} messages (${merged.length} chars)")
         scope.launch {
             try {
                 WeChatSender.sendRawText(apiClient, userId, merged, token)
             } catch (e: Exception) {
-                XLog.e(TAG, "微信合并发送失败", e)
+                XLog.e(TAG, "WeChat merged send failed", e)
             }
         }
     }
@@ -334,14 +334,14 @@ class WeChatChannelHandler(
         val fromUserId = resolveToUserId(messageID) ?: return
         val contextToken = resolveContextToken(fromUserId, messageID)
         synchronized(messageBuffer) {
-            // 如果目标用户变了，先 flush 旧的
+            // If the target user changed, flush the old buffer first
             if (bufferUserId != null && bufferUserId != fromUserId) {
                 flushMessageBuffer()
             }
             messageBuffer.add(content)
             bufferUserId = fromUserId
             bufferContextToken = contextToken
-            // 只在第一条消息时启动定时器（不重置）
+            // Only start the timer on the first message (do not reset)
             if (flushJob == null) {
                 flushJob = scope.launch {
                     kotlinx.coroutines.delay(BUFFER_DELAY_MS)
@@ -352,7 +352,7 @@ class WeChatChannelHandler(
     }
 
     override fun sendImage(imageBytes: ByteArray, messageID: String) {
-        // 发图片前先 flush 文本缓冲区
+        // Flush text buffer before sending image
         flushMessageBuffer()
         val fromUserId = resolveToUserId(messageID) ?: return
         val contextToken = resolveContextToken(fromUserId, messageID)
@@ -360,13 +360,13 @@ class WeChatChannelHandler(
             try {
                 WeChatSender.sendImage(apiClient, fromUserId, imageBytes, contextToken)
             } catch (e: Exception) {
-                XLog.e(TAG, "微信发送图片失败", e)
+                XLog.e(TAG, "WeChat image send failed", e)
             }
         }
     }
 
     override fun sendFile(file: File, messageID: String) {
-        // 发文件前先 flush 文本缓冲区
+        // Flush text buffer before sending file
         flushMessageBuffer()
         val fromUserId = resolveToUserId(messageID) ?: return
         val contextToken = resolveContextToken(fromUserId, messageID)
@@ -374,49 +374,49 @@ class WeChatChannelHandler(
             try {
                 WeChatSender.sendMediaFile(apiClient, fromUserId, file, contextToken)
             } catch (e: Exception) {
-                XLog.e(TAG, "微信发送文件失败", e)
+                XLog.e(TAG, "WeChat file send failed", e)
             }
         }
     }
 
-    // ==================== 内部工具 ====================
+    // ==================== Internal Utilities ====================
 
     /**
-     * 从 contextToken store 中查找最近一个有 token 的用户。
-     * messageID 在微信通道中就是 contextToken 值。
+     * Find the most recent user with a token in the contextToken store.
+     * messageID in the WeChat channel is the contextToken value.
      */
     private fun resolveToUserId(messageID: String): String? {
-        // messageID 在 dispatchMessage 时传入的是 msg.contextToken
-        // 从 contextTokenStore 反查 userId
+        // messageID passed in dispatchMessage is msg.contextToken
+        // Reverse-lookup userId from contextTokenStore
         if (messageID.isNotEmpty()) {
             val userId = WeChatInbound.findUserIdByContextToken(accountId, messageID)
             if (userId != null) return userId
         }
 
-        // fallback: APP 重启后 contextTokenStore 为空，使用 lastFromUserId
-        // （定时任务触发前通过 restoreRoutingContext 设置）
+        // Fallback: after app restart contextTokenStore is empty, use lastFromUserId
+        // (set via restoreRoutingContext before scheduled task triggers)
         val fallback = lastFromUserId
         if (fallback != null) {
-            XLog.d(TAG, "resolveToUserId: contextToken 反查失败，使用 lastFromUserId")
+            XLog.d(TAG, "resolveToUserId: contextToken reverse-lookup failed, using lastFromUserId")
             return fallback
         }
 
-        XLog.w(TAG, "resolveToUserId: 无法找到目标用户")
+        XLog.w(TAG, "resolveToUserId: cannot find target user")
         return null
     }
 
     private fun resolveContextToken(userId: String, messageID: String): String? {
-        // 优先用 store 中最新的 token
+        // Prefer the latest token in the store
         WeChatInbound.getContextToken(accountId, userId)?.let { return it }
-        // messageID 本身可能是有效的 contextToken
+        // messageID itself may be a valid contextToken
         if (messageID.isNotEmpty()) return messageID
-        // 重启后 store 为空，等待轮询获取新 contextToken（最多等 60 秒）
-        XLog.i(TAG, "contextToken 不可用，等待轮询获取新 token (userId=${userId.takeLast(16)})")
+        // After restart store is empty, wait for polling to get a new contextToken (up to 60 seconds)
+        XLog.i(TAG, "contextToken unavailable, waiting for polling to get new token (userId=${userId.takeLast(16)})")
         repeat(12) {
             try { Thread.sleep(5000) } catch (_: InterruptedException) { return null }
             WeChatInbound.getContextToken(accountId, userId)?.let { return it }
         }
-        XLog.w(TAG, "等待 contextToken 超时")
+        XLog.w(TAG, "Timed out waiting for contextToken")
         return null
     }
 
@@ -430,14 +430,14 @@ class WeChatChannelHandler(
         if (userId.isEmpty() || content.isBlank()) return
         val contextToken = WeChatInbound.getContextToken(accountId, userId)
         if (contextToken == null) {
-            XLog.w(TAG, "微信 sendMessageToUser 失败：无法获取 contextToken，用户可能未发过消息: ${userId.takeLast(16)}")
+            XLog.w(TAG, "WeChat sendMessageToUser failed: could not get contextToken, user may not have sent a message yet: ${userId.takeLast(16)}")
             return
         }
         scope.launch {
             try {
                 WeChatSender.sendText(apiClient, userId, content, contextToken)
             } catch (e: Exception) {
-                XLog.e(TAG, "微信 sendMessageToUser 失败", e)
+                XLog.e(TAG, "WeChat sendMessageToUser failed", e)
             }
         }
     }
@@ -445,7 +445,7 @@ class WeChatChannelHandler(
     companion object {
         private const val TAG = "WeChatHandler"
 
-        // monitor.ts 常量
+        // monitor.ts constants
         private const val DEFAULT_LONG_POLL_TIMEOUT_MS = 35_000L
         private const val MAX_CONSECUTIVE_FAILURES = 3
         private const val BACKOFF_DELAY_MS = 30_000L

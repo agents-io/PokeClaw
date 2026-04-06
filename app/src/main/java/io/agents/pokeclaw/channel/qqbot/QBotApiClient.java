@@ -45,7 +45,7 @@ public class QBotApiClient {
                 .build();
         gson = new Gson();
         try {
-            // 回调统一 post 到主线程，避免在任意子线程创建时触发 Looper 相关崩溃
+            // Always post callbacks to the main thread to avoid Looper-related crashes when created on arbitrary worker threads
             mainHandler = new Handler(Looper.getMainLooper());
         } catch (RuntimeException e) {
             mainHandler = null;
@@ -88,7 +88,7 @@ public class QBotApiClient {
     public void autoAuth(QBotCallback<AccessTokenResponse> callback) {
         if (!hasCredentials()) {
             if (callback != null) {
-                callback.onFailure(new QBotException("未配置鉴权信息"));
+                callback.onFailure(new QBotException("Auth credentials not configured"));
             }
             return;
         }
@@ -109,7 +109,7 @@ public class QBotApiClient {
 
         if (appId == null || clientSecret == null || appId.isEmpty() || clientSecret.isEmpty()) {
             if (callback != null) {
-                callback.onFailure(new QBotException("未配置 QQ AppId 或 AppSecret"));
+                callback.onFailure(new QBotException("QQ AppId or AppSecret not configured"));
             }
             return;
         }
@@ -133,10 +133,10 @@ public class QBotApiClient {
             @Override
             public void onFailure(Call call, IOException e) {
                 isAuthenticating = false;
-                XLog.e(TAG, "获取access_token失败: " + e.getMessage());
+                XLog.e(TAG, "Failed to get access_token: " + e.getMessage());
                 executeCallback(() -> {
                     if (callback != null) {
-                        callback.onFailure(new QBotException("获取access_token失败: " + e.getMessage(), e));
+                        callback.onFailure(new QBotException("Failed to get access_token: " + e.getMessage(), e));
                     }
                 });
             }
@@ -147,21 +147,21 @@ public class QBotApiClient {
                 try {
                     if (response.isSuccessful()) {
                         String responseBody = response.body().string();
-                        XLog.d(TAG, "access_token 响应: " + responseBody);
+                        XLog.d(TAG, "access_token response: " + responseBody);
                         AccessTokenResponse tokenResponse = gson.fromJson(responseBody, AccessTokenResponse.class);
                         String token = tokenResponse != null ? tokenResponse.getAccess_token() : null;
                         if (token == null || token.isEmpty()) {
-                            XLog.e(TAG, "access_token 为空, body=" + responseBody);
+                            XLog.e(TAG, "access_token is empty, body=" + responseBody);
                             executeCallback(() -> {
                                 if (callback != null) {
-                                    callback.onFailure(new QBotException("获取 access_token 失败: 返回的 token 为空, body=" + responseBody));
+                                    callback.onFailure(new QBotException("Failed to get access_token: returned token is empty, body=" + responseBody));
                                 }
                             });
                             return;
                         }
                         accessToken = token;
                         tokenExpireTime = System.currentTimeMillis() + (long) tokenResponse.getExpires_in() * 1000;
-                        XLog.d(TAG, "获取access_token成功, expires_in=" + tokenResponse.getExpires_in());
+                        XLog.d(TAG, "access_token obtained, expires_in=" + tokenResponse.getExpires_in());
                         executeCallback(() -> {
                             if (callback != null) {
                                 callback.onSuccess(tokenResponse);
@@ -169,18 +169,18 @@ public class QBotApiClient {
                         });
                     } else {
                         String errorBody = response.body() != null ? response.body().string() : "";
-                        XLog.e(TAG, "获取access_token失败: HTTP " + response.code());
+                        XLog.e(TAG, "Failed to get access_token: HTTP " + response.code());
                         executeCallback(() -> {
                             if (callback != null) {
-                                callback.onFailure(new QBotException("获取access_token失败: HTTP " + response.code() + " " + errorBody));
+                                callback.onFailure(new QBotException("Failed to get access_token: HTTP " + response.code() + " " + errorBody));
                             }
                         });
                     }
                 } catch (Exception e) {
-                    XLog.e(TAG, "解析响应失败: " + e.getMessage());
+                    XLog.e(TAG, "Failed to parse response: " + e.getMessage());
                     executeCallback(() -> {
                         if (callback != null) {
-                            callback.onFailure(new QBotException("解析响应失败: " + e.getMessage(), e));
+                            callback.onFailure(new QBotException("Failed to parse response: " + e.getMessage(), e));
                         }
                     });
                 }
@@ -199,7 +199,7 @@ public class QBotApiClient {
         return isTokenValid();
     }
 
-    /** 清除缓存的 token，下次调用 ensureTokenAndExecute 会重新获取 */
+    /** Clear cached token; the next call to ensureTokenAndExecute will re-fetch it */
     public void clearToken() {
         accessToken = null;
         tokenExpireTime = 0;
@@ -277,8 +277,8 @@ public class QBotApiClient {
     }
 
     /**
-     * @param msgId  收到的用户消息 ID，非空时为被动回复（5 分钟内有效，每条最多回复 5 次）
-     * @param msgSeq 同一 msgId 下的回复序号，从 1 开始递增，相同 msg_id+msg_seq 会被去重拒绝
+     * @param msgId  received user message ID; non-null means passive reply (valid within 5 minutes, max 5 replies per message)
+     * @param msgSeq reply sequence number under the same msgId, starting from 1; duplicate msg_id+msg_seq pairs are rejected
      */
     public void sendC2CMessage(String openid, String content, int msgType,
                                String msgId, int msgSeq, QBotCallback<String> callback) {
@@ -314,8 +314,8 @@ public class QBotApiClient {
     }
 
     /**
-     * @param msgId  收到的群消息 ID，非空时为被动回复
-     * @param msgSeq 同一 msgId 下的回复序号
+     * @param msgId  received group message ID; non-null means passive reply
+     * @param msgSeq reply sequence number under the same msgId
      */
     public void sendGroupMessage(String groupOpenid, String content, int msgType,
                                  String msgId, int msgSeq, QBotCallback<String> callback) {
@@ -348,7 +348,7 @@ public class QBotApiClient {
             public void onFailure(Call call, IOException e) {
                 executeCallback(() -> {
                     if (callback != null) {
-                        callback.onFailure(new QBotException("请求失败: " + e.getMessage(), e));
+                        callback.onFailure(new QBotException("Request failed: " + e.getMessage(), e));
                     }
                 });
             }
@@ -367,14 +367,14 @@ public class QBotApiClient {
                     } else {
                         executeCallback(() -> {
                             if (callback != null) {
-                                callback.onFailure(new QBotException("请求失败: HTTP " + response.code() + " " + responseBody));
+                                callback.onFailure(new QBotException("Request failed: HTTP " + response.code() + " " + responseBody));
                             }
                         });
                     }
                 } catch (Exception e) {
                     executeCallback(() -> {
                         if (callback != null) {
-                            callback.onFailure(new QBotException("解析响应失败: " + e.getMessage(), e));
+                            callback.onFailure(new QBotException("Failed to parse response: " + e.getMessage(), e));
                         }
                     });
                 }
@@ -396,12 +396,12 @@ public class QBotApiClient {
     }
     
     /**
-     * 单聊通过公网 URL 发送图片
+     * Send image via public URL in a direct message
      */
     public void sendC2CMessageWithImage(String openid, String content, String imageUrl,
                                         String msgId, int msgSeq, QBotCallback<String> callback) {
         if (imageUrl == null || imageUrl.isEmpty()) {
-            if (callback != null) callback.onFailure(new QBotException("图片 URL 为空"));
+            if (callback != null) callback.onFailure(new QBotException("Image URL is empty"));
             return;
         }
         uploadFileByUrl(openid, false, FILE_TYPE_IMAGE, imageUrl, false, new QBotCallback<String>() {
@@ -417,12 +417,12 @@ public class QBotApiClient {
     }
 
     /**
-     * 群聊通过公网 URL 发送图片
+     * Send image via public URL in a group message
      */
     public void sendGroupMessageWithImage(String groupOpenid, String content, String imageUrl,
                                           String msgId, int msgSeq, QBotCallback<String> callback) {
         if (imageUrl == null || imageUrl.isEmpty()) {
-            if (callback != null) callback.onFailure(new QBotException("图片 URL 为空"));
+            if (callback != null) callback.onFailure(new QBotException("Image URL is empty"));
             return;
         }
         uploadFileByUrl(groupOpenid, true, FILE_TYPE_IMAGE, imageUrl, false, new QBotCallback<String>() {
@@ -437,10 +437,10 @@ public class QBotApiClient {
         });
     }
 
-    // ==================== 富媒体上传（统一 /files 接口） ====================
+    // ==================== Rich Media Upload (unified /files endpoint) ====================
 
     /**
-     * file_type 常量：1=图片, 2=视频, 3=语音, 4=文件
+     * file_type constants: 1=image, 2=video, 3=voice, 4=file
      */
     public static final int FILE_TYPE_IMAGE = 1;
     public static final int FILE_TYPE_VIDEO = 2;
@@ -448,13 +448,13 @@ public class QBotApiClient {
     public static final int FILE_TYPE_FILE  = 4;
 
     /**
-     * 通用富媒体上传：通过 base64 file_data 上传到 /files
-     * @param openid    用户 openid 或群 group_openid
-     * @param isGroup   是否群聊
+     * General rich-media upload: upload to /files via base64 file_data
+     * @param openid    user openid or group group_openid
+     * @param isGroup   whether this is a group message
      * @param fileType  FILE_TYPE_IMAGE / FILE_TYPE_VIDEO / FILE_TYPE_VOICE / FILE_TYPE_FILE
-     * @param base64Data base64 编码的文件内容（不含 data:xxx;base64, 前缀）
-     * @param srvSendMsg true=上传后直接发送（占主动消息频次）；false=仅获取 file_info
-     * @param callback  成功返回完整 JSON 响应体
+     * @param base64Data base64-encoded file content (without the data:xxx;base64, prefix)
+     * @param srvSendMsg true=send immediately after upload (counts against proactive message quota); false=only fetch file_info
+     * @param callback  returns complete JSON response body on success
      */
     public void uploadFile(String openid, boolean isGroup, int fileType, String base64Data, boolean srvSendMsg, QBotCallback<String> callback) {
         uploadFile(openid, isGroup, fileType, base64Data, srvSendMsg, null, callback);
@@ -489,27 +489,27 @@ public class QBotApiClient {
                     .addHeader(QBotConstants.HEADER_AUTHORIZATION, getAuthorizationHeader())
                     .build();
 
-            XLog.d(TAG, "上传富媒体: type=" + fileType + ", url=" + url + ", srvSendMsg=" + srvSendMsg);
+            XLog.d(TAG, "Uploading rich media: type=" + fileType + ", url=" + url + ", srvSendMsg=" + srvSendMsg);
             httpClient.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
-                    XLog.e(TAG, "上传富媒体失败: " + e.getMessage());
+                    XLog.e(TAG, "Rich media upload failed: " + e.getMessage());
                     executeCallback(() -> {
-                        if (callback != null) callback.onFailure(new QBotException("上传失败: " + e.getMessage()));
+                        if (callback != null) callback.onFailure(new QBotException("Upload failed: " + e.getMessage()));
                     });
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String responseBody = response.body() != null ? response.body().string() : "";
-                    XLog.d(TAG, "上传富媒体响应: code=" + response.code() + ", body=" + responseBody);
+                    XLog.d(TAG, "Rich media upload response: code=" + response.code() + ", body=" + responseBody);
                     if (response.isSuccessful()) {
                         executeCallback(() -> {
                             if (callback != null) callback.onSuccess(responseBody);
                         });
                     } else {
                         executeCallback(() -> {
-                            if (callback != null) callback.onFailure(new QBotException("上传失败: HTTP " + response.code() + " " + responseBody));
+                            if (callback != null) callback.onFailure(new QBotException("Upload failed: HTTP " + response.code() + " " + responseBody));
                         });
                     }
                 }
@@ -518,7 +518,7 @@ public class QBotApiClient {
     }
 
     /**
-     * 通用富媒体上传：通过公网 URL 上传到 /files
+     * General rich-media upload: upload to /files via public URL
      */
     public void uploadFileByUrl(String openid, boolean isGroup, int fileType, String fileUrl, boolean srvSendMsg, QBotCallback<String> callback) {
         ensureTokenAndExecute(() -> {
@@ -541,26 +541,26 @@ public class QBotApiClient {
                     .addHeader(QBotConstants.HEADER_AUTHORIZATION, getAuthorizationHeader())
                     .build();
 
-            XLog.d(TAG, "上传富媒体(URL): type=" + fileType + ", fileUrl=" + fileUrl);
+            XLog.d(TAG, "Rich media upload (URL): type=" + fileType + ", fileUrl=" + fileUrl);
             httpClient.newCall(request).enqueue(new Callback() {
                 @Override
                 public void onFailure(Call call, IOException e) {
                     executeCallback(() -> {
-                        if (callback != null) callback.onFailure(new QBotException("上传失败: " + e.getMessage()));
+                        if (callback != null) callback.onFailure(new QBotException("Upload failed: " + e.getMessage()));
                     });
                 }
 
                 @Override
                 public void onResponse(Call call, Response response) throws IOException {
                     String responseBody = response.body() != null ? response.body().string() : "";
-                    XLog.d(TAG, "上传富媒体(URL)响应: code=" + response.code() + ", body=" + responseBody);
+                    XLog.d(TAG, "Rich media upload (URL) response: code=" + response.code() + ", body=" + responseBody);
                     if (response.isSuccessful()) {
                         executeCallback(() -> {
                             if (callback != null) callback.onSuccess(responseBody);
                         });
                     } else {
                         executeCallback(() -> {
-                            if (callback != null) callback.onFailure(new QBotException("上传失败: HTTP " + response.code() + " " + responseBody));
+                            if (callback != null) callback.onFailure(new QBotException("Upload failed: HTTP " + response.code() + " " + responseBody));
                         });
                     }
                 }
@@ -569,7 +569,7 @@ public class QBotApiClient {
     }
 
     /**
-     * 从上传响应中提取 file_info 并发送 msg_type=7 富媒体消息
+     * Extract file_info from the upload response and send a msg_type=7 rich-media message
      */
     private void parseFileInfoAndSend(String openid, boolean isGroup, String uploadResponse,
                                       String msgId, int msgSeq, QBotCallback<String> callback) {
@@ -577,23 +577,23 @@ public class QBotApiClient {
             com.google.gson.JsonObject resp = gson.fromJson(uploadResponse, com.google.gson.JsonObject.class);
             if (resp.has("file_info")) {
                 String fileInfo = resp.get("file_info").getAsString();
-                XLog.d(TAG, "获取到 file_info: " + fileInfo);
+                XLog.d(TAG, "file_info obtained: " + fileInfo);
                 if (isGroup) {
                     sendGroupMediaMessage(openid, fileInfo, null, msgId, msgSeq, callback);
                 } else {
                     sendC2CMediaMessage(openid, fileInfo, null, msgId, msgSeq, callback);
                 }
             } else {
-                XLog.d(TAG, "响应无 file_info，可能已通过 srv_send_msg 直接发送");
+                XLog.d(TAG, "Response has no file_info; may have been sent directly via srv_send_msg");
                 if (callback != null) callback.onSuccess(uploadResponse);
             }
         } catch (Exception e) {
-            if (callback != null) callback.onFailure(new QBotException("解析 file_info 失败: " + e.getMessage()));
+            if (callback != null) callback.onFailure(new QBotException("Failed to parse file_info: " + e.getMessage()));
         }
     }
 
     /**
-     * 便捷：base64 图片 → 上传 → 发送富媒体消息（被动回复）
+     * Convenience: base64 image → upload → send rich-media message (passive reply)
      */
     public void uploadImageAndSend(String openid, boolean isGroup, String base64Image,
                                    String msgId, int msgSeq, QBotCallback<String> callback) {
@@ -610,7 +610,7 @@ public class QBotApiClient {
     }
 
     /**
-     * 便捷：本地文件 bytes → base64 → 上传 → 发送富媒体消息（被动回复）
+     * Convenience: local file bytes → base64 → upload → send rich-media message (passive reply)
      * @param fileType FILE_TYPE_IMAGE / FILE_TYPE_VIDEO / FILE_TYPE_VOICE / FILE_TYPE_FILE
      */
     public void uploadFileAndSend(String openid, boolean isGroup, int fileType, byte[] fileBytes,
@@ -697,7 +697,7 @@ public class QBotApiClient {
 
 
     /**
-     * 发送 Markdown 消息（msg_type=2）
+     * Send a Markdown message (msg_type=2)
      */
     public void sendC2CMarkdown(String openid, String markdownContent, QBotCallback<String> callback) {
         ensureTokenAndExecute(() -> {
@@ -724,7 +724,7 @@ public class QBotApiClient {
     }
 
     /**
-     * 发送群 Markdown 消息（msg_type=2）
+     * Send a group Markdown message (msg_type=2)
      */
     public void sendGroupMarkdown(String groupOpenid, String markdownContent, QBotCallback<String> callback) {
         ensureTokenAndExecute(() -> {

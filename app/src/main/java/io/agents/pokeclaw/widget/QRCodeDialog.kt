@@ -26,14 +26,14 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
 
     companion object {
         /**
-         * 显示二维码对话框
+         * Show QR code dialog
          *
-         * @param context 上下文
-         * @param title 标题（必填）
-         * @param subtitle 副标题（可选）
-         * @param qrBitmap 二维码图片
-         * @param onClose 关闭回调（可选）
-         * @return QRCodeDialog 实例
+         * @param context context
+         * @param title title (required)
+         * @param subtitle subtitle (optional)
+         * @param qrBitmap QR code bitmap
+         * @param onClose close callback (optional)
+         * @return QRCodeDialog instance
          */
         @JvmStatic
         @JvmOverloads
@@ -54,14 +54,14 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
         }
 
         /**
-         * 显示二维码对话框（通过 URL 加载图片）
+         * Show QR code dialog (load image via URL)
          *
-         * @param context 上下文
-         * @param title 标题（必填）
-         * @param subtitle 副标题（可选）
-         * @param qrImageUrl 二维码图片 URL
-         * @param onClose 关闭回调（可选）
-         * @return QRCodeDialog 实例
+         * @param context context
+         * @param title title (required)
+         * @param subtitle subtitle (optional)
+         * @param qrImageUrl QR code image URL
+         * @param onClose close callback (optional)
+         * @return QRCodeDialog instance
          */
         @JvmStatic
         @JvmOverloads
@@ -86,7 +86,7 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
         super.onCreate(savedInstanceState)
         setContentView(R.layout.dialog_qr_code)
 
-        // 设置对话框样式
+        // Configure dialog style
         window?.apply {
             setGravity(Gravity.CENTER)
             setBackgroundDrawableResource(android.R.color.transparent)
@@ -96,20 +96,20 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
             )
         }
 
-        // 关闭时回调（包括返回键、点击关闭、代码 dismiss 等）
+        // Callback on dismiss (back key, close button tap, code dismiss, etc.)
         setOnDismissListener { onCloseListener?.invoke() }
 
-        // 初始化视图
+        // Initialize views
         initViews()
     }
 
     private fun initViews() {
-        // 标题
+        // Title
         findViewById<TextView>(R.id.tvTitle).apply {
             text = this@QRCodeDialog.title
         }
 
-        // 副标题
+        // Subtitle
         findViewById<TextView>(R.id.tvSubtitle).apply {
             if (!this@QRCodeDialog.subtitle.isNullOrEmpty()) {
                 text = this@QRCodeDialog.subtitle
@@ -119,7 +119,7 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
             }
         }
 
-        // 二维码图片
+        // QR code image
         findViewById<ImageView>(R.id.ivQrCode).apply {
             when {
                 this@QRCodeDialog.qrBitmap != null -> {
@@ -133,14 +133,14 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
             }
         }
 
-        // 关闭按钮
+        // Close button
         findViewById<KButton>(R.id.btnClose).apply {
             setOnClickListener { dismiss() }
         }
     }
 
     /**
-     * 更新二维码图片
+     * Update QR code bitmap
      */
     fun updateQrBitmap(bitmap: Bitmap) {
         this.qrBitmap = bitmap
@@ -149,7 +149,7 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
     }
 
     /**
-     * 通过 URL 更新二维码图片
+     * Update QR code image via URL
      */
     fun updateQrImageUrl(url: String) {
         this.qrBitmap = null
@@ -162,16 +162,16 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
     }
 
     /**
-     * 设置关闭回调
+     * Set the close callback
      */
     fun setOnCloseListener(listener: () -> Unit) {
         this.onCloseListener = listener
     }
 
     /**
-     * 显示状态覆盖层（用于显示"已过期"、"已扫描"等状态）
+     * Show the status overlay (for displaying states like "Expired", "Scanned", etc.)
      *
-     * @param text 要显示的状态文本
+     * @param text status text to display
      */
     fun showStatusOverlay(text: String) {
         findViewById<FrameLayout>(R.id.layoutStatusOverlay)?.apply {
@@ -181,16 +181,16 @@ class QRCodeDialog private constructor(context: Context) : Dialog(context, R.sty
     }
 
     /**
-     * 隐藏状态覆盖层
+     * Hide the status overlay
      */
     fun hideStatusOverlay() {
         findViewById<FrameLayout>(R.id.layoutStatusOverlay)?.visibility = android.view.View.GONE
     }
 
     /**
-     * 更新状态文本（覆盖层保持显示）
+     * Update the status text (overlay stays visible)
      *
-     * @param text 新的状态文本
+     * @param text new status text
      */
     fun updateStatusText(text: String) {
         findViewById<TextView>(R.id.tvStatusText)?.text = text

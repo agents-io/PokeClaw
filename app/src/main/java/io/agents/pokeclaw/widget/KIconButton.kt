@@ -16,19 +16,19 @@ import androidx.core.content.ContextCompat
 import io.agents.pokeclaw.R
 
 /**
- * 图标+文字按钮
- * 左侧图标 + 右侧文字，水平居中排列
+ * Icon + text button
+ * Left icon + right text, horizontally centered
  *
- * XML 用法:
+ * XML usage:
  *   <io.agents.pokeclaw.widget.KIconButton
  *       android:layout_width="match_parent"
  *       android:layout_height="48dp"
  *       android:layout_marginHorizontal="16dp" />
  *
- * 代码用法:
+ * Code usage:
  *   KIconButton(context).apply {
  *       setIcon(R.drawable.ic_xxx)
- *       setTitle("开始")
+ *       setTitle("Start")
  *       setBgColor(Color.RED)
  *   }
  */

@@ -30,15 +30,15 @@ class QQChannelHandler(
     private var lastMsgSeq: Int = 0
 
     private val callback = object : QBotCallback<String> {
-        override fun onSuccess(result: String) { XLog.i(TAG, "QQ 回复成功: ${result.take(120)}") }
-        override fun onFailure(e: QBotException) { XLog.e(TAG, "QQ 回复失败", e) }
+        override fun onSuccess(result: String) { XLog.i(TAG, "QQ reply succeeded: ${result.take(120)}") }
+        override fun onFailure(e: QBotException) { XLog.e(TAG, "QQ reply failed", e) }
     }
 
     override fun isConnected(): Boolean = QBotWebSocketManager.getInstance().isConnected
 
     override fun init() {
         if (appId.isEmpty() || appSecret.isEmpty()) {
-            XLog.w(TAG, "QQ AppId/AppSecret 未配置，QQ 通道将不可用")
+            XLog.w(TAG, "QQ AppId/AppSecret not configured, QQ channel will be unavailable")
             return
         }
 
@@ -48,15 +48,15 @@ class QQChannelHandler(
             lastIsGroup = isGroup
             lastMessageId = messageId
             lastMsgSeq = 0
-            XLog.i(TAG, "[${channel.displayName}] 收到消息: $content, isGroup=$isGroup, openId=$openId")
+            XLog.i(TAG, "[${channel.displayName}] Message received: $content, isGroup=$isGroup, openId=$openId")
             ChannelManager.dispatchMessage(channel, content, messageId)
         }
         scope.launch {
             try {
                 QBotWebSocketManager.getInstance().start()
-                XLog.i(TAG, "QQ WebSocket 已启动")
+                XLog.i(TAG, "QQ WebSocket started")
             } catch (e: Exception) {
-                XLog.e(TAG, "QQ WebSocket 启动失败", e)
+                XLog.e(TAG, "QQ WebSocket failed to start", e)
             }
         }
     }
@@ -69,9 +69,9 @@ class QQChannelHandler(
             lastIsGroup = false
             lastMessageId = null
             lastMsgSeq = 0
-            XLog.i(TAG, "QQ WebSocket 已断开")
+            XLog.i(TAG, "QQ WebSocket disconnected")
         } catch (e: Exception) {
-            XLog.w(TAG, "QQ 断开时异常", e)
+            XLog.w(TAG, "Exception on QQ disconnect", e)
         }
     }
 
@@ -85,11 +85,11 @@ class QQChannelHandler(
     override fun sendMessage(content: String, messageID: String) {
         val openId = lastOpenId
         if (openId.isNullOrEmpty()) {
-            XLog.w(TAG, "QQ 回复失败：没有可用的会话 openId")
+            XLog.w(TAG, "QQ reply failed: no available session openId")
             return
         }
         if (content.isBlank()) {
-            XLog.w(TAG, "QQ 跳过空消息")
+            XLog.w(TAG, "QQ skipping empty message")
             return
         }
         val msgId = lastMessageId
@@ -103,7 +103,7 @@ class QQChannelHandler(
                     api.sendC2CMessage(openId, content, 0, msgId, seq, callback)
                 }
             } catch (e: Exception) {
-                XLog.e(TAG, "QQ 回复失败", e)
+                XLog.e(TAG, "QQ reply failed", e)
             }
         }
     }
@@ -120,7 +120,7 @@ class QQChannelHandler(
                     msgId, seq, callback
                 )
             } catch (e: Exception) {
-                XLog.e(TAG, "QQ 发送图片失败", e)
+                XLog.e(TAG, "QQ image send failed", e)
             }
         }
     }
@@ -137,12 +137,12 @@ class QQChannelHandler(
                     file.name, msgId, seq, callback
                 )
             } catch (e: Exception) {
-                XLog.e(TAG, "QQ 发送文件失败", e)
+                XLog.e(TAG, "QQ file send failed", e)
             }
         }
     }
 
-    // ---------- 内部工具方法 ----------
+    // ---------- Internal helper methods ----------
 
     private fun nextMsgSeq(): Int = ++lastMsgSeq
 
@@ -172,7 +172,7 @@ class QQChannelHandler(
         if (userId.isEmpty() || content.isBlank()) return
         val parts = userId.split(":", limit = 2)
         if (parts.size != 2) {
-            XLog.w(TAG, "QQ sendMessageToUser 失败：无效的 userId 格式: $userId")
+            XLog.w(TAG, "QQ sendMessageToUser failed: invalid userId format: $userId")
             return
         }
         val isGroup = parts[0] == "group"
@@ -187,7 +187,7 @@ class QQChannelHandler(
                     api.sendC2CMessage(openId, content, 0, null, seq, callback)
                 }
             } catch (e: Exception) {
-                XLog.e(TAG, "QQ sendMessageToUser 失败", e)
+                XLog.e(TAG, "QQ sendMessageToUser failed", e)
             }
         }
     }

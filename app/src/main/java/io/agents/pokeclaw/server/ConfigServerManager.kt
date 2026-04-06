@@ -18,7 +18,7 @@ import java.net.Inet4Address
 import java.net.NetworkInterface
 
 /**
- * ConfigServer 生命周期管理单例
+ * ConfigServer lifecycle management singleton
  */
 object ConfigServerManager {
 
@@ -31,7 +31,7 @@ object ConfigServerManager {
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var appContext: Context? = null
 
-    /** H5 页面保存配置后发出通知，Settings 页面可观察此 Flow 来刷新 UI */
+    /** Notification emitted after H5 page saves config; Settings page can observe this Flow to refresh UI */
     private val _configChanged = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val configChanged: SharedFlow<Unit> = _configChanged.asSharedFlow()
 
@@ -40,7 +40,7 @@ object ConfigServerManager {
     }
 
     /**
-     * 启动配置服务，必须有 WiFi 连接
+     * Start the configuration server. Requires a WiFi connection.
      */
     fun start(context: Context): Boolean {
         val ctx = context.applicationContext
@@ -83,8 +83,8 @@ object ConfigServerManager {
     fun isRunning(): Boolean = server?.isAlive == true
 
     /**
-     * 获取局域网访问地址，如 192.168.1.100:9527
-     * 端口从实际运行的 server 实例读取
+     * Get the LAN access address, e.g. 192.168.1.100:9527
+     * Port is read from the running server instance
      */
     fun getAddress(): String? {
         val ip = getWifiIpAddress(appContext ?: return null) ?: return null
@@ -93,7 +93,7 @@ object ConfigServerManager {
     }
 
     /**
-     * App 启动时调用：如果上次是开启状态则自动启动
+     * Call on app start: auto-starts if it was enabled last time
      */
     fun autoStartIfNeeded(context: Context) {
         if (KVUtils.hasLlmConfig() && KVUtils.isConfigServerEnabled()) {
@@ -102,7 +102,7 @@ object ConfigServerManager {
     }
 
     /**
-     * 判断当前是否有 WiFi 连接
+     * Check whether there is an active WiFi connection
      */
     fun isWifiConnected(context: Context): Boolean {
         val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -112,7 +112,7 @@ object ConfigServerManager {
     }
 
     /**
-     * 通过 WifiManager 获取 WiFi IP 地址（优先），回退到 NetworkInterface
+     * Get WiFi IP address via WifiManager (preferred), fall back to NetworkInterface
      */
     private fun getWifiIpAddress(context: Context): String? {
         try {
@@ -132,7 +132,7 @@ object ConfigServerManager {
         } catch (e: Exception) {
             XLog.e(TAG, "WifiManager IP failed: ${e.message}")
         }
-        // 回退方案
+        // Fallback method
         return try {
             NetworkInterface.getNetworkInterfaces()?.toList()
                 ?.flatMap { it.inetAddresses.toList() }
@@ -145,7 +145,7 @@ object ConfigServerManager {
     }
 
     /**
-     * 注册网络变化监听，WiFi 断开时停止服务，重连时自动重启（IP 可能变化）
+     * Register network change listener. Stops the server when WiFi disconnects, auto-restarts when reconnected (IP may change).
      */
     private fun registerNetworkCallback(context: Context) {
         unregisterNetworkCallback()
@@ -159,13 +159,13 @@ object ConfigServerManager {
                 XLog.i(TAG, "WiFi lost, stopping ConfigServer")
                 try { server?.stop() } catch (_: Exception) {}
                 server = null
-                // 不清除 enabled 状态，WiFi 恢复后自动重启
+                // Do not clear enabled state; auto-restart when WiFi recovers
                 _configChanged.tryEmit(Unit)
             }
 
             override fun onAvailable(network: Network) {
                 XLog.i(TAG, "WiFi available, restarting ConfigServer")
-                // WiFi 重连后 IP 可能变化，重新启动
+                // IP may change after WiFi reconnect, restart the server
                 if (KVUtils.isConfigServerEnabled() && !isRunning()) {
                     val ctx = appContext ?: return
                     for (port in ConfigServer.PORT until ConfigServer.PORT + MAX_PORT_RETRY) {

@@ -17,8 +17,8 @@ import androidx.core.view.isVisible
 import io.agents.pokeclaw.R
 
 /**
- * 通用 Toolbar 组件
- * 支持：标题、左侧返回按钮、右侧操作按钮/图标
+ * Common Toolbar component
+ * Supports: title, left back button, right action button/icon
  */
 class CommonToolbar @JvmOverloads constructor(
     context: Context,
@@ -34,7 +34,7 @@ class CommonToolbar @JvmOverloads constructor(
     var onBackClick: (() -> Unit)? = null
     var onActionClick: (() -> Unit)? = null
 
-    // 标题是否居中（默认true）
+    // Whether the title is centered (default: true)
     private var isTitleCentered = true
 
     init {
@@ -45,34 +45,34 @@ class CommonToolbar @JvmOverloads constructor(
         ivAction = findViewById(R.id.ivAction)
         tvAction = findViewById(R.id.tvAction)
 
-        // 默认隐藏返回按钮和右侧按钮
+        // Hide back button and right button by default
         ivBack.visibility = GONE
         ivAction.visibility = GONE
         tvAction.visibility = GONE
 
-        // 点击事件
+        // Click listeners
         ivBack.setOnClickListener { onBackClick?.invoke() }
         ivAction.setOnClickListener { onActionClick?.invoke() }
         tvAction.setOnClickListener { onActionClick?.invoke() }
     }
 
     /**
-     * 设置标题
+     * Set title
      */
     fun setTitle(title: CharSequence?) {
         tvTitle.text = title
     }
 
     /**
-     * 设置标题文字颜色
+     * Set title text color
      */
     fun setTitleColor(color: Int) {
         tvTitle.setTextColor(color)
     }
 
     /**
-     * 设置标题是否居中
-     * @param centered true: 标题完全居中（默认）; false: 标题在返回按钮右侧
+     * Set whether the title is centered
+     * @param centered true: fully centered (default); false: title to the right of the back button
      */
     fun setTitleCentered(centered: Boolean) {
         isTitleCentered = centered
@@ -80,7 +80,7 @@ class CommonToolbar @JvmOverloads constructor(
     }
 
     /**
-     * 更新标题布局
+     * Update title layout
      */
     private fun updateTitleLayout() {
         val margin56 = TypedValue.applyDimension(
@@ -92,7 +92,7 @@ class CommonToolbar @JvmOverloads constructor(
 
         val params = tvTitle.layoutParams as ConstraintLayout.LayoutParams
         if (isTitleCentered) {
-            // 完全居中
+            // Fully centered
             params.width = ConstraintLayout.LayoutParams.WRAP_CONTENT
             params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID
             params.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
@@ -101,7 +101,7 @@ class CommonToolbar @JvmOverloads constructor(
             params.marginEnd = margin56
             tvTitle.gravity = android.view.Gravity.CENTER
         } else {
-            // 左对齐，在返回按钮右侧
+            // Left-aligned, to the right of the back button
             params.width = 0
             params.startToStart = View.NO_ID
             params.endToEnd = ConstraintLayout.LayoutParams.PARENT_ID
@@ -114,9 +114,9 @@ class CommonToolbar @JvmOverloads constructor(
     }
 
     /**
-     * 显示返回按钮
-     * @param show 是否显示
-     * @param listener 点击监听，为空时使用 onBackClick
+     * Show or hide the back button
+     * @param show whether to show
+     * @param listener click listener; falls back to onBackClick when null
      */
     fun showBackButton(show: Boolean = true, listener: (() -> Unit)? = null) {
         ivBack.visibility = if (show) VISIBLE else GONE
@@ -124,14 +124,14 @@ class CommonToolbar @JvmOverloads constructor(
     }
 
     /**
-     * 设置返回按钮图标
+     * Set back button icon
      */
     fun setBackIcon(@DrawableRes iconRes: Int) {
         ivBack.setImageResource(iconRes)
     }
 
     /**
-     * 设置右侧图标按钮
+     * Set right-side icon button
      */
     fun setActionIcon(@DrawableRes iconRes: Int, listener: (() -> Unit)? = null) {
         ivAction.setImageResource(iconRes)
@@ -141,7 +141,7 @@ class CommonToolbar @JvmOverloads constructor(
     }
 
     /**
-     * 设置右侧文字按钮
+     * Set right-side text button
      */
     fun setActionText(text: CharSequence?, listener: (() -> Unit)? = null) {
         tvAction.text = text
@@ -151,14 +151,14 @@ class CommonToolbar @JvmOverloads constructor(
     }
 
     /**
-     * 设置右侧文字颜色
+     * Set right-side text color
      */
     fun setActionTextColor(color: Int) {
         tvAction.setTextColor(color)
     }
 
     /**
-     * 隐藏右侧按钮
+     * Hide right-side button
      */
     fun hideAction() {
         ivAction.visibility = GONE
@@ -166,7 +166,7 @@ class CommonToolbar @JvmOverloads constructor(
     }
 
     /**
-     * 获取标题是否居中
+     * Get whether the title is centered
      */
     fun isTitleCentered(): Boolean = isTitleCentered
 }

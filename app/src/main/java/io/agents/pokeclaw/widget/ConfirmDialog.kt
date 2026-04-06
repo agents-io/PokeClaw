@@ -62,7 +62,7 @@ class ConfirmDialog private constructor(context: Context) : Dialog(context, R.st
             }
         }
 
-        /** 危险操作弹窗：确认按钮为红色 */
+        /** Destructive action dialog: confirm button is red */
         @JvmStatic
         fun showWarm(
             context: Context,
@@ -114,10 +114,10 @@ class ConfirmDialog private constructor(context: Context) : Dialog(context, R.st
     }
 
     private fun initViews() {
-        // 标题
+        // Title
         findViewById<TextView>(R.id.tvTitle).text = title
 
-        // 内容
+        // Message
         findViewById<TextView>(R.id.tvMessage).apply {
             if (message.isNotEmpty()) {
                 text = message
@@ -125,7 +125,7 @@ class ConfirmDialog private constructor(context: Context) : Dialog(context, R.st
             }
         }
 
-        // 勾选区域
+        // Checkbox area
         val layoutCheckbox = findViewById<LinearLayout>(R.id.layoutCheckbox)
         val ivCheckbox = findViewById<ImageView>(R.id.ivCheckbox)
         val tvCheckboxLabel = findViewById<TextView>(R.id.tvCheckboxLabel)
@@ -137,7 +137,7 @@ class ConfirmDialog private constructor(context: Context) : Dialog(context, R.st
             isChecked = checkboxDefault
             updateCheckboxIcon(ivCheckbox)
 
-            // 点击整行切换
+            // Tap entire row to toggle
             val toggleCheckbox = View.OnClickListener {
                 isChecked = !isChecked
                 updateCheckboxIcon(ivCheckbox)
@@ -151,7 +151,7 @@ class ConfirmDialog private constructor(context: Context) : Dialog(context, R.st
             }
         }
 
-        // 确认按钮
+        // Confirm button
         val btnAction = findViewById<KButton>(R.id.btnAction)
         val btnCancel = findViewById<KButton>(R.id.btnCancel)
         val btnSpacer = findViewById<View>(R.id.btnSpacer)
@@ -166,7 +166,7 @@ class ConfirmDialog private constructor(context: Context) : Dialog(context, R.st
             onAction?.invoke(isChecked)
         }
 
-        // 取消按钮
+        // Cancel button
         if (cancelTitle != null) {
             btnCancel.visibility = View.VISIBLE
             btnSpacer.visibility = View.VISIBLE

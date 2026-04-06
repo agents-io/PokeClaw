@@ -52,7 +52,7 @@ class DingTalkChannelHandler(
 
     override fun init() {
         if (appKey.isEmpty() || appSecret.isEmpty()) {
-            XLog.w(TAG, "钉钉 AppKey/AppSecret 未配置，钉钉通道将不可用")
+            XLog.w(TAG, "DingTalk AppKey/AppSecret not configured, DingTalk channel will be unavailable")
             return
         }
 
@@ -64,7 +64,7 @@ class DingTalkChannelHandler(
                 object : OpenDingTalkCallbackListener<ChatbotMessage, Void> {
                     override fun execute(message: ChatbotMessage): Void? {
                         val text = message.text?.content ?: ""
-                        XLog.i(TAG, "[${channel.displayName}] 收到消息: $text, sender: ${message.senderNick}, type: ${message.conversationType}")
+                        XLog.i(TAG, "[${channel.displayName}] Message received: $text, sender: ${message.senderNick}, type: ${message.conversationType}")
 
                         lastWebhook = message.sessionWebhook
                         lastSenderStaffId = message.senderStaffId
@@ -81,9 +81,9 @@ class DingTalkChannelHandler(
         scope.launch {
             try {
                 client?.start()
-                XLog.i(TAG, "钉钉 Stream 客户端已启动")
+                XLog.i(TAG, "DingTalk Stream client started")
             } catch (e: Exception) {
-                XLog.e(TAG, "钉钉 Stream 客户端启动失败", e)
+                XLog.e(TAG, "DingTalk Stream client failed to start", e)
             }
         }
     }
@@ -100,9 +100,9 @@ class DingTalkChannelHandler(
         scope.launch {
             try {
                 oldClient.stop()
-                XLog.i(TAG, "钉钉 Stream 客户端已断开")
+                XLog.i(TAG, "DingTalk Stream client disconnected")
             } catch (e: Exception) {
-                XLog.w(TAG, "钉钉客户端断开时异常", e)
+                XLog.w(TAG, "Exception on DingTalk client disconnect", e)
             }
         }
     }
@@ -117,7 +117,7 @@ class DingTalkChannelHandler(
     override fun sendMessage(content: String, messageID: String) {
         val webhook = lastWebhook
         if (webhook.isNullOrEmpty()) {
-            XLog.w(TAG, "钉钉回复失败：没有可用的 session webhook")
+            XLog.w(TAG, "DingTalk reply failed: no available session webhook")
             return
         }
         scope.launch {
@@ -125,7 +125,7 @@ class DingTalkChannelHandler(
                 val messageJson = com.google.gson.JsonObject().apply {
                     addProperty("msgtype", "markdown")
                     add("markdown", com.google.gson.JsonObject().apply {
-                        addProperty("title", "PokeClaw 回复")
+                        addProperty("title", "PokeClaw Reply")
                         addProperty("text", content)
                     })
                 }
@@ -137,10 +137,10 @@ class DingTalkChannelHandler(
                     .post(body)
                     .build()
                 val response = httpClient.newCall(request).execute()
-                XLog.i(TAG, "钉钉回复响应: ${response.code}")
+                XLog.i(TAG, "DingTalk reply response: ${response.code}")
                 response.close()
             } catch (e: Exception) {
-                XLog.e(TAG, "钉钉回复失败", e)
+                XLog.e(TAG, "DingTalk reply failed", e)
             }
         }
     }
@@ -150,12 +150,12 @@ class DingTalkChannelHandler(
             try {
                 val mediaId = uploadImage(imageBytes)
                 if (mediaId == null) {
-                    XLog.e(TAG, "钉钉图片发送失败：上传图片未返回 mediaId")
+                    XLog.e(TAG, "DingTalk image send failed: upload did not return mediaId")
                     return@launch
                 }
                 val token = getAccessToken()
                 if (token == null) {
-                    XLog.e(TAG, "钉钉图片发送失败：无法获取 accessToken")
+                    XLog.e(TAG, "DingTalk image send failed: could not get accessToken")
                     return@launch
                 }
 
@@ -165,7 +165,7 @@ class DingTalkChannelHandler(
 
                 sendRobotMessage(token, "sampleImageMsg", msgParam)
             } catch (e: Exception) {
-                XLog.e(TAG, "钉钉图片发送失败", e)
+                XLog.e(TAG, "DingTalk image send failed", e)
             }
         }
     }
@@ -182,7 +182,7 @@ class DingTalkChannelHandler(
                 if (isImage) {
                     val mediaId = uploadImage(file.readBytes())
                     if (mediaId == null) {
-                        XLog.e(TAG, "钉钉文件发送失败：上传图片未返回 mediaId")
+                        XLog.e(TAG, "DingTalk file send failed: image upload did not return mediaId")
                         return@launch
                     }
                     msgKey = "sampleImageMsg"
@@ -192,7 +192,7 @@ class DingTalkChannelHandler(
                 } else {
                     val mediaId = uploadFile(file)
                     if (mediaId == null) {
-                        XLog.e(TAG, "钉钉文件发送失败：上传文件未返回 mediaId")
+                        XLog.e(TAG, "DingTalk file send failed: file upload did not return mediaId")
                         return@launch
                     }
                     msgKey = "sampleFile"
@@ -205,18 +205,18 @@ class DingTalkChannelHandler(
 
                 val token = getAccessToken()
                 if (token == null) {
-                    XLog.e(TAG, "钉钉文件发送失败：无法获取 accessToken")
+                    XLog.e(TAG, "DingTalk file send failed: could not get accessToken")
                     return@launch
                 }
 
                 sendRobotMessage(token, msgKey, msgParam)
             } catch (e: Exception) {
-                XLog.e(TAG, "钉钉文件发送失败", e)
+                XLog.e(TAG, "DingTalk file send failed", e)
             }
         }
     }
 
-    // ---------- 内部工具方法 ----------
+    // ---------- Internal helper methods ----------
 
     private fun getAccessToken(): String? {
         val cached = accessToken
@@ -243,11 +243,11 @@ class DingTalkChannelHandler(
             if (token != null) {
                 accessToken = token
                 tokenExpireTime = System.currentTimeMillis() + (expireIn - 300) * 1000
-                XLog.i(TAG, "钉钉 access_token 获取成功, expireIn=${expireIn}s")
+                XLog.i(TAG, "DingTalk access_token obtained, expireIn=${expireIn}s")
             }
             token
         } catch (e: Exception) {
-            XLog.e(TAG, "钉钉 access_token 获取失败", e)
+            XLog.e(TAG, "DingTalk access_token fetch failed", e)
             null
         }
     }
@@ -272,10 +272,10 @@ class DingTalkChannelHandler(
 
             val respJson = com.google.gson.JsonParser.parseString(respBody).asJsonObject
             val mediaId = respJson.get("media_id")?.asString
-            XLog.i(TAG, "钉钉图片上传: mediaId=$mediaId")
+            XLog.i(TAG, "DingTalk image uploaded: mediaId=$mediaId")
             mediaId
         } catch (e: Exception) {
-            XLog.e(TAG, "钉钉图片上传失败", e)
+            XLog.e(TAG, "DingTalk image upload failed", e)
             null
         }
     }
@@ -312,16 +312,16 @@ class DingTalkChannelHandler(
 
             val respJson = com.google.gson.JsonParser.parseString(respBody).asJsonObject
             val mediaId = respJson.get("media_id")?.asString
-            XLog.i(TAG, "钉钉文件上传: mediaId=$mediaId")
+            XLog.i(TAG, "DingTalk file uploaded: mediaId=$mediaId")
             mediaId
         } catch (e: Exception) {
-            XLog.e(TAG, "钉钉文件上传失败", e)
+            XLog.e(TAG, "DingTalk file upload failed", e)
             null
         }
     }
 
     /**
-     * 通过钉钉机器人 API 发送消息。单聊用 oToMessages/batchSend，群聊用 groupMessages/send。
+     * Send a message via the DingTalk bot API. oToMessages/batchSend for direct chat, groupMessages/send for group chat.
      */
     private fun sendRobotMessage(token: String, msgKey: String, msgParam: String) {
         val convType = lastConversationType
@@ -329,7 +329,7 @@ class DingTalkChannelHandler(
         val (url, bodyJson) = if (convType == "1") {
             val staffId = lastSenderStaffId
             if (staffId.isNullOrEmpty()) {
-                XLog.e(TAG, "钉钉消息发送失败：senderStaffId 为空")
+                XLog.e(TAG, "DingTalk message send failed: senderStaffId is empty")
                 return
             }
             "https://api.dingtalk.com/v1.0/robot/oToMessages/batchSend" to
@@ -342,7 +342,7 @@ class DingTalkChannelHandler(
         } else {
             val convId = lastConversationId
             if (convId.isNullOrEmpty()) {
-                XLog.e(TAG, "钉钉消息发送失败：conversationId 为空")
+                XLog.e(TAG, "DingTalk message send failed: conversationId is empty")
                 return
             }
             "https://api.dingtalk.com/v1.0/robot/groupMessages/send" to
@@ -361,7 +361,7 @@ class DingTalkChannelHandler(
             .build()
         val response = httpClient.newCall(request).execute()
         val respBody = response.body?.string()
-        XLog.i(TAG, "钉钉消息发送响应: code=${response.code}, body=$respBody")
+        XLog.i(TAG, "DingTalk message send response: code=${response.code}, body=$respBody")
         response.close()
     }
 
@@ -391,14 +391,14 @@ class DingTalkChannelHandler(
         if (userId.isEmpty() || content.isBlank()) return
         val parts = userId.split(":", limit = 2)
         if (parts.size != 2) {
-            XLog.w(TAG, "钉钉 sendMessageToUser 失败：无效的 userId 格式: $userId")
+            XLog.w(TAG, "DingTalk sendMessageToUser failed: invalid userId format: $userId")
             return
         }
         scope.launch {
             try {
                 val token = getAccessToken()
                 if (token == null) {
-                    XLog.e(TAG, "钉钉 sendMessageToUser 失败：无法获取 accessToken")
+                    XLog.e(TAG, "DingTalk sendMessageToUser failed: could not get accessToken")
                     return@launch
                 }
                 val msgParam = com.google.gson.JsonObject().apply {
@@ -429,10 +429,10 @@ class DingTalkChannelHandler(
                     .post(okhttp3.RequestBody.create("application/json".toMediaTypeOrNull(), bodyJson))
                     .build()
                 val response = httpClient.newCall(request).execute()
-                XLog.i(TAG, "钉钉 sendMessageToUser 响应: ${response.code}")
+                XLog.i(TAG, "DingTalk sendMessageToUser response: ${response.code}")
                 response.close()
             } catch (e: Exception) {
-                XLog.e(TAG, "钉钉 sendMessageToUser 失败", e)
+                XLog.e(TAG, "DingTalk sendMessageToUser failed", e)
             }
         }
     }

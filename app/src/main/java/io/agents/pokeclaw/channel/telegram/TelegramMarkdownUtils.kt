@@ -4,18 +4,18 @@
 package io.agents.pokeclaw.channel.telegram
 
 /**
- * 标准 Markdown → Telegram MarkdownV2 转换工具。
+ * Converts standard Markdown to Telegram MarkdownV2.
  *
- * 官方语法对照：
- *   粗体     **text**  →  *text*
- *   斜体     *text*    →  _text_
- *   删除线   ~~text~~  →  ~text~
- *   行内代码 `code`    →  `code`       (内部只转义 ` 和 \)
- *   代码块   ```       →  ```          (内部只转义 ` 和 \)
- *   链接     [t](url)  →  [t](url)     (url 内转义 ) 和 \)
- *   标题     # text    →  *text*       (TG 无标题，用粗体代替)
+ * Official syntax mapping:
+ *   Bold      **text**  →  *text*
+ *   Italic    *text*    →  _text_
+ *   Strikethrough ~~text~~ →  ~text~
+ *   Inline code `code` →  `code`       (only ` and \ escaped inside)
+ *   Code block ```      →  ```          (only ` and \ escaped inside)
+ *   Link      [t](url)  →  [t](url)     () and \ escaped inside url)
+ *   Heading   # text    →  *text*       (TG has no headings, use bold instead)
  *
- * 其余保留字符 _ * [ ] ( ) ~ ` > # + - = | { } . ! 在普通文本中必须 \ 转义
+ * All other reserved characters _ * [ ] ( ) ~ ` > # + - = | { } . ! must be \ escaped in plain text
  */
 object TelegramMarkdownUtils {
 
@@ -66,7 +66,7 @@ object TelegramMarkdownUtils {
         text.replace("\\", "\\\\")
             .replace(Regex("""([_*\[\]()~`>#+\-=|{}.!])""")) { "\\${it.value}" }
 
-    // ---------- 内部方法 ----------
+    // ---------- Internal methods ----------
 
     private val inlinePattern = Regex(
         """(`[^`]+`)|(\*\*(.+?)\*\*)|(\*([^*]+)\*)|(~~(.+?)~~)|(\[([^\]]+)]\(([^)]+)\))"""

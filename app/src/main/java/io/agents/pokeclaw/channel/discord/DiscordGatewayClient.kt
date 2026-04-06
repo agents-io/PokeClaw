@@ -18,8 +18,8 @@ import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.TimeUnit
 
 /**
- * Discord Gateway WebSocket 客户端
- * 参照 QBotWebSocketManager 实现，协议与 QQ Bot Gateway 高度相似
+ * Discord Gateway WebSocket client
+ * Based on QBotWebSocketManager; the protocol is highly similar to QQ Bot Gateway
  */
 class DiscordGatewayClient private constructor() {
 
@@ -99,7 +99,7 @@ class DiscordGatewayClient private constructor() {
     }
 
     /**
-     * 使用 Bot Token 启动 Gateway 连接
+     * Start a Gateway connection using the Bot Token
      */
     fun start(token: String) {
         stopped = false
@@ -108,13 +108,13 @@ class DiscordGatewayClient private constructor() {
     }
 
     /**
-     * 关闭连接，停止一切重连
+     * Close the connection and stop all reconnection attempts
      */
     fun stop() {
         stopped = true
         mainHandler.removeCallbacksAndMessages(null)
         heartbeatHandler.removeCallbacksAndMessages(null)
-        webSocket?.close(1000, "关闭连接")
+        webSocket?.close(1000, "Connection closed")
         webSocket = null
         isConnected = false
         sessionId = null
@@ -128,7 +128,7 @@ class DiscordGatewayClient private constructor() {
 
         webSocket = httpClient.newWebSocket(request, object : WebSocketListener() {
             override fun onOpen(webSocket: WebSocket, response: Response) {
-                XLog.d(TAG, "WebSocket连接成功")
+                XLog.d(TAG, "WebSocket connected")
                 isConnected = true
                 notifyConnectionStateChanged(true)
             }
@@ -138,24 +138,24 @@ class DiscordGatewayClient private constructor() {
             }
 
             override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-                XLog.d(TAG, "收到二进制消息, 长度=${bytes.size}")
+                XLog.d(TAG, "Binary message received, length=${bytes.size}")
             }
 
             override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-                XLog.w(TAG, "WebSocket关闭中: code=$code, reason=$reason")
+                XLog.w(TAG, "WebSocket closing: code=$code, reason=$reason")
                 isConnected = false
                 notifyConnectionStateChanged(false)
                 handleWebSocketClose(code, reason)
             }
 
             override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
-                XLog.w(TAG, "WebSocket已关闭: code=$code, reason=$reason")
+                XLog.w(TAG, "WebSocket closed: code=$code, reason=$reason")
                 isConnected = false
                 notifyConnectionStateChanged(false)
             }
 
             override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
-                XLog.e(TAG, "WebSocket连接失败: ${t.message}")
+                XLog.e(TAG, "WebSocket connection failed: ${t.message}")
                 isConnected = false
                 notifyConnectionStateChanged(false)
                 if (!stopped) {
@@ -181,15 +181,15 @@ class DiscordGatewayClient private constructor() {
                 DiscordConstants.OP_DISPATCH -> handleDispatch(t, json)
                 DiscordConstants.OP_HEARTBEAT_ACK -> {
                     heartbeatAckReceived = true
-                    XLog.d(TAG, "收到心跳响应")
+                    XLog.d(TAG, "Heartbeat ACK received")
                 }
                 DiscordConstants.OP_HEARTBEAT -> {
-                    // 服务器请求立即发送心跳
+                    // Server requests an immediate heartbeat
                     sendHeartbeat()
                 }
                 DiscordConstants.OP_RECONNECT -> {
-                    XLog.w(TAG, "收到重连请求(OP=7)")
-                    webSocket?.close(1000, "服务器要求重连")
+                    XLog.w(TAG, "Reconnect request received (OP=7)")
+                    webSocket?.close(1000, "Server requested reconnect")
                     webSocket = null
                     heartbeatHandler.removeCallbacksAndMessages(null)
                     isConnected = false
@@ -199,30 +199,30 @@ class DiscordGatewayClient private constructor() {
                 DiscordConstants.OP_INVALID_SESSION -> {
                     val resumable = json.get("d")?.asBoolean ?: false
                     if (resumable && sessionId != null) {
-                        XLog.d(TAG, "会话可恢复，尝试Resume")
+                        XLog.d(TAG, "Session resumable, attempting Resume")
                         mainHandler.postDelayed({ sendResume() }, 2000)
                     } else {
-                        XLog.d(TAG, "会话无效，重新Identify")
+                        XLog.d(TAG, "Session invalid, re-Identifying")
                         sessionId = null
                         lastSeq = null
                         mainHandler.postDelayed({ sendIdentify() }, 5000)
                     }
                 }
-                else -> XLog.w(TAG, "未知OpCode: $op")
+                else -> XLog.w(TAG, "Unknown OpCode: $op")
             }
         } catch (e: Exception) {
-            XLog.e(TAG, "解析WebSocket消息失败: ${e.message}", e)
+            XLog.e(TAG, "Failed to parse WebSocket message: ${e.message}", e)
         }
     }
 
     private fun handleHello(json: JsonObject) {
         val d = json.getAsJsonObject("d")
         heartbeatInterval = d.get("heartbeat_interval").asLong
-        XLog.d(TAG, "心跳间隔: ${heartbeatInterval}ms")
+        XLog.d(TAG, "Heartbeat interval: ${heartbeatInterval}ms")
 
         startHeartbeat()
 
-        // 如果有 sessionId，尝试 Resume；否则 Identify
+        // If sessionId exists, attempt Resume; otherwise Identify
         if (sessionId != null && lastSeq != null) {
             sendResume()
         } else {
@@ -235,18 +235,18 @@ class DiscordGatewayClient private constructor() {
             DiscordConstants.EVENT_READY -> {
                 val d = json.getAsJsonObject("d")
                 sessionId = d.get("session_id").asString
-                // Discord 返回一个 resume_gateway_url 供断线重连使用
+                // Discord returns a resume_gateway_url for use when reconnecting after disconnect
                 resumeGatewayUrl = d.get("resume_gateway_url")?.takeIf { !it.isJsonNull }?.asString
-                XLog.d(TAG, "Gateway就绪, sessionId=$sessionId, resumeUrl=$resumeGatewayUrl")
+                XLog.d(TAG, "Gateway ready, sessionId=$sessionId, resumeUrl=$resumeGatewayUrl")
             }
             DiscordConstants.EVENT_RESUMED -> {
-                XLog.d(TAG, "连接已恢复")
+                XLog.d(TAG, "Connection resumed")
             }
             DiscordConstants.EVENT_MESSAGE_CREATE -> {
                 handleMessageCreate(json)
             }
             else -> {
-                XLog.d(TAG, "未处理的事件: $eventType")
+                XLog.d(TAG, "Unhandled event: $eventType")
             }
         }
     }
@@ -254,7 +254,7 @@ class DiscordGatewayClient private constructor() {
     private fun handleMessageCreate(json: JsonObject) {
         try {
             val d = json.getAsJsonObject("d")
-            // 忽略 Bot 自己发的消息
+            // Ignore messages sent by the bot itself
             val author = d.getAsJsonObject("author")
             val isBot = author?.get("bot")?.takeIf { !it.isJsonNull }?.asBoolean ?: false
             if (isBot) return
@@ -263,25 +263,25 @@ class DiscordGatewayClient private constructor() {
             val messageId = d.get("id").asString
             val content = d.get("content")?.takeIf { !it.isJsonNull }?.asString ?: ""
 
-            XLog.d(TAG, "收到消息: channelId=$channelId, messageId=$messageId, content=$content")
+            XLog.d(TAG, "Message received: channelId=$channelId, messageId=$messageId, content=$content")
 
             messageListener?.onDiscordMessage(channelId, messageId, content)
         } catch (e: Exception) {
-            XLog.e(TAG, "处理 MESSAGE_CREATE 失败: ${e.message}", e)
+            XLog.e(TAG, "Failed to handle MESSAGE_CREATE: ${e.message}", e)
         }
     }
 
     private fun startHeartbeat() {
         heartbeatHandler.removeCallbacksAndMessages(null)
         heartbeatAckReceived = true
-        // Discord 建议首次心跳在 heartbeat_interval * jitter (0~1) 之后发送
+        // Discord recommends sending the first heartbeat after heartbeat_interval * jitter (0~1)
         val jitterDelay = (heartbeatInterval * Math.random()).toLong()
         heartbeatHandler.postDelayed(object : Runnable {
             override fun run() {
                 if (!isConnected) return
                 if (!heartbeatAckReceived) {
-                    XLog.w(TAG, "心跳超时：未收到上次心跳ACK，断开重连")
-                    webSocket?.close(1000, "心跳超时")
+                    XLog.w(TAG, "Heartbeat timeout: no ACK for last heartbeat, disconnecting to reconnect")
+                    webSocket?.close(1000, "Heartbeat timeout")
                     webSocket = null
                     heartbeatHandler.removeCallbacksAndMessages(null)
                     isConnected = false
@@ -327,7 +327,7 @@ class DiscordGatewayClient private constructor() {
                 })
             })
         }
-        XLog.d(TAG, "发送Identify")
+        XLog.d(TAG, "Sending Identify")
         webSocket?.send(gson.toJson(payload))
     }
 
@@ -344,7 +344,7 @@ class DiscordGatewayClient private constructor() {
                 addProperty("seq", seq)
             })
         }
-        XLog.d(TAG, "发送Resume")
+        XLog.d(TAG, "Sending Resume")
         webSocket?.send(gson.toJson(payload))
     }
 
@@ -353,34 +353,34 @@ class DiscordGatewayClient private constructor() {
 
         when (code) {
             DiscordConstants.CLOSE_AUTHENTICATION_FAILED -> {
-                XLog.e(TAG, "鉴权失败(4004)，Bot Token 无效，不再重连")
+                XLog.e(TAG, "Auth failed (4004), Bot Token is invalid, no more reconnects")
             }
             DiscordConstants.CLOSE_INVALID_INTENTS,
             DiscordConstants.CLOSE_DISALLOWED_INTENTS -> {
-                XLog.e(TAG, "Intents 无效或无权限(code=$code)，请检查 Discord Developer Portal 配置")
+                XLog.e(TAG, "Invalid Intents or no permission (code=$code), please check Discord Developer Portal config")
             }
             DiscordConstants.CLOSE_INVALID_API_VERSION -> {
-                XLog.e(TAG, "API 版本无效(4012)，不再重连")
+                XLog.e(TAG, "Invalid API version (4012), no more reconnects")
             }
             DiscordConstants.CLOSE_SESSION_TIMED_OUT -> {
-                XLog.d(TAG, "Session 超时，可以Resume重连")
+                XLog.d(TAG, "Session expired, Resume reconnect possible")
                 mainHandler.postDelayed({ reconnect() }, 1000)
             }
             DiscordConstants.CLOSE_RATE_LIMITED -> {
-                XLog.w(TAG, "发送过快，延迟重连")
+                XLog.w(TAG, "Sending too fast, delaying reconnect")
                 mainHandler.postDelayed({ reconnect() }, 5000)
             }
             DiscordConstants.CLOSE_INVALID_SEQ -> {
-                XLog.w(TAG, "Seq 无效，清除会话并重连")
+                XLog.w(TAG, "Invalid seq, clearing session and reconnecting")
                 sessionId = null
                 lastSeq = null
                 mainHandler.postDelayed({ reconnect() }, 1000)
             }
             1000 -> {
-                XLog.d(TAG, "WebSocket正常关闭")
+                XLog.d(TAG, "WebSocket closed normally")
             }
             else -> {
-                XLog.w(TAG, "未知关闭码: $code，尝试重连")
+                XLog.w(TAG, "Unknown close code: $code, attempting reconnect")
                 mainHandler.postDelayed({ reconnect() }, 3000)
             }
         }
@@ -394,7 +394,7 @@ class DiscordGatewayClient private constructor() {
         } else {
             DiscordConstants.GATEWAY_URL
         }
-        XLog.d(TAG, "重连到: $url")
+        XLog.d(TAG, "Reconnecting to: $url")
         connectWebSocket(url)
     }
 
