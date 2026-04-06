@@ -18,6 +18,7 @@ import io.agents.pokeclaw.ClawApplication
 import io.agents.pokeclaw.R
 import io.agents.pokeclaw.agent.llm.LocalModelManager
 import io.agents.pokeclaw.base.BaseActivity
+import io.agents.pokeclaw.ui.chat.ThemeManager
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.widget.CommonToolbar
 import io.agents.pokeclaw.widget.KButton
@@ -32,9 +33,20 @@ class LlmConfigActivity : BaseActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_llm_config)
 
+        // Apply dark theme from ThemeManager to match rest of app
+        val tc = ThemeManager.getColors()
+        window.statusBarColor = tc.toolbarBg
+        window.decorView.setBackgroundColor(tc.bg)
+        val contentFrame = findViewById<android.view.ViewGroup>(android.R.id.content)
+        contentFrame?.setBackgroundColor(tc.bg)
+        (contentFrame?.getChildAt(0) as? View)?.setBackgroundColor(tc.bg)
+
         findViewById<CommonToolbar>(R.id.toolbar).apply {
             setTitle("Models")
             showBackButton(true) { finish() }
+            setBackgroundColor(tc.toolbarBg)
+            setTitleColor(tc.aiText)
+            findViewById<android.widget.ImageView>(R.id.ivBack)?.setColorFilter(tc.aiText)
         }
 
         val models = LocalModelManager.AVAILABLE_MODELS
@@ -42,6 +54,25 @@ class LlmConfigActivity : BaseActivity() {
         val activeModelMeta = findViewById<TextView>(R.id.tvActiveModelMeta)
         val activeModelStatus = findViewById<TextView>(R.id.tvActiveModelStatus)
         val modelList = findViewById<LinearLayout>(R.id.layoutModelList)
+
+        // Apply theme to active model card text
+        activeModelName.setTextColor(tc.aiText)
+        activeModelMeta.setTextColor(Color.parseColor("#8b949e"))
+
+        // Apply theme to all CardViews in XML layout
+        val scrollContent = findViewById<LinearLayout>(R.id.layoutModelList)?.parent as? LinearLayout
+        if (scrollContent != null) {
+            for (i in 0 until scrollContent.childCount) {
+                val child = scrollContent.getChildAt(i)
+                if (child is TextView && child.id == View.NO_ID) {
+                    // Section headers ("Active Model", "Available Models", "Cloud LLM")
+                    child.setTextColor(Color.parseColor("#8b949e"))
+                }
+                if (child is CardView) {
+                    child.setCardBackgroundColor(tc.toolbarBg)
+                }
+            }
+        }
 
         // Active model
         val currentModelId = KVUtils.getLlmModelName()
@@ -56,7 +87,7 @@ class LlmConfigActivity : BaseActivity() {
             activeModelName.text = "No model selected"
             activeModelMeta.text = "Download a model below"
             activeModelStatus.text = "● Not configured"
-            activeModelStatus.setTextColor(getColor(R.color.colorTextTertiary))
+            activeModelStatus.setTextColor(Color.parseColor("#8b949e"))
         }
 
         // Build model list
@@ -71,7 +102,7 @@ class LlmConfigActivity : BaseActivity() {
                 ).apply { bottomMargin = dp(6) }
                 radius = dp(12).toFloat()
                 cardElevation = dp(1).toFloat()
-                setCardBackgroundColor(getColor(R.color.colorContainerBrighten))
+                setCardBackgroundColor(tc.toolbarBg)
             }
 
             val row = LinearLayout(this).apply {
@@ -89,7 +120,7 @@ class LlmConfigActivity : BaseActivity() {
             val nameTV = TextView(this).apply {
                 text = model.displayName
                 textSize = 14f
-                setTextColor(getColor(R.color.colorTextPrimary))
+                setTextColor(tc.aiText)
                 if (isActive) setTypeface(typeface, android.graphics.Typeface.BOLD)
             }
             info.addView(nameTV)
@@ -97,7 +128,7 @@ class LlmConfigActivity : BaseActivity() {
             val descTV = TextView(this).apply {
                 text = "${model.sizeBytes / 1_000_000} MB · ${model.minRamGb}GB+ RAM"
                 textSize = 12f
-                setTextColor(getColor(R.color.colorTextTertiary))
+                setTextColor(Color.parseColor("#8b949e"))
             }
             info.addView(descTV)
 
