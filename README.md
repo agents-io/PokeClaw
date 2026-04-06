@@ -33,7 +33,15 @@ https://github.com/user-attachments/assets/18d49148-c744-46a5-98a2-0f8320f00d19
 
 **AI controls your phone. And it never leaves your phone.**
 
-The first working app that uses Gemma 4 to autonomously control an Android phone. Fully on-device, no cloud. Other phone automation tools call cloud APIs — you need internet, you need an API key, you need a credit card. PokeClaw is the only one where the entire pipeline runs inside your phone. No internet. No API key. No monthly bill. The model reads the screen, figures out the taps, and executes. Everything stays on your device.
+```
+Everyone else:  Phone → Internet → Cloud API → Internet → Phone
+                       💳 API key required. Monthly bill attached.
+
+PokeClaw:       Phone → LLM → Phone
+                       That's it. No internet. No API key. No bill.
+```
+
+The first working app that uses Gemma 4 to autonomously control an Android phone. The entire pipeline is a closed loop inside your device. The model reads the screen, picks a tool, executes, reads the result, loops. Nothing leaves.
 
 ## The Story
 
