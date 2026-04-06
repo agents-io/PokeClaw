@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:background="@drawable/bg_dialog_rounded"
+    android:gravity="center"
+    android:minWidth="120pt"
+    android:minHeight="120pt"
+    android:orientation="vertical"
+    android:paddingHorizontal="28pt"
+    android:paddingVertical="24pt">
+
+    <ProgressBar
+        android:id="@+id/progressBar"
+        android:layout_width="36pt"
+        android:layout_height="36pt"
+        android:indeterminateTint="@color/colorBrandPrimary" />
+
+    <TextView
+        android:id="@+id/tvMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="14pt"
+        android:textColor="@color/colorTextSecondary"
+        android:textSize="14pt"
+        android:visibility="gone" />
+
+</LinearLayout>

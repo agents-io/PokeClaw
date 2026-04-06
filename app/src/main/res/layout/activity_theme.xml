@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBgPrimary"
+    android:orientation="vertical">
+
+    <io.agents.pokeclaw.widget.CommonToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="44pt" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingHorizontal="16pt"
+        android:paddingTop="12pt"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- Dark themes section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingBottom="10pt"
+                android:text="Dark Themes"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13pt"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeEmberDark"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeAbyssDark"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeMossDark"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeOnyxDark"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+            </LinearLayout>
+
+            <!-- Light themes section -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingTop="20pt"
+                android:paddingBottom="10pt"
+                android:text="Light Themes"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="13pt"
+                android:textStyle="bold" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center">
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeEmberLight"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeAbyssLight"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeMossLight"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+
+                <include layout="@layout/item_theme_preview"
+                    android:id="@+id/themeOnyxLight"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:layout_margin="4pt" />
+            </LinearLayout>
+
+            <!-- Current selection -->
+            <TextView
+                android:id="@+id/tvCurrentTheme"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:paddingTop="24pt"
+                android:paddingBottom="24pt"
+                android:text="Current: Abyss Dark"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="14pt" />
+
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>

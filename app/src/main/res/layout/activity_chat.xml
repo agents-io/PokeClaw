@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/drawerLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- Main content -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@color/colorBgPrimary"
+        android:orientation="vertical">
+
+        <!-- Toolbar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="52pt"
+            android:background="@color/colorBgSecondary"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingHorizontal="4pt">
+
+            <TextView
+                android:id="@+id/btnMenu"
+                android:layout_width="40pt"
+                android:layout_height="40pt"
+                android:background="?android:attr/selectableItemBackground"
+                android:gravity="center"
+                android:text="☰"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="20pt" />
+
+            <TextView
+                android:id="@+id/tvTitle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="PokeClaw"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="17pt"
+                android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnNewChat"
+            android:layout_width="wrap_content"
+            android:layout_height="36pt"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:paddingHorizontal="10pt"
+            android:text="✎"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="18pt" />
+
+        <TextView
+            android:id="@+id/btnSettings"
+            android:layout_width="wrap_content"
+            android:layout_height="36pt"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:paddingHorizontal="10pt"
+            android:text="⚙"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="18pt" />
+    </LinearLayout>
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/colorChatDivider" />
+
+    <!-- Model status -->
+    <TextView
+        android:id="@+id/tvStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorBgSecondary"
+        android:paddingHorizontal="16pt"
+        android:paddingVertical="5pt"
+        android:text="No model loaded"
+        android:textColor="@color/colorTextTertiary"
+        android:textSize="11pt" />
+
+    <!-- Permission banner -->
+    <LinearLayout
+        android:id="@+id/layoutPermBanner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#15FBBF24"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="10pt"
+        android:visibility="gone">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="⚠️ Permissions needed. Tap to fix."
+            android:textColor="#FBBF24"
+            android:textSize="13pt" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="→"
+            android:textColor="#FBBF24"
+            android:textSize="16pt" />
+    </LinearLayout>
+
+    <!-- Chat messages -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvMessages"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:paddingTop="8pt"
+        android:paddingBottom="8pt" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/colorChatDivider" />
+
+    <!-- Input hint -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorBgSecondary"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:paddingVertical="4pt">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Send = chat"
+            android:textColor="@color/colorTextTertiary"
+            android:textSize="10pt" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="12pt"
+            android:text="·"
+            android:textColor="@color/colorTextTertiary"
+            android:textSize="10pt" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="🚀 = phone task"
+            android:textColor="@color/colorTextTertiary"
+            android:textSize="10pt" />
+    </LinearLayout>
+
+    <!-- Input bar -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/colorBgSecondary"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="10pt"
+        android:paddingTop="2pt"
+        android:paddingBottom="12pt">
+
+        <TextView
+            android:id="@+id/btnAttach"
+            android:layout_width="36pt"
+            android:layout_height="36pt"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:text="＋"
+            android:textColor="@color/colorTextTertiary"
+            android:textSize="22pt" />
+
+        <EditText
+            android:id="@+id/etInput"
+            android:layout_width="0dp"
+            android:layout_height="40pt"
+            android:layout_weight="1"
+            android:background="@drawable/bg_chat_input"
+            android:hint="Message..."
+            android:inputType="text"
+            android:maxLines="1"
+            android:paddingHorizontal="16pt"
+            android:singleLine="true"
+            android:textColor="@color/colorTextPrimary"
+            android:textColorHint="@color/colorTextTertiary"
+            android:textSize="15pt" />
+
+        <TextView
+            android:id="@+id/btnTask"
+            android:layout_width="wrap_content"
+            android:layout_height="40pt"
+            android:layout_marginStart="6pt"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center"
+            android:paddingHorizontal="4pt"
+            android:text="🚀"
+            android:textSize="18pt" />
+
+        <TextView
+            android:id="@+id/btnSend"
+            android:layout_width="36pt"
+            android:layout_height="36pt"
+            android:layout_marginStart="4pt"
+            android:background="@drawable/bg_btn_send_circle"
+            android:gravity="center"
+            android:text="↑"
+            android:textColor="#FFFFFF"
+            android:textSize="18pt"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- Sidebar drawer -->
+    <LinearLayout
+        android:id="@+id/navDrawer"
+        android:layout_width="280pt"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:background="@color/colorBgSecondary"
+        android:orientation="vertical"
+        android:paddingTop="40pt">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="20pt"
+            android:paddingBottom="16pt"
+            android:text="🦞 PokeClaw"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="20pt"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/btnDrawerNewChat"
+            android:layout_width="match_parent"
+            android:layout_height="44pt"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20pt"
+            android:text="＋ New Chat"
+            android:textColor="@color/colorTextPrimary"
+            android:textSize="15pt" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginVertical="8pt"
+            android:background="@color/colorChatDivider" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="20pt"
+            android:paddingBottom="8pt"
+            android:text="Recent"
+            android:textColor="@color/colorTextTertiary"
+            android:textSize="12pt"
+            android:textStyle="bold" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+
+            <LinearLayout
+                android:id="@+id/layoutSidebarHistory"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+        </ScrollView>
+
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/colorChatDivider" />
+
+        <TextView
+            android:id="@+id/btnDrawerSettings"
+            android:layout_width="match_parent"
+            android:layout_height="44pt"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20pt"
+            android:text="⚙️ Settings"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="14pt" />
+
+        <TextView
+            android:id="@+id/btnDrawerModels"
+            android:layout_width="match_parent"
+            android:layout_height="44pt"
+            android:layout_marginBottom="16pt"
+            android:background="?android:attr/selectableItemBackground"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="20pt"
+            android:text="📥 Models"
+            android:textColor="@color/colorTextSecondary"
+            android:textSize="14pt" />
+
+    </LinearLayout>
+
+</androidx.drawerlayout.widget.DrawerLayout>

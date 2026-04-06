@@ -1,0 +1,105 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- 应用主题 - 浅色 -->
+    <style name="Theme.PokeClaw" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/colorBrandPrimary</item>
+        <item name="colorOnPrimary">@color/colorBrandOnPrimary</item>
+        <item name="colorPrimaryContainer">@color/colorBrandContainer</item>
+        <item name="colorOnPrimaryContainer">@color/colorBrandOnContainer</item>
+
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/colorBgPrimary</item>
+        <item name="colorOnBackground">@color/colorTextPrimary</item>
+        <item name="colorSurface">@color/colorContainerBrighten</item>
+        <item name="colorOnSurface">@color/colorTextPrimary</item>
+        <item name="colorSurfaceVariant">@color/colorContainerBase</item>
+        <item name="colorOnSurfaceVariant">@color/colorTextSecondary</item>
+
+        <!-- Outline -->
+        <item name="colorOutline">@color/colorBorderBase</item>
+        <item name="colorOutlineVariant">@color/colorBorderLow</item>
+
+        <!-- Error colors -->
+        <item name="colorError">@color/colorErrorPrimary</item>
+        <item name="colorOnError">@color/colorErrorOnPrimary</item>
+
+        <!-- Window -->
+        <item name="android:windowBackground">@color/colorBgPrimary</item>
+        <item name="android:statusBarColor">@color/colorBgPrimary</item>
+        <item name="android:navigationBarColor">@color/colorBgPrimary</item>
+    </style>
+
+    <!-- ic_launcher 圆角样式 -->
+    <!-- 大图标（80pt）：16pt 圆角 -->
+    <style name="ShapeAppearance.Launcher.Large" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">16pt</item>
+    </style>
+    <!-- 中图标（40pt）：8pt 圆角 -->
+    <style name="ShapeAppearance.Launcher.Medium" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">8pt</item>
+    </style>
+    <!-- 小图标（24pt）：4pt 圆角 -->
+    <style name="ShapeAppearance.Launcher.Small" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">4pt</item>
+    </style>
+    <!-- 圆形裁剪 -->
+    <style name="ShapeAppearance.Launcher.Circle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+    <style name="ShapeAppearance.App.Circle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+
+    <!-- 启动页专用主题：冷启动 Window 直接显示纯色背景，无白屏无系统 Logo -->
+    <style name="Theme.PokeClaw.Splash" parent="Theme.PokeClaw">
+        <item name="android:windowBackground">@color/colorBgPrimary</item>
+        <!-- Android 12+ 禁用系统 SplashScreen 的图标 -->
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">@color/colorBgPrimary</item>
+    </style>
+
+    <!-- 透明 Activity（用于剪贴板读取等需要前台焦点的操作） -->
+    <style name="Theme.Transparent" parent="android:Theme">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
+    <!-- 对话框样式 -->
+    <style name="DialogStyle" parent="android:style/Theme.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <!-- 更新弹窗样式（从底部弹出） -->
+    <style name="UpdateDialogStyle" parent="android:style/Theme.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@style/UpdateDialogAnimation</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <!-- 底部弹出动画 -->
+    <style name="UpdateDialogAnimation">
+        <item name="android:windowEnterAnimation">@anim/slide_up</item>
+        <item name="android:windowExitAnimation">@anim/slide_down</item>
+    </style>
+</resources>

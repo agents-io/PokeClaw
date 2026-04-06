@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 深色主题颜色 -->
+<resources>
+    <!-- ==================== Text ==================== -->
+    <color name="colorTextPrimary">#EBFFFFFF</color>
+    <color name="colorTextSecondary">#A3FFFFFF</color>
+    <color name="colorTextTertiary">#52FFFFFF</color>
+    <color name="colorTextDisabled">#33FFFFFF</color>
+    <color name="colorTextInverse">#FF000000</color>
+    <color name="colorTextFixedWhitePrimary">#E6FFFFFF</color>
+    <color name="colorTextFixedWhiteSecondary">#99FFFFFF</color>
+    <color name="colorTextFixedBlackPrimary">#F5000000</color>
+    <color name="colorTextFixedBlackSecondary">#AD000000</color>
+
+    <!-- ==================== Fills ==================== -->
+    <color name="colorFillPrimary">#5C787880</color>
+    <color name="colorFillSecondary">#52787880</color>
+    <color name="colorFillTertiary">#3D787880</color>
+    <color name="colorFillQuaternary">#2E787880</color>
+
+    <!-- ==================== Containers ==================== -->
+    <color name="colorContainerBrighten">#FF363638</color>
+    <color name="colorContainerLow">#FF202021</color>
+    <color name="colorContainerBase">#FF2C2C2E</color>
+    <color name="colorContainerHigh">#FF333335</color>
+    <color name="colorContainerHighest">#FF3A3A3C</color>
+    <color name="colorContainerInverse">#FFE5E5EA</color>
+
+    <!-- ==================== Backgrounds ==================== -->
+    <color name="colorBgPrimary">#FF0C111B</color>
+    <color name="colorBgSecondary">#FF151D2E</color>
+    <color name="colorBgTertiary">#FF1E2D45</color>
+
+    <!-- ==================== Chat (Abyss theme) ==================== -->
+    <color name="colorChatUserBubble">#FF2563EB</color>
+    <color name="colorChatAiBubble">#FF1E2D45</color>
+    <color name="colorChatAiBubbleBorder">#FF2A3D5A</color>
+    <color name="colorChatAvatarBg">#FF1D4ED8</color>
+    <color name="colorChatInputBorder">#FF1E293B</color>
+    <color name="colorChatSendText">#FF60A5FA</color>
+    <color name="colorChatToolOk">#FF38BDF8</color>
+    <color name="colorChatToolDefault">#FF475569</color>
+    <color name="colorChatDivider">#FF1A2234</color>
+
+    <!-- ==================== Borders & Dividers ==================== -->
+    <color name="colorBorderLow">#05FFFFFF</color>
+    <color name="colorBorderBase">#0DFFFFFF</color>
+    <color name="colorBorderHigh">#FF383838</color>
+
+    <!-- ==================== Overlays ==================== -->
+    <color name="colorOverlayDim">#AD000000</color>
+    <color name="colorOverlayScrim">#52000000</color>
+    <color name="colorOverlayLabel">#AD000000</color>
+
+    <!-- ==================== Brand ==================== -->
+    <color name="colorBrandPrimary">#FF8A88F4</color>
+    <color name="colorBrandOnPrimary">#FFFFFFFF</color>
+    <color name="colorBrandContainer">#FF292933</color>
+    <color name="colorBrandOnContainer">#FFE5E4FF</color>
+    <color name="colorBrandFixedOnContainer">#FF2F2D84</color>
+    <color name="colorBrandVariant">#FF53538A</color>
+    <color name="colorBrandOnVariant">#FF35343E</color>
+    <color name="colorBrandLowButtonBg">#FF31313D</color>
+
+    <!-- ==================== Error ==================== -->
+    <color name="colorErrorPrimary">#FFFF9285</color>
+    <color name="colorErrorOnPrimary">#FFFFFFFF</color>
+    <color name="colorErrorContainer">#FF490002</color>
+    <color name="colorErrorOnContainer">#FFFFD8D2</color>
+
+    <!-- ==================== Warning ==================== -->
+    <color name="colorWarningPrimary">#FFFA9550</color>
+    <color name="colorWarningOnPrimary">#FFFFFFFF</color>
+    <color name="colorWarningContainer">#FF3B1700</color>
+    <color name="colorWarningOnContainer">#FFFFD9C2</color>
+
+    <!-- ==================== Success ==================== -->
+    <color name="colorSuccessPrimary">#FF56C08D</color>
+    <color name="colorSuccessOnPrimary">#FFFFFFFF</color>
+    <color name="colorSuccessContainer">#FF002515</color>
+    <color name="colorSuccessOnContainer">#FF92DAB2</color>
+
+    <!-- ==================== Info ==================== -->
+    <color name="colorInfoPrimary">#FF009CF0</color>
+    <color name="colorInfoOnPrimary">#FFFFFFFF</color>
+    <color name="colorInfoContainer">#FF003552</color>
+    <color name="colorInfoOnContainer">#FFAFE3FF</color>
+</resources>

@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/colorBgSecondary"
+    android:orientation="vertical">
+
+    <!-- Toolbar -->
+    <io.agents.pokeclaw.widget.CommonToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="56pt" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingHorizontal="16pt"
+        android:paddingTop="16pt">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <!-- 提示说明 -->
+            <TextView
+                android:id="@+id/tvTip"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="4pt"
+                android:paddingBottom="16pt"
+                android:textColor="@color/colorTextSecondary"
+                android:textSize="14pt" />
+
+            <!-- 第一个输入框标题 -->
+            <TextView
+                android:id="@+id/tvLabel1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="4pt"
+                android:paddingBottom="8pt"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="14pt"
+                android:textStyle="bold" />
+
+            <!-- 第一个输入框卡片 -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/colorContainerBrighten"
+                app:cardCornerRadius="12pt"
+                app:cardElevation="1pt">
+
+                <EditText
+                    android:id="@+id/etInput1"
+                    android:layout_width="match_parent"
+                    android:layout_height="48pt"
+                    android:background="@null"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:paddingHorizontal="16pt"
+                    android:singleLine="true"
+                    android:textColor="@color/colorTextPrimary"
+                    android:textColorHint="@color/colorTextTertiary"
+                    android:textSize="15pt" />
+            </androidx.cardview.widget.CardView>
+
+            <!-- 第二个输入框标题 -->
+            <TextView
+                android:id="@+id/tvLabel2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20pt"
+                android:paddingHorizontal="4pt"
+                android:paddingBottom="8pt"
+                android:textColor="@color/colorTextPrimary"
+                android:textSize="14pt"
+                android:textStyle="bold" />
+
+            <!-- 第二个输入框卡片（密码样式 + 眼睛图标） -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="@color/colorContainerBrighten"
+                app:cardCornerRadius="12pt"
+                app:cardElevation="1pt">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="48pt"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16pt">
+
+                    <EditText
+                        android:id="@+id/etInput2"
+                        android:layout_width="0dp"
+                        android:layout_height="match_parent"
+                        android:layout_weight="1"
+                        android:background="@null"
+                        android:inputType="textPassword"
+                        android:maxLines="1"
+                        android:singleLine="true"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="15pt" />
+
+                    <ImageView
+                        android:id="@+id/ivTogglePassword"
+                        android:layout_width="24pt"
+                        android:layout_height="24pt"
+                        android:layout_marginStart="8pt"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_visibility_off" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- 保存按钮 -->
+            <io.agents.pokeclaw.widget.KButton
+                android:id="@+id/btnSave"
+                android:layout_width="match_parent"
+                android:layout_height="48pt"
+                android:layout_marginTop="32pt"
+                android:text="@string/common_save"
+                android:textSize="16pt" />
+
+            <!-- 局域网配置提示 -->
+            <LinearLayout
+                android:id="@+id/layoutLanHint"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20pt"
+                android:gravity="center"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/tvLanConfigHint"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:textColor="@color/colorTextTertiary"
+                    android:textSize="13pt" />
+
+                <ImageView
+                    android:id="@+id/ivCopyAddress"
+                    android:layout_width="20pt"
+                    android:layout_height="20pt"
+                    android:layout_marginStart="4pt"
+                    android:contentDescription="@null"
+                    android:src="@drawable/ic_copy"
+                    android:visibility="gone" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+    </ScrollView>
+
+</LinearLayout>

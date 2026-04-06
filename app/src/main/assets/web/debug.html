@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PokeClaw Debug Console</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif; background:#f5f5f7; color:#1d1d1f; padding:16px; max-width:800px; margin:0 auto; }
+  h1 { font-size:22px; margin-bottom:4px; }
+  .subtitle { color:#86868b; font-size:13px; margin-bottom:20px; }
+  .tool-list { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:20px; }
+  .tool-btn { padding:8px 14px; border:1px solid #d2d2d7; border-radius:20px; background:#fff; font-size:13px; cursor:pointer; transition:all .2s; }
+  .tool-btn:hover { background:#f0f0f5; }
+  .tool-btn.active { background:#5856d6; color:#fff; border-color:#5856d6; }
+  .panel { background:#fff; border-radius:12px; padding:20px; margin-bottom:16px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .panel-title { font-size:15px; font-weight:600; margin-bottom:4px; }
+  .panel-desc { font-size:13px; color:#86868b; margin-bottom:16px; }
+  .param-row { margin-bottom:12px; }
+  .param-label { font-size:13px; font-weight:500; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+  .param-label .required { color:#ff3b30; font-size:11px; }
+  .param-label .type { color:#86868b; font-size:11px; background:#f0f0f5; padding:1px 6px; border-radius:4px; }
+  .param-input { width:100%; padding:10px 12px; border:1px solid #d2d2d7; border-radius:8px; font-size:14px; outline:none; transition:border-color .2s; }
+  .param-input:focus { border-color:#5856d6; }
+  .exec-btn { width:100%; padding:12px; background:#5856d6; color:#fff; border:none; border-radius:10px; font-size:15px; font-weight:600; cursor:pointer; transition:opacity .2s; }
+  .exec-btn:hover { opacity:.9; }
+  .exec-btn:disabled { opacity:.5; cursor:not-allowed; }
+  .result-panel { background:#1d1d1f; color:#f5f5f7; border-radius:12px; padding:16px; margin-top:16px; }
+  .result-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
+  .result-status { font-size:13px; font-weight:600; padding:2px 10px; border-radius:10px; }
+  .result-status.success { background:#30d158; color:#fff; }
+  .result-status.error { background:#ff3b30; color:#fff; }
+  .result-time { font-size:12px; color:#86868b; }
+  .result-body { font-size:13px; font-family:'SF Mono',Monaco,Menlo,monospace; white-space:pre-wrap; word-break:break-all; max-height:70vh; overflow-y:auto; line-height:1.5; margin:0; }
+  .no-params { color:#86868b; font-size:13px; font-style:italic; margin-bottom:16px; }
+  .quick-actions { display:flex; gap:8px; margin-bottom:20px; }
+  .quick-btn { padding:8px 14px; border:1px solid #30d158; border-radius:20px; background:#fff; color:#30d158; font-size:13px; font-weight:500; cursor:pointer; transition:all .2s; }
+  .quick-btn:hover { background:#30d158; color:#fff; }
+</style>
+</head>
+<body>
+
+<h1>Debug Console</h1>
+<p class="subtitle">Test tool capabilities remotely</p>
+
+<div class="quick-actions">
+  <button class="quick-btn" onclick="quickExec('get_screen_info')">Screen Info</button>
+  <button class="quick-btn" onclick="quickExec('find_node_info')">Node Tree</button>
+  <button class="quick-btn" onclick="quickExec('take_screenshot')">Screenshot</button>
+  <button class="quick-btn" onclick="quickExec('get_installed_apps')">App List</button>
+</div>
+
+<div class="tool-list" id="toolList">Loading tools...</div>
+
+<div class="panel" id="toolPanel" style="display:none">
+  <div class="panel-title" id="toolName"></div>
+  <div class="panel-desc" id="toolDesc"></div>
+  <div id="paramFields"></div>
+  <button class="exec-btn" id="execBtn" onclick="executeTool()">Execute</button>
+</div>
+
+<div class="result-panel" id="resultPanel" style="display:none">
+  <div class="result-header">
+    <span class="result-status" id="resultStatus"></span>
+    <span class="result-time" id="resultTime"></span>
+  </div>
+  <pre class="result-body" id="resultBody"></pre>
+  <img id="resultImage" style="display:none; max-width:100%; margin-top:12px; border-radius:8px;" />
+</div>
+
+<script>
+let tools = [];
+let selectedTool = null;
+
+async function loadTools() {
+  try {
+    const res = await fetch('/api/debug/tools');
+    const json = await res.json();
+    if (json.code === 0) {
+      tools = json.data;
+      renderToolList();
+    }
+  } catch (e) {
+    document.getElementById('toolList').textContent = 'Failed to load tools: ' + e.message;
+  }
+}
+
+function renderToolList() {
+  const container = document.getElementById('toolList');
+  container.innerHTML = '';
+  tools.forEach(t => {
+    const btn = document.createElement('button');
+    btn.className = 'tool-btn';
+    btn.textContent = t.name;
+    btn.title = t.description;
+    btn.onclick = () => selectTool(t.name);
+    container.appendChild(btn);
+  });
+}
+
+function selectTool(name) {
+  selectedTool = tools.find(t => t.name === name);
+  if (!selectedTool) return;
+
+  // Update active state
+  document.querySelectorAll('.tool-btn').forEach(b => {
+    b.classList.toggle('active', b.textContent === name);
+  });
+
+  // Show panel
+  const panel = document.getElementById('toolPanel');
+  panel.style.display = '';
+  document.getElementById('toolName').textContent = selectedTool.displayName || selectedTool.name;
+  document.getElementById('toolDesc').textContent = selectedTool.description;
+
+  // Render params
+  const fields = document.getElementById('paramFields');
+  fields.innerHTML = '';
+  if (!selectedTool.parameters || selectedTool.parameters.length === 0) {
+    fields.innerHTML = '<div class="no-params">No parameters required</div>';
+  } else {
+    selectedTool.parameters.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'param-row';
+      row.innerHTML =
+        '<div class="param-label">' +
+          '<span>' + p.name + '</span>' +
+          '<span class="type">' + p.type + '</span>' +
+          (p.required ? '<span class="required">required</span>' : '') +
+        '</div>' +
+        '<input class="param-input" id="param_' + p.name + '" placeholder="' + p.description + '">';
+      fields.appendChild(row);
+    });
+  }
+}
+
+async function quickExec(name) {
+  // 如果 tools 还没加载完，先等待
+  if (tools.length === 0) {
+    await loadTools();
+  }
+  selectTool(name);
+  await executeTool();
+}
+
+async function executeTool() {
+  if (!selectedTool) return;
+
+  const btn = document.getElementById('execBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Executing...';
+  }
+
+  const params = {};
+  if (selectedTool.parameters) {
+    selectedTool.parameters.forEach(p => {
+      const input = document.getElementById('param_' + p.name);
+      if (input && input.value.trim() !== '') {
+        let val = input.value.trim();
+        if (p.type === 'int' || p.type === 'long') val = Number(val);
+        else if (p.type === 'double' || p.type === 'float') val = parseFloat(val);
+        params[p.name] = val;
+      }
+    });
+  }
+
+  const startTime = Date.now();
+  try {
+    const res = await fetch('/api/debug/execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tool: selectedTool.name, params })
+    });
+    const json = await res.json();
+    const elapsed = Date.now() - startTime;
+    showResult(json.data, elapsed);
+  } catch (e) {
+    const elapsed = Date.now() - startTime;
+    showResult({ success: false, error: e.message }, elapsed);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Execute';
+    }
+  }
+}
+
+function showResult(data, elapsed) {
+  const panel = document.getElementById('resultPanel');
+  const status = document.getElementById('resultStatus');
+  const time = document.getElementById('resultTime');
+  const body = document.getElementById('resultBody');
+  const img = document.getElementById('resultImage');
+
+  panel.style.display = 'block';
+  status.textContent = data.success ? 'SUCCESS' : 'ERROR';
+  status.className = 'result-status ' + (data.success ? 'success' : 'error');
+  time.textContent = elapsed + 'ms';
+  img.style.display = 'none';
+
+  // 同时展示 data 和 error（如果都有的话）
+  let content = '';
+  if (data.data != null) content += data.data;
+  if (data.error != null) {
+    if (content) content += '\n\n--- ERROR ---\n';
+    content += data.error;
+  }
+  if (!content) content = '(empty)';
+
+  try {
+    body.textContent = JSON.stringify(JSON.parse(content), null, 2);
+  } catch {
+    body.textContent = content;
+  }
+
+  // 如果是图片文件路径，展示图片
+  if (data.success && data.data && /\.(png|jpg|jpeg|webp)$/i.test(data.data.trim())) {
+    const filePath = data.data.trim();
+    img.src = '/api/debug/file?path=' + encodeURIComponent(filePath);
+    img.style.display = 'block';
+  }
+
+  panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+loadTools();
+</script>
+</body>
+</html>

@@ -1,0 +1,39 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- 应用主题 - 深色 -->
+    <style name="Theme.PokeClaw" parent="Theme.Material3.Dark.NoActionBar">
+        <!-- Primary colors -->
+        <item name="colorPrimary">@color/colorBrandPrimary</item>
+        <item name="colorOnPrimary">@color/colorBrandOnPrimary</item>
+        <item name="colorPrimaryContainer">@color/colorBrandContainer</item>
+        <item name="colorOnPrimaryContainer">@color/colorBrandOnContainer</item>
+
+        <!-- Background colors -->
+        <item name="android:colorBackground">@color/colorBgPrimary</item>
+        <item name="colorOnBackground">@color/colorTextPrimary</item>
+        <item name="colorSurface">@color/colorContainerBrighten</item>
+        <item name="colorOnSurface">@color/colorTextPrimary</item>
+        <item name="colorSurfaceVariant">@color/colorContainerBase</item>
+        <item name="colorOnSurfaceVariant">@color/colorTextSecondary</item>
+
+        <!-- Outline -->
+        <item name="colorOutline">@color/colorBorderBase</item>
+        <item name="colorOutlineVariant">@color/colorBorderLow</item>
+
+        <!-- Error colors -->
+        <item name="colorError">@color/colorErrorPrimary</item>
+        <item name="colorOnError">@color/colorErrorOnPrimary</item>
+
+        <!-- Window -->
+        <item name="android:windowBackground">@color/colorBgPrimary</item>
+        <item name="android:statusBarColor">@color/colorBgPrimary</item>
+        <item name="android:navigationBarColor">@color/colorBgPrimary</item>
+    </style>
+
+    <!-- 启动页专用主题：冷启动 Window 直接显示纯色背景，无白屏无系统 Logo -->
+    <style name="Theme.PokeClaw.Splash" parent="Theme.PokeClaw">
+        <item name="android:windowBackground">@color/colorBgPrimary</item>
+        <!-- Android 12+ 禁用系统 SplashScreen 的图标 -->
+        <item name="android:windowSplashScreenAnimatedIcon">@android:color/transparent</item>
+        <item name="android:windowSplashScreenBackground">@color/colorBgPrimary</item>
+    </style>
+</resources>
