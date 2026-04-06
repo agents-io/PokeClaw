@@ -8,7 +8,6 @@
 
 # PokeClaw (PocketClaw) - A Pocket Versoin Of OpenClaw
 
-As Everyone Knows, PokeClaw is just shortform of PocketClaw
 
 
 https://github.com/user-attachments/assets/c713e227-7581-4475-acd4-0480128c8ec8
