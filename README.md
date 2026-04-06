@@ -15,7 +15,7 @@ https://github.com/user-attachments/assets/c713e227-7581-4475-acd4-0480128c8ec8
 
 https://github.com/user-attachments/assets/18d49148-c744-46a5-98a2-0f8320f00d19
 
-> **Why is the "hi" demo slow?** This was recorded on a budget Android phone with CPU-only inference (no GPU, no NPU). Running Gemma 4 E2B on CPU takes ~45 seconds to warm up (down from several minutes — we optimized the engine initialization and session handoff architecture to get it this low). If your phone has a GPU-capable chip, it's **significantly faster**:
+> **Why is the "hi" demo slow?** Recorded on a budget Android phone (I'm literally too broke to buy a proper one, got this just to demo the app lol) with CPU-only inference, no GPU, no NPU. Running Gemma 4 E2B on pure CPU takes about 45 seconds to warm up — started at several minutes, we optimized the engine initialization and session handoff to squeeze it down this far. If your phone actually has a decent chip it's **way faster**:
 > - **Google Tensor G3/G4** (Pixel 8, Pixel 9)
 > - **Snapdragon 8 Gen 2/3** (Galaxy S24, OnePlus 12)
 > - **Dimensity 9200/9300** (recent MediaTek flagships)
@@ -85,7 +85,18 @@ The LLM has access to these tools and picks them autonomously:
 
 [**Download APK (v0.1.0)**](https://github.com/agents-io/PokeClaw/releases/latest)
 
-Android 9+, arm64. No root required.
+### Requirements
+
+| | Minimum | Recommended |
+|---|---|---|
+| **Android** | 9+ | 12+ |
+| **Architecture** | arm64 | arm64 |
+| **RAM** | 6 GB | 8 GB+ |
+| **Storage** | 3 GB free (model download) | 5 GB+ |
+| **GPU** | Not required (CPU works) | Tensor G3/G4, Snapdragon 8 Gen 2+, Dimensity 9200+ |
+| **Root** | Not required | Not required |
+
+> ⚠️ Phones with less than 6 GB RAM may crash during model loading — the 2.3B model needs to fit in memory. This is a hardware limitation, not a bug. If your phone crashes, you need more RAM.
 
 ## Quick start
 
