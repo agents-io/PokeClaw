@@ -144,6 +144,11 @@ class ComposeChatActivity : ComponentActivity() {
                 onAttach = { Toast.makeText(this, "Image upload coming soon", Toast.LENGTH_SHORT).show() },
                 conversations = _conversations.toList(),
                 onSelectConversation = { loadConversation(it) },
+                onDeleteConversation = { conv ->
+                    val deleted = ChatHistoryManager.delete(conv.file)
+                    XLog.i(TAG, "Delete conversation: ${conv.file.absolutePath} exists=${conv.file.exists()} deleted=$deleted")
+                    loadSidebarHistory()
+                },
                 activeTasks = activeTasks,
                 onStopTask = { contact ->
                     autoReplyManager.removeContact(contact.lowercase())

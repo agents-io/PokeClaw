@@ -5,7 +5,9 @@ package io.agents.pokeclaw.ui.chat
 
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -99,6 +101,7 @@ fun ChatScreen(
     onAttach: () -> Unit,
     conversations: List<ChatHistoryManager.ConversationSummary>,
     onSelectConversation: (ChatHistoryManager.ConversationSummary) -> Unit,
+    onDeleteConversation: (ChatHistoryManager.ConversationSummary) -> Unit = {},
     activeTasks: List<String> = emptyList(),
     onStopTask: (String) -> Unit = {},
     onStopAllTasks: () -> Unit = {},
@@ -140,6 +143,7 @@ fun ChatScreen(
                         scope.launch { drawerState.close() }
                         onSelectConversation(it)
                     },
+                    onDeleteConversation = onDeleteConversation,
                     onSettings = {
                         scope.launch { drawerState.close() }
                         onOpenSettings()
@@ -877,15 +881,36 @@ private fun EmptyStateWithPrompts(
 
 // ======================== SIDEBAR ========================
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun SidebarContent(
     conversations: List<ChatHistoryManager.ConversationSummary>,
     onNewChat: () -> Unit,
     onSelectConversation: (ChatHistoryManager.ConversationSummary) -> Unit,
+    onDeleteConversation: (ChatHistoryManager.ConversationSummary) -> Unit,
     onSettings: () -> Unit,
     onModels: () -> Unit,
     colors: PokeclawColors,
 ) {
+    var deleteTarget by remember { mutableStateOf<ChatHistoryManager.ConversationSummary?>(null) }
+
+    if (deleteTarget != null) {
+        AlertDialog(
+            onDismissRequest = { deleteTarget = null },
+            title = { Text("Delete conversation?", color = colors.textPrimary) },
+            text = { Text(deleteTarget!!.title, color = colors.textSecondary, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+            confirmButton = {
+                TextButton(onClick = {
+                    onDeleteConversation(deleteTarget!!)
+                    deleteTarget = null
+                }) { Text("Delete", color = Color(0xFFF87171)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { deleteTarget = null }) { Text("Cancel", color = colors.textSecondary) }
+            },
+            containerColor = colors.surface,
+        )
+    }
     Column(
         modifier = Modifier
             .fillMaxHeight()
@@ -956,7 +981,10 @@ private fun SidebarContent(
                 Surface(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { onSelectConversation(conv) },
+                        .combinedClickable(
+                            onClick = { onSelectConversation(conv) },
+                            onLongClick = { deleteTarget = conv },
+                        ),
                     color = androidx.compose.ui.graphics.Color.Transparent,
                 ) {
                     Text(
