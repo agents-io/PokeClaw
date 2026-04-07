@@ -278,7 +278,8 @@ class LlmConfigActivity : BaseActivity() {
         selectedProvider = if (savedProvider == "LOCAL") CloudProvider.OPENAI
             else CloudProvider.findProviderForModel(savedModel) ?: CloudProvider.OPENAI
         selectedModelId = savedModel
-        etApiKey.setText(KVUtils.getLlmApiKey())
+        val providerKey = KVUtils.getApiKeyForProvider(selectedProvider.name)
+        etApiKey.setText(providerKey.ifEmpty { KVUtils.getLlmApiKey() })
 
         // Build provider tabs
         val tabViews = mutableMapOf<CloudProvider, TextView>()
@@ -400,13 +401,15 @@ class LlmConfigActivity : BaseActivity() {
         }
         renderModels()
 
-        // Provider tab switch
+        // Provider tab switch — load per-provider saved API key
         fun switchProvider(provider: CloudProvider, colors: ThemeManager.ChatColors) {
             selectedProvider = provider
             selectedModelId = provider.models.firstOrNull()?.id ?: ""
             updateTabStyles()
             renderModels()
             tvStatus.visibility = View.GONE
+            val savedKey = KVUtils.getApiKeyForProvider(provider.name)
+            etApiKey.setText(savedKey)
         }
         // Re-assign click listeners with the inner function
         tabViews.forEach { (provider, tab) ->
@@ -465,6 +468,7 @@ class LlmConfigActivity : BaseActivity() {
 
             KVUtils.setLlmProvider("OPENAI") // All cloud providers use OpenAI-compatible API
             KVUtils.setLlmApiKey(apiKey)
+            KVUtils.setApiKeyForProvider(selectedProvider.name, apiKey)
             KVUtils.setLlmBaseUrl(baseUrl)
             KVUtils.setLlmModelName(modelId)
             ClawApplication.appViewModelInstance.updateAgentConfig()

@@ -200,6 +200,12 @@ object KVUtils {
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
+
+    /** Per-provider API key storage — allows users to save keys for multiple providers simultaneously. */
+    fun getApiKeyForProvider(provider: String): String =
+        getString("KEY_LLM_API_KEY_${provider.uppercase()}", "")
+    fun setApiKeyForProvider(provider: String, key: String) =
+        putString("KEY_LLM_API_KEY_${provider.uppercase()}", key)
     fun getLlmBaseUrl(): String = getString(KEY_LLM_BASE_URL, "")
     fun setLlmBaseUrl(value: String) = putString(KEY_LLM_BASE_URL, value)
     fun getLlmModelName(): String = getString(KEY_LLM_MODEL_NAME, "")
