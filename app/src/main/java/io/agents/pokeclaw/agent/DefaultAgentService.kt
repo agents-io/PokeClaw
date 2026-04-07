@@ -393,6 +393,8 @@ class DefaultAgentService : AgentService {
         var previousScreenTexts: Set<String> = emptySet()
         val tokenMonitor = TokenMonitor(config.modelName)
         val stuckDetector = StuckDetector()
+        val taskBudget = TaskBudget.fromSettings()
+        var softLimitWarned = false
 
         while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -419,6 +421,33 @@ class DefaultAgentService : AgentService {
                 outputTokens = llmResponse.tokenUsage?.outputTokenCount(),
                 totalTokenCount = llmResponse.tokenUsage?.totalTokenCount()
             )
+
+            // Budget check
+            val tokenStatus = tokenMonitor.getStatus()
+            when (taskBudget.check(tokenStatus.totalTokens, tokenStatus.estimatedCostUsd)) {
+                TaskBudget.Status.HARD_LIMIT -> {
+                    XLog.w(TAG, "Budget HARD LIMIT reached at step $iterations: ${tokenStatus.formattedTokens} (${tokenStatus.formattedCost})")
+                    callback.onComplete(
+                        iterations,
+                        "Task stopped: budget limit reached (${tokenStatus.formattedTokens} tokens, ${tokenStatus.formattedCost}). " +
+                        "Increase budget in Settings if needed.",
+                        totalTokens
+                    )
+                    return
+                }
+                TaskBudget.Status.SOFT_LIMIT -> {
+                    if (!softLimitWarned) {
+                        softLimitWarned = true
+                        XLog.i(TAG, "Budget SOFT LIMIT at step $iterations: ${tokenStatus.formattedTokens}")
+                        messages.add(UserMessage.from(
+                            "[System Notice] You are using ${tokenStatus.formattedTokens} tokens (${tokenStatus.formattedCost}), " +
+                            "approaching the budget limit. Finish the task efficiently. " +
+                            "If you cannot complete it soon, call finish with a partial summary."
+                        ))
+                    }
+                }
+                TaskBudget.Status.OK -> { /* continue normally */ }
+            }
 
             // DEBUG: log raw LLM response for tool calling diagnosis
             XLog.i(TAG, "runAgentLoop iter=$iterations response.text=${llmResponse.text?.take(500)}")
