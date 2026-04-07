@@ -11,11 +11,16 @@ import android.view.View
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import io.agents.pokeclaw.ClawApplication
 import io.agents.pokeclaw.R
+import io.agents.pokeclaw.agent.CloudModel
+import io.agents.pokeclaw.agent.CloudProvider
+import io.agents.pokeclaw.agent.ModelPricing
 import io.agents.pokeclaw.agent.llm.LocalModelManager
 import io.agents.pokeclaw.base.BaseActivity
 import io.agents.pokeclaw.ui.chat.ThemeManager
@@ -28,6 +33,8 @@ class LlmConfigActivity : BaseActivity() {
 
     private val executor = Executors.newSingleThreadExecutor()
     private var isDownloading = false
+    private var selectedProvider: CloudProvider = CloudProvider.OPENAI
+    private var selectedModelId: String = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -230,34 +237,8 @@ class LlmConfigActivity : BaseActivity() {
         // Storage info
         updateStorageInfo()
 
-        // Cloud LLM
-        val etApiKey = findViewById<EditText>(R.id.etApiKey)
-        val etBaseUrl = findViewById<EditText>(R.id.etBaseUrl)
-        val etModelName = findViewById<EditText>(R.id.etModelName)
-        etApiKey.setText(KVUtils.getLlmApiKey())
-        etBaseUrl.setText(KVUtils.getLlmBaseUrl())
-        etModelName.setText(if (KVUtils.getLlmProvider() != "LOCAL") KVUtils.getLlmModelName() else "")
-
-        findViewById<KButton>(R.id.btnSaveCloud).setOnClickListener {
-            val apiKey = etApiKey.text.toString().trim()
-            val baseUrl = etBaseUrl.text.toString().trim()
-            val modelName = etModelName.text.toString().trim()
-
-            if (apiKey.isEmpty() && baseUrl.isEmpty()) {
-                Toast.makeText(this, "Enter API Key or Base URL", Toast.LENGTH_SHORT).show()
-                return@setOnClickListener
-            }
-
-            KVUtils.setLlmProvider("OPENAI")
-            KVUtils.setLlmApiKey(apiKey)
-            KVUtils.setLlmBaseUrl(baseUrl)
-            KVUtils.setLlmModelName(modelName)
-            ClawApplication.appViewModelInstance.updateAgentConfig()
-            ClawApplication.appViewModelInstance.initAgent()
-            ClawApplication.appViewModelInstance.afterInit()
-            Toast.makeText(this, "Cloud LLM saved", Toast.LENGTH_SHORT).show()
-            finish()
-        }
+        // Cloud LLM — Provider tabs + model cards
+        setupCloudLlm(tc)
     }
 
     private fun updateStorageInfo() {
@@ -277,6 +258,240 @@ class LlmConfigActivity : BaseActivity() {
         findViewById<TextView>(R.id.tvStorageInfo).text = "$count model${if (count != 1) "s" else ""} · ${mbUsed} MB"
         findViewById<ProgressBar>(R.id.progressStorage).progress = pct
         findViewById<TextView>(R.id.tvStorageDetail).text = "${mbUsed} MB of ${allocated} MB allocated"
+    }
+
+    private fun setupCloudLlm(tc: ThemeManager.ChatColors) {
+        val tabLayout = findViewById<LinearLayout>(R.id.layoutProviderTabs)
+        val modelListLayout = findViewById<LinearLayout>(R.id.layoutCloudModels)
+        val layoutBaseUrl = findViewById<View>(R.id.layoutBaseUrl)
+        val tvCustomHint = findViewById<TextView>(R.id.tvCustomHint)
+        val etApiKey = findViewById<EditText>(R.id.etApiKey)
+        val etBaseUrl = findViewById<EditText>(R.id.etBaseUrl)
+        val etModelName = findViewById<EditText>(R.id.etModelName)
+        val tvStatus = findViewById<TextView>(R.id.tvConnectionStatus)
+        val btnTest = findViewById<TextView>(R.id.btnTestConnection)
+        val btnSave = findViewById<KButton>(R.id.btnSaveCloud)
+
+        // Determine current provider from saved config
+        val savedProvider = KVUtils.getLlmProvider()
+        val savedModel = if (savedProvider != "LOCAL") KVUtils.getLlmModelName() else ""
+        selectedProvider = if (savedProvider == "LOCAL") CloudProvider.OPENAI
+            else CloudProvider.findProviderForModel(savedModel) ?: CloudProvider.OPENAI
+        selectedModelId = savedModel
+        etApiKey.setText(KVUtils.getLlmApiKey())
+
+        // Build provider tabs
+        val tabViews = mutableMapOf<CloudProvider, TextView>()
+        CloudProvider.entries.forEach { provider ->
+            val tab = TextView(this).apply {
+                text = provider.displayName
+                textSize = 13f
+                setPadding(dp(14), dp(6), dp(14), dp(6))
+                gravity = Gravity.CENTER
+                layoutParams = LinearLayout.LayoutParams(
+                    LinearLayout.LayoutParams.WRAP_CONTENT,
+                    LinearLayout.LayoutParams.MATCH_PARENT
+                )
+                // Click handler set below after renderModels is defined
+            }
+            tabViews[provider] = tab
+            tabLayout.addView(tab)
+        }
+
+        fun updateTabStyles() {
+            tabViews.forEach { (provider, tab) ->
+                if (provider == selectedProvider) {
+                    tab.setTextColor(Color.WHITE)
+                    tab.background = GradientDrawable().apply {
+                        cornerRadius = dp(16).toFloat()
+                        setColor(getColor(R.color.colorBrandPrimary))
+                    }
+                } else {
+                    tab.setTextColor(Color.parseColor("#8b949e"))
+                    tab.background = null
+                }
+            }
+        }
+        updateTabStyles()
+
+        // Render model cards for current provider
+        fun renderModels() {
+            modelListLayout.removeAllViews()
+            val isCustom = selectedProvider == CloudProvider.CUSTOM
+            layoutBaseUrl.visibility = if (isCustom) View.VISIBLE else View.GONE
+            tvCustomHint?.visibility = if (isCustom) View.VISIBLE else View.GONE
+
+            if (isCustom) {
+                etBaseUrl.setText(KVUtils.getLlmBaseUrl())
+                etModelName.setText(savedModel)
+                return
+            }
+
+            selectedProvider.models.forEach { model ->
+                val isSelected = model.id == selectedModelId
+                val card = CardView(this).apply {
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { bottomMargin = dp(6) }
+                    radius = dp(10).toFloat()
+                    cardElevation = dp(1).toFloat()
+                    setCardBackgroundColor(if (isSelected) Color.parseColor("#2A1F1A") else tc.toolbarBg)
+                    if (isSelected) {
+                        // Orange border for selected
+                        setContentPadding(dp(2), dp(2), dp(2), dp(2))
+                    }
+                    setOnClickListener {
+                        selectedModelId = model.id
+                        renderModels()
+                    }
+                }
+
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(14), dp(12), dp(14), dp(12))
+                }
+
+                // Radio dot
+                val dot = TextView(this).apply {
+                    text = if (isSelected) "◉" else "○"
+                    textSize = 16f
+                    setTextColor(if (isSelected) getColor(R.color.colorBrandPrimary) else Color.parseColor("#8b949e"))
+                    setPadding(0, 0, dp(10), 0)
+                }
+                row.addView(dot)
+
+                // Model info
+                val info = LinearLayout(this).apply {
+                    orientation = LinearLayout.VERTICAL
+                    layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                }
+                val nameRow = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+                nameRow.addView(TextView(this).apply {
+                    text = model.displayName
+                    textSize = 14f
+                    setTextColor(tc.aiText)
+                    if (isSelected) setTypeface(typeface, android.graphics.Typeface.BOLD)
+                })
+                // Recommended badge
+                if (model.recommended) {
+                    nameRow.addView(TextView(this).apply {
+                        text = " ⚡"
+                        textSize = 12f
+                    })
+                }
+                info.addView(nameRow)
+
+                // Price + tier
+                info.addView(TextView(this).apply {
+                    text = "${model.tier.stars} ${model.tier.label} · \$${model.inputPricePerM} / \$${model.outputPricePerM} per 1M"
+                    textSize = 11f
+                    setTextColor(Color.parseColor("#8b949e"))
+                })
+                row.addView(info)
+
+                card.addView(row)
+                modelListLayout.addView(card)
+            }
+        }
+        renderModels()
+
+        // Provider tab switch
+        fun switchProvider(provider: CloudProvider, colors: ThemeManager.ChatColors) {
+            selectedProvider = provider
+            selectedModelId = provider.models.firstOrNull()?.id ?: ""
+            updateTabStyles()
+            renderModels()
+            tvStatus.visibility = View.GONE
+        }
+        // Re-assign click listeners with the inner function
+        tabViews.forEach { (provider, tab) ->
+            tab.setOnClickListener { switchProvider(provider, tc) }
+        }
+
+        // Test Connection
+        btnTest.setOnClickListener {
+            val apiKey = etApiKey.text.toString().trim()
+            if (apiKey.isEmpty()) {
+                Toast.makeText(this, "Enter API Key first", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            tvStatus.visibility = View.VISIBLE
+            tvStatus.text = "Testing..."
+            tvStatus.setTextColor(Color.parseColor("#8b949e"))
+
+            executor.submit {
+                try {
+                    val baseUrl = if (selectedProvider == CloudProvider.CUSTOM) etBaseUrl.text.toString().trim()
+                        else selectedProvider.defaultBaseUrl
+                    val modelId = if (selectedProvider == CloudProvider.CUSTOM) etModelName.text.toString().trim()
+                        else selectedModelId
+                    // Quick test: just validate the key format
+                    if (apiKey.length < 10) throw RuntimeException("API key too short")
+                    if (modelId.isEmpty()) throw RuntimeException("No model selected")
+                    runOnUiThread {
+                        tvStatus.text = "✓ Ready to save"
+                        tvStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
+                    }
+                } catch (e: Exception) {
+                    runOnUiThread {
+                        tvStatus.text = "✗ ${e.message}"
+                        tvStatus.setTextColor(getColor(R.color.colorErrorPrimary))
+                    }
+                }
+            }
+        }
+
+        // Save & Activate
+        btnSave.setOnClickListener {
+            val apiKey = etApiKey.text.toString().trim()
+            if (apiKey.isEmpty()) {
+                Toast.makeText(this, "Enter API Key", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            val isCustom = selectedProvider == CloudProvider.CUSTOM
+            val baseUrl = if (isCustom) etBaseUrl.text.toString().trim() else selectedProvider.defaultBaseUrl
+            val modelId = if (isCustom) etModelName.text.toString().trim() else selectedModelId
+
+            if (modelId.isEmpty()) {
+                Toast.makeText(this, "Select a model", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            KVUtils.setLlmProvider("OPENAI") // All cloud providers use OpenAI-compatible API
+            KVUtils.setLlmApiKey(apiKey)
+            KVUtils.setLlmBaseUrl(baseUrl)
+            KVUtils.setLlmModelName(modelId)
+            ClawApplication.appViewModelInstance.updateAgentConfig()
+            ClawApplication.appViewModelInstance.initAgent()
+            ClawApplication.appViewModelInstance.afterInit()
+            Toast.makeText(this, "Saved: $modelId", Toast.LENGTH_SHORT).show()
+            finish()
+        }
+
+        // Update active model card if cloud LLM is active
+        if (savedProvider != "LOCAL" && savedModel.isNotEmpty()) {
+            val activeModelName = findViewById<TextView>(R.id.tvActiveModelName)
+            val activeModelMeta = findViewById<TextView>(R.id.tvActiveModelMeta)
+            val activeModelStatus = findViewById<TextView>(R.id.tvActiveModelStatus)
+            val cloudModel = selectedProvider.models.find { it.id == savedModel }
+            if (cloudModel != null) {
+                activeModelName.text = cloudModel.displayName
+                activeModelMeta.text = "${selectedProvider.displayName} · Cloud"
+                activeModelStatus.text = "● Connected"
+                activeModelStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
+            } else {
+                activeModelName.text = savedModel
+                activeModelMeta.text = "Cloud · Custom"
+                activeModelStatus.text = "● Connected"
+                activeModelStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
+            }
+        }
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()

@@ -129,14 +129,14 @@
                 android:layout_height="0dp"
                 android:visibility="gone" />
 
-            <!-- Cloud LLM — Coming Soon -->
+            <!-- Cloud LLM -->
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20pt"
                 android:paddingHorizontal="4pt"
                 android:paddingBottom="8pt"
-                android:text="Cloud LLM (Advanced)"
+                android:text="Cloud LLM"
                 android:textColor="@color/colorTextSecondary"
                 android:textSize="13pt"
                 android:textStyle="bold" />
@@ -155,20 +155,38 @@
                     android:orientation="vertical"
                     android:padding="16pt">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <!-- Provider Tabs -->
+                    <HorizontalScrollView
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="Connect to cloud models like GPT-4o and Claude for smarter automation."
-                        android:textColor="@color/colorTextTertiary"
-                        android:textSize="12pt"
-                        android:layout_marginBottom="12pt" />
+                        android:scrollbars="none"
+                        android:layout_marginBottom="12pt">
 
+                        <LinearLayout
+                            android:id="@+id/layoutProviderTabs"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40pt"
+                            android:background="@drawable/bg_edit_text"
+                            android:orientation="horizontal"
+                            android:padding="3pt" />
+
+                    </HorizontalScrollView>
+
+                    <!-- Model List (programmatic) -->
+                    <LinearLayout
+                        android:id="@+id/layoutCloudModels"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical" />
+
+                    <!-- API Key -->
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="API Key"
                         android:textColor="@color/colorTextSecondary"
                         android:textSize="12pt"
+                        android:layout_marginTop="12pt"
                         android:layout_marginBottom="4pt" />
 
                     <EditText
@@ -183,54 +201,105 @@
                         android:textColorHint="@color/colorTextTertiary"
                         android:textSize="13pt" />
 
+                    <!-- Base URL (Custom only) -->
+                    <LinearLayout
+                        android:id="@+id/layoutBaseUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Base URL"
+                            android:textColor="@color/colorTextSecondary"
+                            android:textSize="12pt"
+                            android:layout_marginTop="10pt"
+                            android:layout_marginBottom="4pt" />
+
+                        <EditText
+                            android:id="@+id/etBaseUrl"
+                            android:layout_width="match_parent"
+                            android:layout_height="44pt"
+                            android:background="@drawable/bg_edit_text"
+                            android:hint="https://api.openrouter.ai/v1"
+                            android:inputType="textUri"
+                            android:paddingHorizontal="12pt"
+                            android:textColor="@color/colorTextPrimary"
+                            android:textColorHint="@color/colorTextTertiary"
+                            android:textSize="13pt" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Model Name"
+                            android:textColor="@color/colorTextSecondary"
+                            android:textSize="12pt"
+                            android:layout_marginTop="10pt"
+                            android:layout_marginBottom="4pt" />
+
+                        <EditText
+                            android:id="@+id/etModelName"
+                            android:layout_width="match_parent"
+                            android:layout_height="44pt"
+                            android:background="@drawable/bg_edit_text"
+                            android:hint="google/gemini-2.5-flash"
+                            android:inputType="text"
+                            android:paddingHorizontal="12pt"
+                            android:textColor="@color/colorTextPrimary"
+                            android:textColorHint="@color/colorTextTertiary"
+                            android:textSize="13pt" />
+
+                    </LinearLayout>
+
+                    <!-- Connection Status -->
                     <TextView
+                        android:id="@+id/tvConnectionStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Base URL (optional)"
-                        android:textColor="@color/colorTextSecondary"
+                        android:layout_marginTop="8pt"
                         android:textSize="12pt"
-                        android:layout_marginTop="10pt"
-                        android:layout_marginBottom="4pt" />
+                        android:visibility="gone" />
 
-                    <EditText
-                        android:id="@+id/etBaseUrl"
+                    <!-- Buttons -->
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="44pt"
-                        android:background="@drawable/bg_edit_text"
-                        android:hint="https://api.openai.com/v1"
-                        android:inputType="textUri"
-                        android:paddingHorizontal="12pt"
-                        android:textColor="@color/colorTextPrimary"
-                        android:textColorHint="@color/colorTextTertiary"
-                        android:textSize="13pt" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Model Name"
-                        android:textColor="@color/colorTextSecondary"
-                        android:textSize="12pt"
-                        android:layout_marginTop="10pt"
-                        android:layout_marginBottom="4pt" />
-
-                    <EditText
-                        android:id="@+id/etModelName"
-                        android:layout_width="match_parent"
-                        android:layout_height="44pt"
-                        android:background="@drawable/bg_edit_text"
-                        android:hint="gpt-4o-mini"
-                        android:inputType="text"
-                        android:paddingHorizontal="12pt"
-                        android:textColor="@color/colorTextPrimary"
-                        android:textColorHint="@color/colorTextTertiary"
-                        android:textSize="13pt" />
-
-                    <io.agents.pokeclaw.widget.KButton
-                        android:id="@+id/btnSaveCloud"
-                        android:layout_width="match_parent"
-                        android:layout_height="44pt"
                         android:layout_marginTop="14pt"
-                        android:text="Save &amp; Activate" />
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/btnTestConnection"
+                            android:layout_width="0dp"
+                            android:layout_height="44pt"
+                            android:layout_weight="1"
+                            android:layout_marginEnd="6pt"
+                            android:background="@drawable/bg_edit_text"
+                            android:gravity="center"
+                            android:text="Test"
+                            android:textColor="@color/colorBrandPrimary"
+                            android:textSize="13pt" />
+
+                        <io.agents.pokeclaw.widget.KButton
+                            android:id="@+id/btnSaveCloud"
+                            android:layout_width="0dp"
+                            android:layout_height="44pt"
+                            android:layout_weight="2"
+                            android:text="Save &amp; Activate" />
+
+                    </LinearLayout>
+
+                    <!-- Compatible endpoints hint (Custom only) -->
+                    <TextView
+                        android:id="@+id/tvCustomHint"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8pt"
+                        android:text="Compatible with: OpenRouter, Groq, Together AI, Ollama, any OpenAI-compatible endpoint"
+                        android:textColor="@color/colorTextTertiary"
+                        android:textSize="10pt"
+                        android:visibility="gone" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
