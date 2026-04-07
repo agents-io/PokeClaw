@@ -392,6 +392,7 @@ class DefaultAgentService : AgentService {
         var lastScreenHash = 0
         var previousScreenTexts: Set<String> = emptySet()
         val tokenMonitor = TokenMonitor(config.modelName)
+        val stuckDetector = StuckDetector()
 
         while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -552,17 +553,34 @@ class DefaultAgentService : AgentService {
                 XLog.d(TAG, "displayName:$displayName toolName:$toolName")
             }
 
-            // Dead loop detection
-            if (isStuckInLoop(loopHistory)) {
-                XLog.w(TAG, "Dead loop detected at iteration $iterations")
-                messages.add(
-                    UserMessage.from(
-                        "[System Notice] You have performed the same action repeatedly for multiple rounds with no screen change. You may be stuck in a dead loop. " +
-                        "Please try a completely different approach: press system_key(key=\"back\") to go back, swipe to search for the target, or reopen the app. " +
-                        "If the task truly cannot be completed, call finish and explain why."
-                    )
-                )
-                loopHistory.clear()
+            // Stuck detection (5-signal, 3-level recovery)
+            val lastAction = llmResponse.toolExecutionRequests?.firstOrNull()?.let {
+                "${it.name()}:${it.arguments()?.take(50)}"
+            } ?: ""
+            val screenDiffCount = (previousScreenTexts as? Set<*>)?.size ?: 0
+            val toolError = llmResponse.toolExecutionRequests?.firstOrNull()?.let { req ->
+                val result = ToolRegistry.getInstance().getTool(req.name() ?: "")
+                null // error tracked per-tool above; simplified here
+            }
+            val detection = stuckDetector.record(lastAction, lastScreenHash, screenDiffCount, null)
+            if (detection != null) {
+                when (detection.level) {
+                    StuckDetector.RecoveryLevel.AUTO_KILL -> {
+                        XLog.w(TAG, "StuckDetector AUTO_KILL at iteration $iterations: ${detection.signal.description}")
+                        val status = tokenMonitor.getStatus()
+                        callback.onComplete(
+                            iterations,
+                            "Task stopped: agent was stuck (${detection.signal.description}). " +
+                            "Used ${status.formattedTokens} tokens (${status.formattedCost}).",
+                            totalTokens
+                        )
+                        return
+                    }
+                    else -> {
+                        XLog.w(TAG, "StuckDetector ${detection.level} at iteration $iterations: ${detection.signal.description}")
+                        messages.add(UserMessage.from(detection.recoveryHint))
+                    }
+                }
             }
             XLog.d(TAG, "Round:$iterations total=$totalTokens thisRound=${llmResponse.tokenUsage?.totalTokenCount()}")
         }
