@@ -15,6 +15,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler
 import dev.langchain4j.model.openai.OpenAiChatModel
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class OpenAiLlmClient(
@@ -91,8 +92,10 @@ class OpenAiLlmClient(
             }
         })
 
-        latch.await()
-        errorRef.get()?.let { throw it }
+        if (!latch.await(120, TimeUnit.SECONDS)) {
+            throw RuntimeException("OpenAI streaming response timed out after 120 seconds")
+        }
+        errorRef.get()?.let { throw RuntimeException("OpenAI streaming error", it) }
         return resultRef.get()
     }
 }

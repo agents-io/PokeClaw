@@ -90,7 +90,8 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
 
         XLog.i(TAG, "createConversation: ${nativeTools.size} native tools")
 
-        conversation = engine!!.createConversation(
+        val eng = engine ?: throw RuntimeException("LiteRT-LM engine not initialized — check model path: ${config.baseUrl}")
+        conversation = eng.createConversation(
             ConversationConfig(
                 systemInstruction = Contents.of(systemPrompt),
                 tools = nativeTools,
@@ -132,8 +133,9 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
             when (msg) {
                 is SystemMessage -> { /* handled in createConversation */ }
                 is UserMessage -> {
+                    val conv = conversation ?: throw RuntimeException("LiteRT-LM conversation not initialized — engine may have failed to load the model")
                     XLog.d(TAG, "chat: sendMessage user (${msg.singleText().take(80)}...) sendCount=$sendCount")
-                    lastResponse = conversation!!.sendMessage(msg.singleText())
+                    lastResponse = conv.sendMessage(msg.singleText())
                     sendCount++
                 }
                 is AiMessage -> { /* already in conversation state */ }
@@ -141,8 +143,9 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                     // Truncate tool results to prevent token overflow + reduce crash risk
                     val truncatedResult = msg.text().take(400)
                     val toolResultText = "[Tool ${msg.toolName()} result]: $truncatedResult"
+                    val conv = conversation ?: throw RuntimeException("LiteRT-LM conversation not initialized — engine may have failed to load the model")
                     XLog.d(TAG, "chat: sendMessage toolResult (${toolResultText.take(80)}...) sendCount=$sendCount")
-                    lastResponse = conversation!!.sendMessage(toolResultText)
+                    lastResponse = conv.sendMessage(toolResultText)
                     sendCount++
                 }
             }

@@ -15,6 +15,7 @@ import dev.langchain4j.model.chat.request.ChatRequest
 import dev.langchain4j.model.chat.response.ChatResponse
 import dev.langchain4j.model.chat.response.StreamingChatResponseHandler
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 class AnthropicLlmClient(
@@ -91,8 +92,10 @@ class AnthropicLlmClient(
             }
         })
 
-        latch.await()
-        errorRef.get()?.let { throw it }
+        if (!latch.await(120, TimeUnit.SECONDS)) {
+            throw RuntimeException("Anthropic streaming response timed out after 120 seconds")
+        }
+        errorRef.get()?.let { throw RuntimeException("Anthropic streaming error", it) }
         return resultRef.get()
     }
 }

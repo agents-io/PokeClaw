@@ -153,34 +153,87 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16pt"
-                    android:gravity="center">
+                    android:padding="16pt">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Coming Soon"
-                        android:textColor="@color/colorTextPrimary"
-                        android:textSize="16pt"
-                        android:textStyle="bold" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="6pt"
-                        android:text="Connect to cloud models like GPT-4o and Claude for even smarter automation."
+                        android:text="Connect to cloud models like GPT-4o and Claude for smarter automation."
                         android:textColor="@color/colorTextTertiary"
                         android:textSize="12pt"
-                        android:gravity="center" />
+                        android:layout_marginBottom="12pt" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="API Key"
+                        android:textColor="@color/colorTextSecondary"
+                        android:textSize="12pt"
+                        android:layout_marginBottom="4pt" />
+
+                    <EditText
+                        android:id="@+id/etApiKey"
+                        android:layout_width="match_parent"
+                        android:layout_height="44pt"
+                        android:background="@drawable/bg_edit_text"
+                        android:hint="sk-..."
+                        android:inputType="textPassword"
+                        android:paddingHorizontal="12pt"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="13pt" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Base URL (optional)"
+                        android:textColor="@color/colorTextSecondary"
+                        android:textSize="12pt"
+                        android:layout_marginTop="10pt"
+                        android:layout_marginBottom="4pt" />
+
+                    <EditText
+                        android:id="@+id/etBaseUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="44pt"
+                        android:background="@drawable/bg_edit_text"
+                        android:hint="https://api.openai.com/v1"
+                        android:inputType="textUri"
+                        android:paddingHorizontal="12pt"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="13pt" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Model Name"
+                        android:textColor="@color/colorTextSecondary"
+                        android:textSize="12pt"
+                        android:layout_marginTop="10pt"
+                        android:layout_marginBottom="4pt" />
+
+                    <EditText
+                        android:id="@+id/etModelName"
+                        android:layout_width="match_parent"
+                        android:layout_height="44pt"
+                        android:background="@drawable/bg_edit_text"
+                        android:hint="gpt-4o-mini"
+                        android:inputType="text"
+                        android:paddingHorizontal="12pt"
+                        android:textColor="@color/colorTextPrimary"
+                        android:textColorHint="@color/colorTextTertiary"
+                        android:textSize="13pt" />
+
+                    <io.agents.pokeclaw.widget.KButton
+                        android:id="@+id/btnSaveCloud"
+                        android:layout_width="match_parent"
+                        android:layout_height="44pt"
+                        android:layout_marginTop="14pt"
+                        android:text="Save &amp; Activate" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
-
-            <!-- Hidden fields kept for code compatibility -->
-            <EditText android:id="@+id/etApiKey" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
-            <EditText android:id="@+id/etBaseUrl" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
-            <EditText android:id="@+id/etModelName" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
-            <io.agents.pokeclaw.widget.KButton android:id="@+id/btnSaveCloud" android:layout_width="0dp" android:layout_height="0dp" android:visibility="gone" />
 
         </LinearLayout>
     </ScrollView>

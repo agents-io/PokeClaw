@@ -436,7 +436,7 @@ class DefaultAgentService : AgentService {
             if (!llmResponse.hasToolExecutionRequests()) {
                 val responseText = llmResponse.text ?: ""
                 // Only finish if LLM explicitly says done, or we've been going too long
-                if (responseText.lowercase().contains("finish") || responseText.lowercase().contains("completed") || responseText.lowercase().contains("done") || iterations >= maxIterations - 1) {
+                if (iterations >= maxIterations - 1) {
                     callback.onComplete(iterations, responseText.ifEmpty { ClawApplication.instance.getString(R.string.agent_task_completed) }, totalTokens)
                     return
                 }
@@ -463,6 +463,7 @@ class DefaultAgentService : AgentService {
                 var params: Map<String, Any>? = try {
                     GSON.fromJson(toolArgs, mapType)
                 } catch (e: Exception) {
+                    XLog.w(TAG, "Failed to parse tool args for $toolName: $toolArgs", e)
                     HashMap()
                 }
                 if (params == null) params = HashMap()

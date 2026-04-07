@@ -116,6 +116,7 @@ public class LangChain4jToolBridge {
         try {
             params = GSON.fromJson(argsJson, mapType);
         } catch (Exception e) {
+            android.util.Log.w("ToolBridge", "Failed to parse tool args for " + toolName + ": " + argsJson, e);
             params = new HashMap<>();
         }
         if (params == null) {
