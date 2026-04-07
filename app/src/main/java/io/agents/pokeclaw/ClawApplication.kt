@@ -34,6 +34,7 @@ class ClawApplication : BaseApp() {
         appViewModelInstance = getAppViewModelProvider()[AppViewModel::class.java]
         KVUtils.init(this)
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
+        io.agents.pokeclaw.agent.skill.SkillRegistry.loadBuiltInSkills()
         XLog.e(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 
         // Write network logs to file (set to true when debugging)
