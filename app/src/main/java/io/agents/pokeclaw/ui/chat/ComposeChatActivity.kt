@@ -380,7 +380,7 @@ class ComposeChatActivity : ComponentActivity() {
                 setButtonsEnabled(true)
                 if (_messages.isEmpty()) {
                     _messages.add(ChatMessage(ChatMessage.Role.ASSISTANT,
-                        "I'm a small AI. I work best with simple questions."))
+                        "I'm a small AI. I live in your phone, no WiFi, no API needed. I work best with simple questions."))
                 }
             }
         } catch (e: Exception) {
