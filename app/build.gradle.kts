@@ -43,6 +43,7 @@ android {
         versionName = "0.2.4"
         buildConfigField("String", "VERSION_INFO", getVersionGit())
         buildConfigField("String", "APP_ORIGIN", "\"PokeClaw by agents.io | github.com/agents-io/PokeClaw\"")
+        buildConfigField("String", "BUILD_FINGERPRINT", "\"${getBuildFingerprint()}\"")
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
@@ -153,6 +154,25 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 }
 
+tasks.register("injectBuildFingerprint") {
+    doLast {
+        val gitHash = try {
+            val p = Runtime.getRuntime().exec("git rev-parse HEAD")
+            val r = BufferedReader(InputStreamReader(p.inputStream))
+            r.readLine()?.trim() ?: "unknown"
+        } catch (_: Exception) { "unknown" }
+        val ts = System.currentTimeMillis()
+        val builder = System.getenv("BUILDER_ID") ?: System.getProperty("user.name") ?: "local"
+        val fp = "t=$ts\nc=$gitHash\nb=$builder\nv=${android.defaultConfig.versionName}"
+        val hexEncoded = fp.toByteArray().joinToString("") { "%02x".format(it) }
+        file("src/main/assets/.pcfp").apply {
+            parentFile.mkdirs()
+            writeText(hexEncoded)
+        }
+    }
+}
+tasks.named("preBuild") { dependsOn("injectBuildFingerprint") }
+
 androidComponents {
     onVariants { variant ->
         variant.outputs.forEach { output ->
@@ -178,6 +198,17 @@ fun getVersionGit(): String {
     reader2.close()
     // 将数据拼接起来，如果只需要SHA-1 那么就可以不执行process1命令
     return "\"" + branch + "_" + sha1 + "\""
+}
+
+fun getBuildFingerprint(): String {
+    val gitHash = try {
+        val p = Runtime.getRuntime().exec("git rev-parse --short HEAD")
+        val r = BufferedReader(InputStreamReader(p.inputStream))
+        r.readLine()?.trim() ?: "unknown"
+    } catch (_: Exception) { "unknown" }
+    val ts = SimpleDateFormat("yyyyMMdd_HHmmss").format(Date())
+    val builder = System.getenv("BUILDER_ID") ?: System.getProperty("user.name") ?: "local"
+    return "$gitHash|$ts|$builder"
 }
 
 fun getDateTime(): String {
