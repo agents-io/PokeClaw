@@ -7,6 +7,9 @@ import io.agents.pokeclaw.agent.AgentCallback
 import io.agents.pokeclaw.agent.AgentConfig
 import io.agents.pokeclaw.agent.AgentService
 import io.agents.pokeclaw.agent.AgentServiceFactory
+import io.agents.pokeclaw.agent.PipelineRouter
+import io.agents.pokeclaw.agent.skill.SkillExecutor
+import io.agents.pokeclaw.agent.skill.SkillRegistry
 import io.agents.pokeclaw.channel.Channel
 import io.agents.pokeclaw.channel.ChannelManager
 import io.agents.pokeclaw.floating.FloatingCircleManager
@@ -37,6 +40,8 @@ class TaskOrchestrator(
     }
 
     private lateinit var agentService: AgentService
+    private val pipelineRouter = PipelineRouter(ClawApplication.instance)
+    private val skillExecutor = SkillExecutor()
 
     private val taskLock = Any()
     @Volatile
@@ -126,6 +131,51 @@ class TaskOrchestrator(
     }
 
     fun startNewTask(channel: Channel, task: String, messageID: String) {
+        // Tier 1: Try PipelineRouter for deterministic routing before agent loop
+        val route = pipelineRouter.route(task)
+        when (route) {
+            is PipelineRouter.Route.DirectIntent -> {
+                XLog.i(TAG, "Pipeline Tier 1: DirectIntent — ${route.description}")
+                pipelineRouter.executeIntent(route.intent)
+                taskProgressCallback?.invoke(route.description)
+                ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
+                releaseTask()
+                FloatingCircleManager.setSuccessState()
+                onTaskFinished()
+                return
+            }
+            is PipelineRouter.Route.DirectTool -> {
+                XLog.i(TAG, "Pipeline Tier 1: DirectTool — ${route.toolName}")
+                val result = pipelineRouter.executeTool(route.toolName, route.params)
+                taskProgressCallback?.invoke(route.description)
+                ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
+                releaseTask()
+                FloatingCircleManager.setSuccessState()
+                onTaskFinished()
+                return
+            }
+            is PipelineRouter.Route.Skill -> {
+                XLog.i(TAG, "Pipeline Tier 2: Skill — ${route.skillId}")
+                val skill = SkillRegistry.findById(route.skillId)
+                if (skill != null) {
+                    val skillResult = skillExecutor.execute(skill, route.params) { step, total, desc ->
+                        taskProgressCallback?.invoke("Step $step/$total: $desc")
+                        ForegroundService.updateTaskStatus(ClawApplication.instance, desc)
+                    }
+                    ChannelManager.sendMessage(channel, skillResult.message, messageID)
+                    releaseTask()
+                    if (skillResult.success) FloatingCircleManager.setSuccessState()
+                    else FloatingCircleManager.setErrorState()
+                    onTaskFinished()
+                    return
+                }
+                XLog.w(TAG, "Skill ${route.skillId} not found, falling through to agent loop")
+            }
+            is PipelineRouter.Route.Chat, is PipelineRouter.Route.AgentLoop -> {
+                // Fall through to agent loop below
+            }
+        }
+
         if (!::agentService.isInitialized) {
             XLog.e(TAG, "AgentService not initialized, attempting to initialize")
             try {
