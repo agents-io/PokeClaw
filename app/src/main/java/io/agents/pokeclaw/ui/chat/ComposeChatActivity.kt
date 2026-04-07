@@ -64,6 +64,7 @@ class ComposeChatActivity : ComponentActivity() {
 
     // Cloud LLM chat support
     private var cloudClient: LlmClient? = null
+    private var cloudModelName: String? = null
     private val cloudHistory = mutableListOf<dev.langchain4j.data.message.ChatMessage>()
 
     // Compose state — observed by ChatScreen
@@ -277,9 +278,19 @@ class ComposeChatActivity : ComponentActivity() {
                 val config = AgentConfig.Builder()
                     .apiKey(apiKey).baseUrl(baseUrl).modelName(modelName)
                     .temperature(0.7).build()
+                val previousModel = cloudModelName
                 cloudClient = OpenAiLlmClient(config, OkHttpClientBuilderAdapter())
-                cloudHistory.clear()
-                cloudHistory.add(SystemMessage.from("You are a helpful AI assistant on an Android phone."))
+                cloudModelName = modelName
+                if (previousModel == null || cloudHistory.isEmpty()) {
+                    // First load or no history — fresh start
+                    cloudHistory.clear()
+                    cloudHistory.add(SystemMessage.from("You are a helpful AI assistant on an Android phone."))
+                } else if (previousModel != modelName) {
+                    // Mid-session model switch — keep history, notify via system message
+                    cloudHistory.add(SystemMessage.from("The user has switched from $previousModel to $modelName. Continue the conversation naturally."))
+                    addSystem("Switched to $modelName")
+                    XLog.i(TAG, "Mid-session model switch: $previousModel → $modelName")
+                }
                 isModelReady = true
                 _modelStatus.value = "● $modelName · Cloud"
                 setButtonsEnabled(true)
