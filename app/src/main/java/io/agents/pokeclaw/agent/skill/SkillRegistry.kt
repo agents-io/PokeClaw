@@ -38,6 +38,12 @@ object SkillRegistry {
      */
     fun findByTrigger(task: String): Skill? {
         val lower = task.lowercase()
+        // Compound tasks with conjunctions should go to agent loop, not skills.
+        // Skills are for simple, single-action commands only.
+        if (lower.contains(" and ") || lower.contains(" then ") || lower.contains(" after ")) {
+            XLog.d(TAG, "Compound task detected, skipping skill matching: $task")
+            return null
+        }
         return skills.values.find { skill ->
             skill.triggerPatterns.any { pattern ->
                 try {
@@ -53,14 +59,10 @@ object SkillRegistry {
     }
 
     /**
-     * Get skill summaries for classifier prompt.
-     * Format: "id: description"
-     */
-    fun getSummariesForPrompt(): List<String> =
-        skills.values.map { "${it.id}: ${it.description}" }
-
-    /**
      * Load built-in skills. Called once at app startup.
+     *
+     * Only simple, context-free, app-agnostic skills belong here.
+     * Complex app-specific tasks (messaging, camera, etc.) go through the agent loop.
      */
     fun loadBuiltInSkills() {
         register(BuiltInSkills.searchInApp())
@@ -68,23 +70,10 @@ object SkillRegistry {
         register(BuiltInSkills.dismissPopup())
         register(BuiltInSkills.scrollAndRead())
         register(BuiltInSkills.copyScreenText())
-        register(BuiltInSkills.sendWhatsApp())
-        register(BuiltInSkills.navigateToTab())
-        register(BuiltInSkills.openAndNavigate())
         register(BuiltInSkills.acceptPermission())
         register(BuiltInSkills.swipeGesture())
         register(BuiltInSkills.goBack())
-        register(BuiltInSkills.installApp())
         register(BuiltInSkills.waitForContent())
-        register(BuiltInSkills.composeEmail())
-        register(BuiltInSkills.setAlarm())
-        register(BuiltInSkills.createCalendarEvent())
-        register(BuiltInSkills.makeCall())
-        register(BuiltInSkills.sendSms())
-        register(BuiltInSkills.takePhoto())
-        register(BuiltInSkills.clearTextField())
-        register(BuiltInSkills.readNotifications())
-        register(BuiltInSkills.toggleSetting())
         XLog.i(TAG, "Loaded ${skills.size} built-in skills")
     }
 

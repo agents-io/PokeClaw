@@ -4,9 +4,9 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog_alert"
     android:orientation="vertical"
-    android:paddingHorizontal="24pt"
-    android:paddingTop="24pt"
-    android:paddingBottom="24pt">
+    android:paddingHorizontal="24dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="24dp">
 
     <!-- 标题 -->
     <TextView
@@ -15,7 +15,7 @@
         android:layout_height="wrap_content"
         android:gravity="center"
         android:textColor="@color/colorTextPrimary"
-        android:textSize="17pt"
+        android:textSize="17dp"
         android:textStyle="bold" />
 
     <!-- 内容 -->
@@ -23,10 +23,10 @@
         android:id="@+id/tvMessage"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8pt"
+        android:layout_marginTop="8dp"
         android:gravity="center"
         android:textColor="@color/colorTextTertiary"
-        android:textSize="14pt"
+        android:textSize="14dp"
         android:visibility="gone" />
 
     <!-- 勾选区域 -->
@@ -34,7 +34,7 @@
         android:id="@+id/layoutCheckbox"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20pt"
+        android:layout_marginTop="20dp"
         android:gravity="center"
         android:orientation="vertical"
         android:visibility="gone">
@@ -47,17 +47,17 @@
 
             <ImageView
                 android:id="@+id/ivCheckbox"
-                android:layout_width="20pt"
-                android:layout_height="20pt"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:src="@drawable/icon_radio_unselected" />
 
             <TextView
                 android:id="@+id/tvCheckboxLabel"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8pt"
+                android:layout_marginStart="8dp"
                 android:textColor="@color/colorTextTertiary"
-                android:textSize="14pt" />
+                android:textSize="14dp" />
 
         </LinearLayout>
 
@@ -65,9 +65,9 @@
             android:id="@+id/tvCheckboxHint"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4pt"
+            android:layout_marginTop="4dp"
             android:textColor="@color/colorTextDisabled"
-            android:textSize="12pt"
+            android:textSize="12dp"
             android:visibility="gone" />
 
     </LinearLayout>
@@ -76,21 +76,21 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32pt"
+        android:layout_marginTop="32dp"
         android:orientation="horizontal">
 
         <!-- 取消按钮 -->
         <io.agents.pokeclaw.widget.KButton
             android:id="@+id/btnCancel"
             android:layout_width="0dp"
-            android:layout_height="44pt"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:textSize="15pt"
+            android:textSize="15dp"
             android:visibility="gone" />
 
         <View
             android:id="@+id/btnSpacer"
-            android:layout_width="8pt"
+            android:layout_width="8dp"
             android:layout_height="0dp"
             android:visibility="gone" />
 
@@ -98,9 +98,9 @@
         <io.agents.pokeclaw.widget.KButton
             android:id="@+id/btnAction"
             android:layout_width="0dp"
-            android:layout_height="44pt"
+            android:layout_height="44dp"
             android:layout_weight="1"
-            android:textSize="15pt" />
+            android:textSize="15dp" />
 
     </LinearLayout>
 

@@ -9,14 +9,16 @@
     <io.agents.pokeclaw.widget.CommonToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="56pt" />
+        android:layout_height="56dp" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingHorizontal="16pt"
-        android:paddingTop="8pt">
+        android:isScrollContainer="true"
+        android:fillViewport="true"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="8dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -27,39 +29,39 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
+                android:paddingHorizontal="4dp"
+                android:paddingBottom="8dp"
                 android:text="Active Model"
                 android:textColor="@color/colorTextSecondary"
-                android:textSize="13pt"
+                android:textSize="13dp"
                 android:textStyle="bold" />
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardBackgroundColor="@color/colorContainerBrighten"
-                app:cardCornerRadius="12pt"
-                app:cardElevation="1pt">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:padding="16pt">
+                    android:padding="16dp">
 
                     <TextView
-                        android:layout_width="40pt"
-                        android:layout_height="40pt"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
                         android:background="@drawable/bg_avatar_ai"
                         android:gravity="center"
                         android:text="🦞"
-                        android:textSize="22pt" />
+                        android:textSize="22dp" />
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginStart="12pt"
+                        android:layout_marginStart="12dp"
                         android:layout_weight="1"
                         android:orientation="vertical">
 
@@ -69,26 +71,26 @@
                             android:layout_height="wrap_content"
                             android:text="No model"
                             android:textColor="@color/colorTextPrimary"
-                            android:textSize="15pt"
+                            android:textSize="15dp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:id="@+id/tvActiveModelMeta"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="2pt"
+                            android:layout_marginTop="2dp"
                             android:text="Tap to download a model"
                             android:textColor="@color/colorTextTertiary"
-                            android:textSize="12pt" />
+                            android:textSize="12dp" />
 
                         <TextView
                             android:id="@+id/tvActiveModelStatus"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="4pt"
+                            android:layout_marginTop="4dp"
                             android:text="● Not configured"
                             android:textColor="@color/colorSuccessPrimary"
-                            android:textSize="12pt" />
+                            android:textSize="12dp" />
                     </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -97,12 +99,12 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20pt"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
+                android:layout_marginTop="20dp"
+                android:paddingHorizontal="4dp"
+                android:paddingBottom="8dp"
                 android:text="Available Models"
                 android:textColor="@color/colorTextSecondary"
-                android:textSize="13pt"
+                android:textSize="13dp"
                 android:textStyle="bold" />
 
             <LinearLayout
@@ -133,42 +135,42 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20pt"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
+                android:layout_marginTop="20dp"
+                android:paddingHorizontal="4dp"
+                android:paddingBottom="8dp"
                 android:text="Cloud LLM"
                 android:textColor="@color/colorTextSecondary"
-                android:textSize="13pt"
+                android:textSize="13dp"
                 android:textStyle="bold" />
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="24pt"
+                android:layout_marginBottom="24dp"
                 app:cardBackgroundColor="@color/colorContainerBrighten"
-                app:cardCornerRadius="12pt"
-                app:cardElevation="1pt">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:padding="16pt">
+                    android:padding="16dp">
 
                     <!-- Provider Tabs -->
                     <HorizontalScrollView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:scrollbars="none"
-                        android:layout_marginBottom="12pt">
+                        android:layout_marginBottom="12dp">
 
                         <LinearLayout
                             android:id="@+id/layoutProviderTabs"
                             android:layout_width="wrap_content"
-                            android:layout_height="40pt"
+                            android:layout_height="40dp"
                             android:background="@drawable/bg_edit_text"
                             android:orientation="horizontal"
-                            android:padding="3pt" />
+                            android:padding="3dp" />
 
                     </HorizontalScrollView>
 
@@ -185,21 +187,21 @@
                         android:layout_height="wrap_content"
                         android:text="API Key"
                         android:textColor="@color/colorTextSecondary"
-                        android:textSize="12pt"
-                        android:layout_marginTop="12pt"
-                        android:layout_marginBottom="4pt" />
+                        android:textSize="12dp"
+                        android:layout_marginTop="12dp"
+                        android:layout_marginBottom="4dp" />
 
                     <EditText
                         android:id="@+id/etApiKey"
                         android:layout_width="match_parent"
-                        android:layout_height="44pt"
+                        android:layout_height="44dp"
                         android:background="@drawable/bg_edit_text"
                         android:hint="sk-..."
                         android:inputType="textPassword"
-                        android:paddingHorizontal="12pt"
+                        android:paddingHorizontal="12dp"
                         android:textColor="@color/colorTextPrimary"
                         android:textColorHint="@color/colorTextTertiary"
-                        android:textSize="13pt" />
+                        android:textSize="13dp" />
 
                     <!-- Base URL (Custom only) -->
                     <LinearLayout
@@ -214,42 +216,42 @@
                             android:layout_height="wrap_content"
                             android:text="Base URL"
                             android:textColor="@color/colorTextSecondary"
-                            android:textSize="12pt"
-                            android:layout_marginTop="10pt"
-                            android:layout_marginBottom="4pt" />
+                            android:textSize="12dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginBottom="4dp" />
 
                         <EditText
                             android:id="@+id/etBaseUrl"
                             android:layout_width="match_parent"
-                            android:layout_height="44pt"
+                            android:layout_height="44dp"
                             android:background="@drawable/bg_edit_text"
                             android:hint="https://api.openrouter.ai/v1"
                             android:inputType="textUri"
-                            android:paddingHorizontal="12pt"
+                            android:paddingHorizontal="12dp"
                             android:textColor="@color/colorTextPrimary"
                             android:textColorHint="@color/colorTextTertiary"
-                            android:textSize="13pt" />
+                            android:textSize="13dp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="Model Name"
                             android:textColor="@color/colorTextSecondary"
-                            android:textSize="12pt"
-                            android:layout_marginTop="10pt"
-                            android:layout_marginBottom="4pt" />
+                            android:textSize="12dp"
+                            android:layout_marginTop="10dp"
+                            android:layout_marginBottom="4dp" />
 
                         <EditText
                             android:id="@+id/etModelName"
                             android:layout_width="match_parent"
-                            android:layout_height="44pt"
+                            android:layout_height="44dp"
                             android:background="@drawable/bg_edit_text"
                             android:hint="google/gemini-2.5-flash"
                             android:inputType="text"
-                            android:paddingHorizontal="12pt"
+                            android:paddingHorizontal="12dp"
                             android:textColor="@color/colorTextPrimary"
                             android:textColorHint="@color/colorTextTertiary"
-                            android:textSize="13pt" />
+                            android:textSize="13dp" />
 
                     </LinearLayout>
 
@@ -258,33 +260,33 @@
                         android:id="@+id/tvConnectionStatus"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8pt"
-                        android:textSize="12pt"
+                        android:layout_marginTop="8dp"
+                        android:textSize="12dp"
                         android:visibility="gone" />
 
                     <!-- Buttons -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14pt"
+                        android:layout_marginTop="14dp"
                         android:orientation="horizontal">
 
                         <TextView
                             android:id="@+id/btnTestConnection"
                             android:layout_width="0dp"
-                            android:layout_height="44pt"
+                            android:layout_height="44dp"
                             android:layout_weight="1"
-                            android:layout_marginEnd="6pt"
+                            android:layout_marginEnd="6dp"
                             android:background="@drawable/bg_edit_text"
                             android:gravity="center"
                             android:text="Test"
                             android:textColor="@color/colorBrandPrimary"
-                            android:textSize="13pt" />
+                            android:textSize="13dp" />
 
                         <io.agents.pokeclaw.widget.KButton
                             android:id="@+id/btnSaveCloud"
                             android:layout_width="0dp"
-                            android:layout_height="44pt"
+                            android:layout_height="44dp"
                             android:layout_weight="2"
                             android:text="Save &amp; Activate" />
 
@@ -295,10 +297,10 @@
                         android:id="@+id/tvCustomHint"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="8pt"
+                        android:layout_marginTop="8dp"
                         android:text="Compatible with: OpenRouter, Groq, Together AI, Ollama, any OpenAI-compatible endpoint"
                         android:textColor="@color/colorTextTertiary"
-                        android:textSize="10pt"
+                        android:textSize="10dp"
                         android:visibility="gone" />
 
                 </LinearLayout>

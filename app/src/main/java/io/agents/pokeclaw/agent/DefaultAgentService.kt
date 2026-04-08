@@ -395,6 +395,7 @@ class DefaultAgentService : AgentService {
         val stuckDetector = StuckDetector()
         val taskBudget = TaskBudget.fromSettings()
         var softLimitWarned = false
+        var consecutiveNoToolCalls = 0
 
         while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -473,17 +474,23 @@ class DefaultAgentService : AgentService {
 
             // No tool calls in this response
             if (!llmResponse.hasToolExecutionRequests()) {
+                consecutiveNoToolCalls++
                 val responseText = llmResponse.text ?: ""
-                // Only finish if LLM explicitly says done, or we've been going too long
-                if (iterations >= maxIterations - 1) {
+
+                // Stop after 3 consecutive text-only responses — LLM is stuck talking
+                if (consecutiveNoToolCalls >= 3 || iterations >= maxIterations - 1) {
+                    XLog.w(TAG, "runAgentLoop: $consecutiveNoToolCalls consecutive no-tool-call responses, finishing")
                     callback.onComplete(iterations, responseText.ifEmpty { ClawApplication.instance.getString(R.string.agent_task_completed) }, totalTokens)
                     return
                 }
                 // LLM responded with text but no tool call — re-prompt to continue
-                XLog.w(TAG, "runAgentLoop: no tool call in response, re-prompting LLM to continue")
+                XLog.w(TAG, "runAgentLoop: no tool call in response ($consecutiveNoToolCalls/3), re-prompting LLM to continue")
                 messages.add(UserMessage.from("Continue the task. Use a tool call to perform the next action. Do not just describe what to do — actually do it with a tool call."))
                 continue
             }
+
+            // Reset counter when LLM does use tools
+            consecutiveNoToolCalls = 0
 
             // Execute tool calls
             for (toolRequest in llmResponse.toolExecutionRequests) {

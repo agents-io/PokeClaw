@@ -6,7 +6,7 @@
     android:background="@drawable/bg_dialog_rounded"
     android:gravity="center_horizontal"
     android:orientation="vertical"
-    android:padding="24pt">
+    android:padding="24dp">
 
     <!-- 标题 -->
     <TextView
@@ -14,7 +14,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textColor="@color/colorTextPrimary"
-        android:textSize="18pt"
+        android:textSize="18dp"
         android:textStyle="bold" />
 
     <!-- 副标题 -->
@@ -22,16 +22,16 @@
         android:id="@+id/tvSubtitle"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8pt"
+        android:layout_marginTop="8dp"
         android:textColor="@color/colorTextSecondary"
-        android:textSize="14pt"
+        android:textSize="14dp"
         android:visibility="gone" />
 
     <!-- 二维码区域 -->
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="24pt">
+        android:layout_marginTop="24dp">
 
         <!-- 二维码图片 -->
         <ImageView
@@ -56,7 +56,7 @@
                 android:layout_height="wrap_content"
                 android:layout_gravity="center"
                 android:textColor="@color/colorTextPrimary"
-                android:textSize="18pt"
+                android:textSize="18dp"
                 android:textStyle="bold" />
 
         </FrameLayout>
@@ -67,9 +67,9 @@
     <io.agents.pokeclaw.widget.KButton
         android:id="@+id/btnClose"
         android:layout_width="match_parent"
-        android:layout_height="48pt"
-        android:layout_marginTop="24pt"
+        android:layout_height="48dp"
+        android:layout_marginTop="24dp"
         android:text="@string/common_close"
-        android:textSize="16pt" />
+        android:textSize="16dp" />
 
 </LinearLayout>

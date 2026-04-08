@@ -130,7 +130,24 @@ class TaskOrchestrator(
         XLog.d(TAG, "Current task cancelled by user")
     }
 
-    fun startNewTask(channel: Channel, task: String, messageID: String) {
+    /**
+     * Start a new task. Routes through the 3-tier pipeline.
+     *
+     * @param channel     the channel this task came from
+     * @param task        the user's task text
+     * @param messageID   message ID for reply routing
+     * @param isFallback  true if this is a skill→agent fallback (prevents infinite recursion)
+     */
+    fun startNewTask(channel: Channel, task: String, messageID: String, isFallback: Boolean = false) {
+        // Acquire task lock if not already held (LOCAL channel calls need this)
+        if (!isTaskRunning()) {
+            if (!tryAcquireTask(messageID, channel)) {
+                XLog.w(TAG, "Failed to acquire task lock for: $task")
+                taskProgressCallback?.invoke("Task failed: another task is running")
+                return
+            }
+        }
+
         // Tier 1: Try PipelineRouter for deterministic routing before agent loop
         val route = pipelineRouter.route(task)
         when (route) {
@@ -146,7 +163,7 @@ class TaskOrchestrator(
             }
             is PipelineRouter.Route.DirectTool -> {
                 XLog.i(TAG, "Pipeline Tier 1: DirectTool — ${route.toolName}")
-                val result = pipelineRouter.executeTool(route.toolName, route.params)
+                pipelineRouter.executeTool(route.toolName, route.params)
                 taskProgressCallback?.invoke(route.description)
                 ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
                 releaseTask()
@@ -155,37 +172,41 @@ class TaskOrchestrator(
                 return
             }
             is PipelineRouter.Route.Skill -> {
-                XLog.i(TAG, "Pipeline Tier 2: Skill — ${route.skillId}")
-                val skill = SkillRegistry.findById(route.skillId)
-                if (skill != null) {
-                    FloatingCircleManager.showTaskNotify(task, channel)
-                    Thread({
-                        val skillResult = skillExecutor.execute(skill, route.params) { step, total, desc ->
-                            taskProgressCallback?.invoke("Step $step/$total: $desc")
-                            ForegroundService.updateTaskStatus(ClawApplication.instance, desc)
-                        }
-                        if (skillResult.success) {
-                            val resultMsg = "Task completed: ${skillResult.message}"
-                            ChannelManager.sendMessage(channel, skillResult.message, messageID)
-                            taskProgressCallback?.invoke(resultMsg)
-                            releaseTask()
-                            FloatingCircleManager.setSuccessState()
-                            ForegroundService.resetToIdle(ClawApplication.instance)
-                            onTaskFinished()
-                        } else {
-                            // Skill failed — fall through to agent loop with fallback goal
-                            val fallbackGoal = skill.fallbackGoal
-                                .let { g -> route.params.entries.fold(g) { acc, (k, v) -> acc.replace("{$k}", v) } }
-                            XLog.i(TAG, "Skill ${skill.id} failed, falling back to agent loop: $fallbackGoal")
-                            taskProgressCallback?.invoke("Retrying with AI agent...")
-                            releaseTask()
-                            // Re-route as agent loop task (runs on this thread via startNewTask)
-                            startNewTask(channel, fallbackGoal, messageID)
-                        }
-                    }, "skill-executor").start()
-                    return
+                // Skip skill routing on fallback to prevent infinite recursion
+                if (isFallback) {
+                    XLog.i(TAG, "Skipping skill route on fallback, going to agent loop: ${route.skillId}")
+                } else {
+                    XLog.i(TAG, "Pipeline Tier 2: Skill — ${route.skillId}")
+                    val skill = SkillRegistry.findById(route.skillId)
+                    if (skill != null) {
+                        FloatingCircleManager.showTaskNotify(task, channel)
+                        Thread({
+                            val skillResult = skillExecutor.execute(skill, route.params) { step, total, desc ->
+                                taskProgressCallback?.invoke("Step $step/$total: $desc")
+                                ForegroundService.updateTaskStatus(ClawApplication.instance, desc)
+                            }
+                            if (skillResult.success) {
+                                val resultMsg = "Task completed: ${skillResult.message}"
+                                ChannelManager.sendMessage(channel, skillResult.message, messageID)
+                                taskProgressCallback?.invoke(resultMsg)
+                                releaseTask()
+                                FloatingCircleManager.setSuccessState()
+                                ForegroundService.resetToIdle(ClawApplication.instance)
+                                onTaskFinished()
+                            } else {
+                                // Skill failed — fall through to agent loop with fallback goal (max 1 fallback)
+                                val fallbackGoal = skill.fallbackGoal
+                                    .let { g -> route.params.entries.fold(g) { acc, (k, v) -> acc.replace("{$k}", v) } }
+                                XLog.i(TAG, "Skill ${skill.id} failed, falling back to agent loop: $fallbackGoal")
+                                taskProgressCallback?.invoke("Retrying with AI agent...")
+                                // Re-route as agent loop task with isFallback=true to prevent recursion
+                                startNewTask(channel, fallbackGoal, messageID, isFallback = true)
+                            }
+                        }, "skill-executor").start()
+                        return
+                    }
+                    XLog.w(TAG, "Skill ${route.skillId} not found, falling through to agent loop")
                 }
-                XLog.w(TAG, "Skill ${route.skillId} not found, falling through to agent loop")
             }
             is PipelineRouter.Route.Chat, is PipelineRouter.Route.AgentLoop -> {
                 // Fall through to agent loop below

@@ -4,23 +4,23 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog"
     android:orientation="vertical"
-    android:paddingHorizontal="16pt"
-    android:paddingTop="24pt"
-    android:paddingBottom="40pt">
+    android:paddingHorizontal="16dp"
+    android:paddingTop="24dp"
+    android:paddingBottom="40dp">
 
     <!-- 标题栏：关闭按钮 + 居中标题 -->
     <FrameLayout
         android:layout_width="match_parent"
-        android:layout_height="44pt">
+        android:layout_height="44dp">
 
         <ImageView
             android:id="@+id/btnClose"
-            android:layout_width="44pt"
-            android:layout_height="44pt"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
             android:layout_gravity="start|center_vertical"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:contentDescription="@string/common_close"
-            android:padding="10pt"
+            android:padding="10dp"
             android:src="@drawable/ic_close" />
 
         <TextView
@@ -29,20 +29,20 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center"
             android:textColor="@color/colorTextPrimary"
-            android:textSize="17pt"
+            android:textSize="17dp"
             android:textStyle="bold" />
 
     </FrameLayout>
 
     <android.widget.Space
         android:layout_width="0dp"
-        android:layout_height="24pt" />
+        android:layout_height="24dp" />
 
     <!-- 输入框 -->
     <FrameLayout
         android:id="@+id/inputContainer"
         android:layout_width="match_parent"
-        android:layout_height="56pt"
+        android:layout_height="56dp"
         android:background="@drawable/bg_input_field">
 
         <EditText
@@ -51,22 +51,22 @@
             android:layout_height="match_parent"
             android:background="@null"
             android:imeOptions="actionDone"
-            android:paddingHorizontal="16pt"
-            android:paddingEnd="48pt"
+            android:paddingHorizontal="16dp"
+            android:paddingEnd="48dp"
             android:singleLine="true"
             android:textColor="@color/colorTextPrimary"
             android:textColorHint="@color/colorTextTertiary"
-            android:textSize="16pt"
+            android:textSize="16dp"
             android:textStyle="bold" />
 
         <ImageView
             android:id="@+id/btnClear"
-            android:layout_width="40pt"
-            android:layout_height="40pt"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:layout_gravity="end|center_vertical"
-            android:layout_marginEnd="4pt"
+            android:layout_marginEnd="4dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:padding="10pt"
+            android:padding="10dp"
             android:src="@drawable/ic_close"
             android:visibility="gone" />
 
@@ -74,14 +74,14 @@
 
     <android.widget.Space
         android:layout_width="0dp"
-        android:layout_height="24pt" />
+        android:layout_height="24dp" />
 
     <!-- 确认按钮 -->
     <io.agents.pokeclaw.widget.KButton
         android:id="@+id/btnConfirm"
         android:layout_width="match_parent"
-        android:layout_height="48pt"
+        android:layout_height="48dp"
         android:text="@string/common_confirm"
-        android:textSize="15pt" />
+        android:textSize="15dp" />
 
 </LinearLayout>

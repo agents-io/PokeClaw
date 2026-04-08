@@ -7,20 +7,20 @@
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:padding="16pt">
+        android:padding="16dp">
 
         <ImageView
             android:id="@+id/ivIcon"
-            android:layout_width="40pt"
-            android:layout_height="40pt"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
             android:background="@drawable/bg_icon_circle"
-            android:padding="8pt"
+            android:padding="8dp"
             app:tint="@color/colorBrandPrimary" />
 
         <LinearLayout
-            android:layout_width="0pt"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_marginStart="12pt"
+            android:layout_marginStart="12dp"
             android:layout_weight="1"
             android:orientation="vertical">
 
@@ -29,23 +29,23 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/colorTextPrimary"
-                android:textSize="16pt"
+                android:textSize="16dp"
                 android:textStyle="bold" />
 
             <TextView
                 android:id="@+id/tvSubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4pt"
+                android:layout_marginTop="4dp"
                 android:textColor="@color/colorTextSecondary"
-                android:textSize="13pt" />
+                android:textSize="13dp" />
 
         </LinearLayout>
 
         <FrameLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:minHeight="28pt">
+            android:minHeight="28dp">
 
             <androidx.appcompat.widget.SwitchCompat
                 android:id="@+id/switchStatus"
@@ -63,7 +63,7 @@
                 android:layout_gravity="center"
                 android:text="@string/home_permission_enabled"
                 android:textColor="@color/colorSuccessPrimary"
-                android:textSize="14pt"
+                android:textSize="14dp"
                 android:visibility="invisible" />
 
         </FrameLayout>

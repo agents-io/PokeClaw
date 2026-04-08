@@ -35,7 +35,8 @@ object EngineHolder {
      *                   context-free and easier to unit-test
      */
     @Synchronized
-    fun getOrCreate(modelPath: String, cacheDir: String): Engine {
+    @JvmOverloads
+    fun getOrCreate(modelPath: String, cacheDir: String, backend: Backend = Backend.CPU()): Engine {
         val existing = engine
         if (existing != null && currentModelPath == modelPath) {
             XLog.d(TAG, "getOrCreate: reusing engine for $modelPath")
@@ -54,11 +55,11 @@ object EngineHolder {
             currentModelPath = null
         }
 
-        XLog.i(TAG, "getOrCreate: creating new engine for $modelPath")
+        XLog.i(TAG, "getOrCreate: creating new engine for $modelPath with ${backend.javaClass.simpleName}")
         return try {
             val engineConfig = EngineConfig(
                 modelPath = modelPath,
-                backend = Backend.CPU(),
+                backend = backend,
                 maxNumTokens = 8192,
                 cacheDir = cacheDir
             )

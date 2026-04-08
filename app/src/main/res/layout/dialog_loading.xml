@@ -4,25 +4,25 @@
     android:layout_height="wrap_content"
     android:background="@drawable/bg_dialog_rounded"
     android:gravity="center"
-    android:minWidth="120pt"
-    android:minHeight="120pt"
+    android:minWidth="120dp"
+    android:minHeight="120dp"
     android:orientation="vertical"
-    android:paddingHorizontal="28pt"
-    android:paddingVertical="24pt">
+    android:paddingHorizontal="28dp"
+    android:paddingVertical="24dp">
 
     <ProgressBar
         android:id="@+id/progressBar"
-        android:layout_width="36pt"
-        android:layout_height="36pt"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
         android:indeterminateTint="@color/colorBrandPrimary" />
 
     <TextView
         android:id="@+id/tvMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="14pt"
+        android:layout_marginTop="14dp"
         android:textColor="@color/colorTextSecondary"
-        android:textSize="14pt"
+        android:textSize="14dp"
         android:visibility="gone" />
 
 </LinearLayout>

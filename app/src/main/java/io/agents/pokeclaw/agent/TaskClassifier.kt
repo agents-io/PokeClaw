@@ -53,8 +53,8 @@ $skillList
 
 Rules:
 - If the task mentions "search" or "find" in an app → skill_id: "search_in_app"
-- If the task mentions "send message" to someone → skill_id: "send_whatsapp" or "submit_form"
-- If task is ambiguous between skill and agent, prefer skill (cheaper)
+- If the task involves messaging (WhatsApp, SMS, email) → type: "agent" (requires UI navigation)
+- If task is ambiguous between skill and agent, prefer agent for complex tasks, skill for simple ones
 - sub_goal should be a simplified version of the task for the agent loop
 - app should be a common app name like "YouTube", "WhatsApp", "Chrome", "Clock"
 """

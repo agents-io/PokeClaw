@@ -410,7 +410,7 @@ class ComposeChatActivity : ComponentActivity() {
             // Wait for task agent's conversation to fully close before creating new one
             Thread.sleep(1000)
 
-            engine = EngineHolder.getOrCreate(modelPath, cacheDir.path)
+            engine = EngineHolder.getOrCreate(modelPath, cacheDir.path, backend)
             XLog.i(TAG, "loadModelWithBackend: engine ready")
 
             // Retry createConversation with backoff — task conversation may still be closing
@@ -503,6 +503,8 @@ class ComposeChatActivity : ComponentActivity() {
         }
     }
 
+    private var sendTaskRetryCount = 0
+
     private fun sendTask(text: String) {
         if (!ClawAccessibilityService.isRunning()) {
             if (!ClawAccessibilityService.isEnabledInSettings(this)) {
@@ -510,9 +512,16 @@ class ComposeChatActivity : ComponentActivity() {
                 addSystem("Task mode needs Accessibility permission to control your phone.")
                 startActivity(Intent(android.provider.Settings.ACTION_ACCESSIBILITY_SETTINGS))
                 Toast.makeText(this, "Enable PokeClaw in Accessibility settings", Toast.LENGTH_LONG).show()
+                sendTaskRetryCount = 0
                 return
             }
-            // Enabled but still binding — wait briefly on background thread
+            // Enabled but still binding — wait briefly on background thread (max 1 retry)
+            if (sendTaskRetryCount >= 1) {
+                addSystem("Accessibility service didn't connect. Try toggling it off and on in Settings > Accessibility.")
+                sendTaskRetryCount = 0
+                return
+            }
+            sendTaskRetryCount++
             addSystem("Accessibility service starting, please wait...")
             executor.submit {
                 val connected = ClawAccessibilityService.awaitRunning(3000)
@@ -521,11 +530,13 @@ class ComposeChatActivity : ComponentActivity() {
                         sendTask(text)
                     } else {
                         addSystem("Accessibility service didn't connect. Try toggling it off and on in Settings > Accessibility.")
+                        sendTaskRetryCount = 0
                     }
                 }
             }
             return
         }
+        sendTaskRetryCount = 0
 
         // Ensure notification permission + foreground service for task progress visibility
         ensureNotificationPermission()
@@ -648,7 +659,8 @@ class ComposeChatActivity : ComponentActivity() {
             loadModelIfReady()
         } else {
             val provider = io.agents.pokeclaw.agent.CloudProvider.findProviderForModel(modelId)
-            KVUtils.setLlmProvider("OPENAI")
+            // Use the actual provider name, not hardcoded OPENAI
+            KVUtils.setLlmProvider(provider?.name ?: "OPENAI")
             KVUtils.setLlmModelName(modelId)
             if (provider != null) {
                 KVUtils.setLlmBaseUrl(provider.defaultBaseUrl)
@@ -774,9 +786,9 @@ class ComposeChatActivity : ComponentActivity() {
         // Remove known keywords to isolate the contact name
         var cleaned = lower
         val removeWords = listOf(
-            "monitor", "auto-reply", "auto reply", "watch",
+            "monitoring", "monitor", "auto-reply", "auto reply", "watching", "watch",
             "on whatsapp", "on telegram", "on messages", "on wechat", "on line",
-            "messages", "message", "'s", "'s", "and", "for", "to", "from",
+            "messages", "message", "'s", "'s", "for", "from",
             "please", "can you", "start", "enable", "begin", "help me",
         )
         for (word in removeWords) {

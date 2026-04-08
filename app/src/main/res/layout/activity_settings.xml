@@ -9,7 +9,7 @@
     <io.agents.pokeclaw.widget.CommonToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="44pt" />
+        android:layout_height="44dp" />
 
     <!-- 滚动内容 -->
     <ScrollView
@@ -20,14 +20,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingVertical="8pt">
+            android:paddingVertical="8dp">
 
             <!-- 权限分组 -->
             <io.agents.pokeclaw.widget.MenuGroup
                 android:id="@+id/permissionsGroup"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8pt" />
+                android:layout_marginTop="8dp" />
 
             <!-- 模型分组 -->
             <io.agents.pokeclaw.widget.MenuGroup
@@ -68,7 +68,7 @@
 
             <View
                 android:layout_width="match_parent"
-                android:layout_height="24pt"/>
+                android:layout_height="24dp"/>
 
         </LinearLayout>
 

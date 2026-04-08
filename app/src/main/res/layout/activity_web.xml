@@ -8,14 +8,14 @@
     <io.agents.pokeclaw.widget.CommonToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="56pt" />
+        android:layout_height="56dp" />
 
     <!-- 加载进度条 -->
     <ProgressBar
         android:id="@+id/progressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="match_parent"
-        android:layout_height="2pt"
+        android:layout_height="2dp"
         android:max="100"
         android:progressDrawable="@drawable/web_progress_drawable" />
 

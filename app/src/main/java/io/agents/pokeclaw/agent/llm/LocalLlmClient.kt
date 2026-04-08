@@ -113,9 +113,12 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
 
         // Detect new task or recreate needed
         if (processedMessageCount == 0 || messages.size < processedMessageCount || sendCount >= 8) {
-            // Recreate conversation every 2 sends to avoid SIGSEGV on 3rd sequential call.
+            // Recreate conversation every 8 sends to avoid SIGSEGV on sequential calls.
             // This is a workaround for LiteRT-LM bug in sequential sendMessage.
-            val systemPrompt = LOCAL_SYSTEM_PROMPT
+            // Use the full system prompt from agent config so the LLM retains all
+            // skill instructions and rules after conversation recreation.
+            val systemPrompt = messages.filterIsInstance<SystemMessage>().firstOrNull()?.text()
+                ?: config.systemPrompt.ifEmpty { LOCAL_SYSTEM_PROMPT }
             createConversation(systemPrompt, toolSpecs)
             sendCount = 0
             processedMessageCount = 0

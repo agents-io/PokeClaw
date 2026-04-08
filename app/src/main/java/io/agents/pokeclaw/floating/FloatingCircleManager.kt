@@ -16,6 +16,7 @@ import androidx.annotation.DrawableRes
 import com.blankj.utilcode.util.ThreadUtils
 import io.agents.pokeclaw.R
 import io.agents.pokeclaw.channel.Channel
+import io.agents.pokeclaw.utils.XLog
 import io.agents.pokeclaw.utils.KVUtils
 import com.blankj.utilcode.util.BarUtils
 import com.lzf.easyfloat.EasyFloat
@@ -73,7 +74,9 @@ object FloatingCircleManager {
         x: Int? = null,
         y: Int? = null
     ) {
+        android.util.Log.e("POKECLAW_FLOAT", "show() called, isShowing=$isShowing, canDrawOverlays=${android.provider.Settings.canDrawOverlays(application)}")
         if (isShowing) {
+            android.util.Log.e("POKECLAW_FLOAT", "show() skipped — already showing")
             return
         }
         appRef = application
@@ -103,6 +106,7 @@ object FloatingCircleManager {
                     msg: String?,
                     view: View?
                 ) {
+                    android.util.Log.e("POKECLAW_FLOAT", "createdResult: isCreated=$isCreated, msg=$msg, view=${view != null}")
                     // Cache the original circle width (must be before any setFloatRootWidth call)
                     view?.findViewById<View>(R.id.floatRoot)?.let { root ->
                         if (circleWidthPx <= 0) {
@@ -239,7 +243,7 @@ object FloatingCircleManager {
             tvStatus.text = "Step $step | $formattedTokens | $formattedCost"
 
             // Update pill color based on token state
-            val cardRunning = view.findViewById<com.google.android.material.card.MaterialCardView>(R.id.cardRunning) ?: return@runOnUiThread
+            val cardRunning = view.findViewById<androidx.cardview.widget.CardView>(R.id.cardRunning) ?: return@runOnUiThread
             val colorRes = when (tokenState) {
                 io.agents.pokeclaw.agent.TokenMonitor.State.NORMAL -> R.color.colorBrandPrimary
                 io.agents.pokeclaw.agent.TokenMonitor.State.CAUTION -> R.color.colorWarningPrimary

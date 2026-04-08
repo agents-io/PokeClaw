@@ -13,26 +13,26 @@
         android:background="?attr/selectableItemBackground"
         android:gravity="center_vertical"
         android:orientation="horizontal"
-        android:paddingVertical="16pt"
-        android:paddingStart="8pt"
-        android:paddingEnd="8pt">
+        android:paddingVertical="16dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp">
 
         <Space
-            android:layout_width="8pt"
+            android:layout_width="8dp"
             android:layout_height="wrap_content" />
 
         <!-- 左侧图标 -->
         <com.google.android.material.imageview.ShapeableImageView
             android:id="@+id/ivLeading"
-            android:layout_width="24pt"
-            android:layout_height="24pt"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/ic_launcher"
             android:scaleType="centerCrop"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.Launcher.Small"
             tools:ignore="UseAppTint" />
 
         <Space
-            android:layout_width="16pt"
+            android:layout_width="16dp"
             android:layout_height="wrap_content" />
 
         <!-- 标题 -->
@@ -42,15 +42,15 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:textColor="@color/colorTextPrimary"
-            android:textSize="14pt"
+            android:textSize="14dp"
             tools:text="菜单标题" />
 
         <!-- 红点 -->
         <View
             android:id="@+id/viewRedDot"
-            android:layout_width="8pt"
-            android:layout_height="8pt"
-            android:layout_marginEnd="6pt"
+            android:layout_width="8dp"
+            android:layout_height="8dp"
+            android:layout_marginEnd="6dp"
             android:background="@drawable/bg_red_dot"
             android:visibility="gone" />
 
@@ -60,7 +60,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/colorTextTertiary"
-            android:textSize="12pt"
+            android:textSize="12dp"
             android:visibility="gone"
             tools:text="提示文字"
             tools:visibility="visible" />
@@ -68,8 +68,8 @@
         <!-- 尾部箭头图标 -->
         <ImageView
             android:id="@+id/ivTrailing"
-            android:layout_width="24pt"
-            android:layout_height="24pt"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:src="@drawable/ic_arrow_right"
             android:tint="@color/colorTextTertiary"
             android:visibility="visible"
@@ -81,8 +81,8 @@
     <View
         android:id="@+id/divider"
         android:layout_width="match_parent"
-        android:layout_height="1pt"
-        android:layout_marginStart="56pt"
+        android:layout_height="1dp"
+        android:layout_marginStart="56dp"
         android:background="@color/colorBorderBase"
         android:visibility="visible" />
 

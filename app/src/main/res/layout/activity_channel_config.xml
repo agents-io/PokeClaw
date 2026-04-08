@@ -10,14 +10,14 @@
     <io.agents.pokeclaw.widget.CommonToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
-        android:layout_height="56pt" />
+        android:layout_height="56dp" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingHorizontal="16pt"
-        android:paddingTop="16pt">
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -29,20 +29,20 @@
                 android:id="@+id/tvTip"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="16pt"
+                android:paddingHorizontal="4dp"
+                android:paddingBottom="16dp"
                 android:textColor="@color/colorTextSecondary"
-                android:textSize="14pt" />
+                android:textSize="14dp" />
 
             <!-- 第一个输入框标题 -->
             <TextView
                 android:id="@+id/tvLabel1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
+                android:paddingHorizontal="4dp"
+                android:paddingBottom="8dp"
                 android:textColor="@color/colorTextPrimary"
-                android:textSize="14pt"
+                android:textSize="14dp"
                 android:textStyle="bold" />
 
             <!-- 第一个输入框卡片 -->
@@ -50,21 +50,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardBackgroundColor="@color/colorContainerBrighten"
-                app:cardCornerRadius="12pt"
-                app:cardElevation="1pt">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp">
 
                 <EditText
                     android:id="@+id/etInput1"
                     android:layout_width="match_parent"
-                    android:layout_height="48pt"
+                    android:layout_height="48dp"
                     android:background="@null"
                     android:inputType="text"
                     android:maxLines="1"
-                    android:paddingHorizontal="16pt"
+                    android:paddingHorizontal="16dp"
                     android:singleLine="true"
                     android:textColor="@color/colorTextPrimary"
                     android:textColorHint="@color/colorTextTertiary"
-                    android:textSize="15pt" />
+                    android:textSize="15dp" />
             </androidx.cardview.widget.CardView>
 
             <!-- 第二个输入框标题 -->
@@ -72,11 +72,11 @@
                 android:id="@+id/tvLabel2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20pt"
-                android:paddingHorizontal="4pt"
-                android:paddingBottom="8pt"
+                android:layout_marginTop="20dp"
+                android:paddingHorizontal="4dp"
+                android:paddingBottom="8dp"
                 android:textColor="@color/colorTextPrimary"
-                android:textSize="14pt"
+                android:textSize="14dp"
                 android:textStyle="bold" />
 
             <!-- 第二个输入框卡片（密码样式 + 眼睛图标） -->
@@ -84,15 +84,15 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 app:cardBackgroundColor="@color/colorContainerBrighten"
-                app:cardCornerRadius="12pt"
-                app:cardElevation="1pt">
+                app:cardCornerRadius="12dp"
+                app:cardElevation="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
-                    android:layout_height="48pt"
+                    android:layout_height="48dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal"
-                    android:paddingHorizontal="16pt">
+                    android:paddingHorizontal="16dp">
 
                     <EditText
                         android:id="@+id/etInput2"
@@ -105,13 +105,13 @@
                         android:singleLine="true"
                         android:textColor="@color/colorTextPrimary"
                         android:textColorHint="@color/colorTextTertiary"
-                        android:textSize="15pt" />
+                        android:textSize="15dp" />
 
                     <ImageView
                         android:id="@+id/ivTogglePassword"
-                        android:layout_width="24pt"
-                        android:layout_height="24pt"
-                        android:layout_marginStart="8pt"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_marginStart="8dp"
                         android:contentDescription="@null"
                         android:src="@drawable/ic_visibility_off" />
                 </LinearLayout>
@@ -121,17 +121,17 @@
             <io.agents.pokeclaw.widget.KButton
                 android:id="@+id/btnSave"
                 android:layout_width="match_parent"
-                android:layout_height="48pt"
-                android:layout_marginTop="32pt"
+                android:layout_height="48dp"
+                android:layout_marginTop="32dp"
                 android:text="@string/common_save"
-                android:textSize="16pt" />
+                android:textSize="16dp" />
 
             <!-- 局域网配置提示 -->
             <LinearLayout
                 android:id="@+id/layoutLanHint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20pt"
+                android:layout_marginTop="20dp"
                 android:gravity="center"
                 android:orientation="horizontal">
 
@@ -142,13 +142,13 @@
                     android:layout_weight="1"
                     android:gravity="center"
                     android:textColor="@color/colorTextTertiary"
-                    android:textSize="13pt" />
+                    android:textSize="13dp" />
 
                 <ImageView
                     android:id="@+id/ivCopyAddress"
-                    android:layout_width="20pt"
-                    android:layout_height="20pt"
-                    android:layout_marginStart="4pt"
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginStart="4dp"
                     android:contentDescription="@null"
                     android:src="@drawable/ic_copy"
                     android:visibility="gone" />

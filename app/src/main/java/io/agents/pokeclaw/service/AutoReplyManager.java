@@ -360,63 +360,118 @@ public class AutoReplyManager {
      * Generate a reply using on-device LLM.
      * Falls back to simple default if LLM fails.
      */
+    private static final String REPLY_SYSTEM_PROMPT =
+        "You are replying to a chat message on behalf of the user. " +
+        "Keep replies SHORT (under 15 words), casual, and friendly. " +
+        "Reply in the same language as the incoming message. " +
+        "Do NOT use emojis excessively. Sound like a real person texting.";
+
     private String generateReply(String sender, String incomingMessage, String conversationContext) {
         try {
-            String modelPath = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLocalModelPath();
-            if (modelPath == null || modelPath.isEmpty()) {
-                XLog.w(TAG, "generateReply: no model path, using fallback");
-                return fallbackReply(incomingMessage);
-            }
-
-            // LiteRT-LM only supports one session at a time. Close the engine
-            // entirely to force-release any existing session (chat UI or task agent),
-            // then re-create. This is a ~2s hit but guarantees we get a session.
-            String cacheDir = io.agents.pokeclaw.ClawApplication.Companion.getInstance().getCacheDir().getPath();
-            io.agents.pokeclaw.agent.llm.EngineHolder.INSTANCE.close();
-            com.google.ai.edge.litertlm.Engine engine =
-                io.agents.pokeclaw.agent.llm.EngineHolder.INSTANCE.getOrCreate(modelPath, cacheDir);
-
-            com.google.ai.edge.litertlm.Contents sysPrompt = com.google.ai.edge.litertlm.Contents.Companion.of(
-                "You are replying to a chat message on behalf of the user. " +
-                "Keep replies SHORT (under 15 words), casual, and friendly. " +
-                "Reply in the same language as the incoming message. " +
-                "Do NOT use emojis excessively. Sound like a real person texting."
-            );
-            com.google.ai.edge.litertlm.SamplerConfig sampler =
-                new com.google.ai.edge.litertlm.SamplerConfig(64, 0.95, 0.7, 0);
-            com.google.ai.edge.litertlm.Conversation conv = engine.createConversation(
-                new com.google.ai.edge.litertlm.ConversationConfig(sysPrompt, java.util.Collections.emptyList(), java.util.Collections.emptyList(), sampler)
-            );
-
             String prompt;
             if (conversationContext != null && !conversationContext.isEmpty()) {
-                // Context has the full conversation visible on screen.
-                // Read everything, address ALL points from them that haven't been replied to yet.
                 prompt = "Recent conversation:\n" + conversationContext + "\n" +
                          "Read the entire conversation above. Reply to ALL of " + sender + "'s messages that you (me) haven't responded to yet. Address every point in one reply. Your reply:";
             } else {
                 prompt = sender + " says: \"" + incomingMessage + "\"\nYour reply:";
             }
-            com.google.ai.edge.litertlm.Message response = conv.sendMessage(prompt, java.util.Collections.emptyMap());
-            conv.close();
 
-            String reply = response.getContents() != null ? response.getContents().toString().trim() : "";
-            // Clean up — remove quotes, "Your reply:" prefix, etc.
-            reply = reply.replaceAll("^[\"']|[\"']$", "").trim();
-            if (reply.startsWith("Your reply:")) reply = reply.substring(11).trim();
+            String provider = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLlmProvider();
+            String reply;
 
-            if (reply.isEmpty() || reply.length() > 200) {
+            if (!"LOCAL".equals(provider)) {
+                // Cloud LLM path — use the user's selected cloud provider
+                reply = generateReplyCloud(prompt);
+            } else {
+                // Local LLM path — use on-device LiteRT-LM
+                reply = generateReplyLocal(prompt);
+            }
+
+            if (reply == null || reply.isEmpty() || reply.length() > 200) {
                 XLog.w(TAG, "generateReply: LLM reply too long or empty, using fallback");
                 return fallbackReply(incomingMessage);
             }
 
-            XLog.i(TAG, "generateReply: LLM generated '" + reply + "' for '" + incomingMessage + "'");
+            XLog.i(TAG, "generateReply: LLM generated '" + reply + "' for '" + incomingMessage + "' (provider=" + provider + ")");
             return reply;
 
         } catch (Exception e) {
             XLog.w(TAG, "generateReply: LLM failed, using fallback", e);
             return fallbackReply(incomingMessage);
         }
+    }
+
+    private String generateReplyCloud(String prompt) {
+        String apiKey = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLlmApiKey();
+        String baseUrl = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLlmBaseUrl();
+        String modelName = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLlmModelName();
+
+        if (apiKey.isEmpty()) {
+            // Try provider-specific key
+            String provider = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLlmProvider();
+            apiKey = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getApiKeyForProvider(provider);
+        }
+
+        if (apiKey.isEmpty()) {
+            XLog.w(TAG, "generateReplyCloud: no API key configured");
+            return null;
+        }
+
+        XLog.i(TAG, "generateReplyCloud: using " + modelName + " via " + baseUrl);
+
+        dev.langchain4j.model.chat.ChatModel chatModel = dev.langchain4j.model.openai.OpenAiChatModel.builder()
+            .httpClientBuilder(new io.agents.pokeclaw.agent.langchain.http.OkHttpClientBuilderAdapter())
+            .apiKey(apiKey)
+            .modelName(modelName.isEmpty() ? "gpt-4o-mini" : modelName)
+            .baseUrl(baseUrl.isEmpty() ? "https://api.openai.com/v1" : baseUrl)
+            .temperature(0.7)
+            .build();
+
+        java.util.List<dev.langchain4j.data.message.ChatMessage> messages = new java.util.ArrayList<>();
+        messages.add(dev.langchain4j.data.message.SystemMessage.from(REPLY_SYSTEM_PROMPT));
+        messages.add(dev.langchain4j.data.message.UserMessage.from(prompt));
+
+        dev.langchain4j.model.chat.request.ChatRequest request = dev.langchain4j.model.chat.request.ChatRequest.builder()
+            .messages(messages)
+            .build();
+        dev.langchain4j.model.chat.response.ChatResponse response = chatModel.chat(request);
+
+        String reply = response.aiMessage().text();
+        if (reply != null) {
+            reply = reply.replaceAll("^[\"']|[\"']$", "").trim();
+            if (reply.startsWith("Your reply:")) reply = reply.substring(11).trim();
+        }
+        return reply;
+    }
+
+    private String generateReplyLocal(String prompt) {
+        String modelPath = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLocalModelPath();
+        if (modelPath == null || modelPath.isEmpty()) {
+            XLog.w(TAG, "generateReplyLocal: no model path");
+            return null;
+        }
+
+        String cacheDir = io.agents.pokeclaw.ClawApplication.Companion.getInstance().getCacheDir().getPath();
+        io.agents.pokeclaw.agent.llm.EngineHolder.INSTANCE.close();
+        com.google.ai.edge.litertlm.Engine engine =
+            io.agents.pokeclaw.agent.llm.EngineHolder.INSTANCE.getOrCreate(modelPath, cacheDir);
+
+        com.google.ai.edge.litertlm.Contents sysPrompt = com.google.ai.edge.litertlm.Contents.Companion.of(REPLY_SYSTEM_PROMPT);
+        com.google.ai.edge.litertlm.SamplerConfig sampler =
+            new com.google.ai.edge.litertlm.SamplerConfig(64, 0.95, 0.7, 0);
+        com.google.ai.edge.litertlm.Conversation conv = engine.createConversation(
+            new com.google.ai.edge.litertlm.ConversationConfig(sysPrompt, java.util.Collections.emptyList(), java.util.Collections.emptyList(), sampler)
+        );
+
+        com.google.ai.edge.litertlm.Message response = conv.sendMessage(prompt, java.util.Collections.emptyMap());
+        conv.close();
+
+        String reply = response.getContents() != null ? response.getContents().toString().trim() : "";
+        if (reply != null) {
+            reply = reply.replaceAll("^[\"']|[\"']$", "").trim();
+            if (reply.startsWith("Your reply:")) reply = reply.substring(11).trim();
+        }
+        return reply;
     }
 
     private String fallbackReply(String message) {

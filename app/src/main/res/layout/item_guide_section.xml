@@ -10,9 +10,9 @@
     <!-- 图标 -->
     <ImageView
         android:id="@+id/ivIcon"
-        android:layout_width="40pt"
-        android:layout_height="40pt"
-        android:padding="8pt"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:padding="8dp"
         android:background="@drawable/bg_icon_circle"
         android:scaleType="centerInside"
         app:tint="@color/colorBrandPrimary" />
@@ -22,7 +22,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="12pt"
+        android:layout_marginStart="12dp"
         android:orientation="vertical">
 
         <TextView
@@ -30,17 +30,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/colorTextPrimary"
-            android:textSize="16pt"
+            android:textSize="16dp"
             android:textStyle="bold" />
 
         <TextView
             android:id="@+id/tvDescription"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4pt"
-            android:lineSpacingExtra="3pt"
+            android:layout_marginTop="4dp"
+            android:lineSpacingExtra="3dp"
             android:textColor="@color/colorTextSecondary"
-            android:textSize="13pt" />
+            android:textSize="13dp" />
 
     </LinearLayout>
 

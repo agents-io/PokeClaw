@@ -121,10 +121,7 @@ fun ChatScreen(
     var showSendSheet by remember { mutableStateOf(false) }
     var activatingSkill by remember { mutableStateOf<String?>(null) }
 
-    // Default to task mode for local LLM, but allow switching to chat
-    LaunchedEffect(isLocalModel) {
-        if (isLocalModel && !isTaskMode) isTaskMode = true
-    }
+    // Chat mode is always the default — user can switch to Task manually
 
     // When activating finishes (2s animation), clear state
     LaunchedEffect(activatingSkill) {
@@ -690,7 +687,8 @@ private fun ChatInputBar(
 ) {
     var text by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
-    val taskInputDisabled = isTaskMode && isLocalModel
+    // Text input is always enabled — user can type in both Chat and Task mode
+    val taskInputDisabled = false
 
     // Consume prefill from prompt chips
     LaunchedEffect(prefillText) {
@@ -708,13 +706,14 @@ private fun ChatInputBar(
 
         // Skill shortcut panel removed — Chat is pure chat, skills in Task mode only
 
-        // Mode toggle tabs — always visible
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 4.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
+        // Mode toggle tabs — only for local LLM (Cloud LLM auto-detects intent)
+        if (isLocalModel) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 12.dp, vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
                 ModeTab(
                     label = "Chat",
                     icon = Icons.Outlined.ChatBubbleOutline,
@@ -732,6 +731,7 @@ private fun ChatInputBar(
                     modifier = Modifier.weight(1f),
                 )
             }
+        }
 
         if (taskInputDisabled && text.isEmpty()) {
             // Local LLM task mode with no prefill: show status label
@@ -768,7 +768,8 @@ private fun ChatInputBar(
                     onValueChange = { text = it },
                     placeholder = {
                         Text(
-                            if (isTaskMode) "Tell me what to do..."
+                            if (!isLocalModel) "Ask anything or tell me what to do..."
+                            else if (isTaskMode) "Tell me what to do..."
                             else "Ask anything...",
                             color = colors.textTertiary,
                             fontSize = 14.sp,
@@ -794,7 +795,12 @@ private fun ChatInputBar(
                 FloatingActionButton(
                     onClick = {
                         if (text.isNotBlank()) {
-                            if (isTaskMode) {
+                            if (!isLocalModel) {
+                                // Cloud LLM: always use sendTask — LLM auto-detects chat vs task
+                                onSendTask(text.trim())
+                                text = ""
+                                focusManager.clearFocus()
+                            } else if (isTaskMode) {
                                 onSendTask(text.trim())
                                 text = ""
                                 focusManager.clearFocus()
@@ -811,7 +817,7 @@ private fun ChatInputBar(
                     elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
                 ) {
                     Icon(
-                        if (isTaskMode) Icons.Outlined.TouchApp else Icons.Default.ArrowUpward,
+                        if (isTaskMode || !isLocalModel) Icons.Outlined.TouchApp else Icons.Default.ArrowUpward,
                         contentDescription = "Send",
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),

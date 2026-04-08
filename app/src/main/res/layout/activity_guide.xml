@@ -11,13 +11,13 @@
         android:id="@+id/tvSkip"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="16pt"
-        android:layout_marginEnd="24pt"
-        android:paddingHorizontal="12pt"
-        android:paddingVertical="8pt"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="24dp"
+        android:paddingHorizontal="12dp"
+        android:paddingVertical="8dp"
         android:text="@string/guide_skip"
         android:textColor="@color/colorTextTertiary"
-        android:textSize="14pt"
+        android:textSize="14dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -35,9 +35,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="32pt"
-            android:paddingTop="24pt"
-            android:paddingBottom="16pt">
+            android:paddingHorizontal="32dp"
+            android:paddingTop="24dp"
+            android:paddingBottom="16dp">
 
             <!-- 页面标题 -->
             <TextView
@@ -45,16 +45,16 @@
                 android:layout_height="wrap_content"
                 android:text="@string/guide_page_title"
                 android:textColor="@color/colorTextPrimary"
-                android:textSize="24pt"
+                android:textSize="24dp"
                 android:textStyle="bold" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8pt"
+                android:layout_marginTop="8dp"
                 android:text="@string/guide_page_subtitle"
                 android:textColor="@color/colorTextSecondary"
-                android:textSize="14pt" />
+                android:textSize="14dp" />
 
             <!-- 1. 无障碍服务 -->
             <include
@@ -62,7 +62,7 @@
                 layout="@layout/item_guide_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32pt" />
+                android:layout_marginTop="32dp" />
 
             <!-- 2. 常驻通知 -->
             <include
@@ -70,7 +70,7 @@
                 layout="@layout/item_guide_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24pt" />
+                android:layout_marginTop="24dp" />
 
             <!-- 3. 悬浮窗 -->
             <include
@@ -78,7 +78,7 @@
                 layout="@layout/item_guide_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24pt" />
+                android:layout_marginTop="24dp" />
 
             <!-- 4. 电池白名单 -->
             <include
@@ -86,7 +86,7 @@
                 layout="@layout/item_guide_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24pt" />
+                android:layout_marginTop="24dp" />
 
             <!-- 5. 文件访问 -->
             <include
@@ -94,7 +94,7 @@
                 layout="@layout/item_guide_section"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24pt" />
+                android:layout_marginTop="24dp" />
 
         </LinearLayout>
     </ScrollView>
@@ -103,11 +103,11 @@
     <io.agents.pokeclaw.widget.KButton
         android:id="@+id/btnStart"
         android:layout_width="match_parent"
-        android:layout_height="52pt"
-        android:layout_marginHorizontal="32pt"
-        android:layout_marginBottom="48pt"
+        android:layout_height="52dp"
+        android:layout_marginHorizontal="32dp"
+        android:layout_marginBottom="48dp"
         android:text="@string/guide_start"
-        android:textSize="16pt"
+        android:textSize="16dp"
         app:layout_constraintBottom_toBottomOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

@@ -2,16 +2,16 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:id="@+id/floatRoot"
-    android:layout_width="56pt"
-    android:layout_height="56pt">
+    android:layout_width="56dp"
+    android:layout_height="56dp">
 
     <!-- 任务通知状态（胶囊展开，短暂显示后自动收回） -->
-    <com.google.android.material.card.MaterialCardView
+    <androidx.cardview.widget.CardView
         android:id="@+id/cardTaskNotify"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        app:cardCornerRadius="28pt"
-        app:cardElevation="4pt"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="4dp"
         app:cardBackgroundColor="@color/colorBrandPrimary"
         android:visibility="gone">
 
@@ -20,13 +20,13 @@
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="16pt"
-            android:paddingEnd="18pt">
+            android:paddingStart="16dp"
+            android:paddingEnd="18dp">
 
             <ImageView
                 android:id="@+id/ivNotifyChannelLogo"
-                android:layout_width="20pt"
-                android:layout_height="20pt"
+                android:layout_width="20dp"
+                android:layout_height="20dp"
                 android:contentDescription="@string/cd_channel_logo"
                 android:src="@drawable/ic_launcher"
                 android:scaleType="centerCrop" />
@@ -35,25 +35,25 @@
                 android:id="@+id/tvTaskNotify"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="8pt"
+                android:layout_marginStart="8dp"
                 android:text=""
                 android:textColor="@color/colorBrandOnPrimary"
-                android:textSize="12pt"
-                android:maxWidth="200pt"
+                android:textSize="12dp"
+                android:maxWidth="200dp"
                 android:maxLines="2"
                 android:ellipsize="end" />
 
         </LinearLayout>
 
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.cardview.widget.CardView>
 
     <!-- 等待任务状态（默认） -->
-    <com.google.android.material.card.MaterialCardView
+    <androidx.cardview.widget.CardView
         android:id="@+id/cardIdle"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:cardCornerRadius="28pt"
-        app:cardElevation="4pt"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="4dp"
         app:cardBackgroundColor="@color/colorBrandPrimary">
 
         <TextView
@@ -63,18 +63,18 @@
             android:layout_gravity="center"
             android:text="@string/floating_ai_label"
             android:textColor="@color/colorBrandOnPrimary"
-            android:textSize="16pt"
+            android:textSize="16dp"
             android:textStyle="bold" />
 
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.cardview.widget.CardView>
 
     <!-- 任务执行中状态 (pill shape with token info) -->
-    <com.google.android.material.card.MaterialCardView
+    <androidx.cardview.widget.CardView
         android:id="@+id/cardRunning"
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
-        app:cardCornerRadius="28pt"
-        app:cardElevation="4pt"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="4dp"
         app:cardBackgroundColor="@color/colorBrandPrimary"
         android:visibility="gone">
 
@@ -83,15 +83,15 @@
             android:layout_height="match_parent"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingStart="14pt"
-            android:paddingEnd="14pt"
-            android:minWidth="56pt">
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:minWidth="56dp">
 
             <!-- Progress spinner (small) -->
             <ProgressBar
                 android:id="@+id/progressRunning"
-                android:layout_width="16pt"
-                android:layout_height="16pt"
+                android:layout_width="16dp"
+                android:layout_height="16dp"
                 android:indeterminate="true"
                 android:indeterminateTint="@color/colorBrandOnPrimary"
                 style="@style/Widget.AppCompat.ProgressBar" />
@@ -101,56 +101,56 @@
                 android:id="@+id/tvTokenStatus"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6pt"
+                android:layout_marginStart="6dp"
                 android:text="Step 1"
                 android:textColor="@color/colorBrandOnPrimary"
-                android:textSize="11pt"
+                android:textSize="11dp"
                 android:textStyle="bold"
                 android:maxLines="1"
                 android:singleLine="true" />
 
         </LinearLayout>
 
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.cardview.widget.CardView>
 
     <!-- 任务完成状态 -->
-    <com.google.android.material.card.MaterialCardView
+    <androidx.cardview.widget.CardView
         android:id="@+id/cardSuccess"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:cardCornerRadius="28pt"
-        app:cardElevation="4pt"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="4dp"
         app:cardBackgroundColor="@color/colorSuccessPrimary"
         android:visibility="gone">
 
         <ImageView
-            android:layout_width="32pt"
-            android:layout_height="32pt"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_gravity="center"
             android:contentDescription="@string/cd_task_success"
             android:src="@drawable/ic_check"
             app:tint="@color/colorBrandOnPrimary" />
 
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.cardview.widget.CardView>
 
     <!-- 任务失败状态 -->
-    <com.google.android.material.card.MaterialCardView
+    <androidx.cardview.widget.CardView
         android:id="@+id/cardError"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:cardCornerRadius="28pt"
-        app:cardElevation="4pt"
+        app:cardCornerRadius="28dp"
+        app:cardElevation="4dp"
         app:cardBackgroundColor="@color/colorErrorPrimary"
         android:visibility="gone">
 
         <ImageView
-            android:layout_width="32pt"
-            android:layout_height="32pt"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_gravity="center"
             android:contentDescription="@string/cd_task_error"
             android:src="@drawable/ic_close"
             app:tint="@color/colorErrorOnPrimary" />
 
-    </com.google.android.material.card.MaterialCardView>
+    </androidx.cardview.widget.CardView>
 
 </FrameLayout>
