@@ -50,6 +50,25 @@ Each test has a unique ID (e.g., K7, B3, J4)
 - New feature → run new tests + the section it belongs to
 - UI tweak → run H section (General UI) + affected section
 
+## Architecture Before Features (MANDATORY)
+
+If you spot an architecture problem while working on a feature — **stop the feature and flag it**. Do not build on top of a broken foundation.
+
+Examples of architecture problems:
+- God class doing too many things (e.g., ComposeChatActivity handling chat + task + model loading + permissions)
+- Duplicate code paths that should be unified (e.g., two ways to start a monitor)
+- Missing abstraction layer (e.g., task agent and chat UI both directly managing LiteRT-LM sessions)
+- Tight coupling that makes changes ripple everywhere
+- State managed in multiple places with no single source of truth
+
+When you see this:
+1. Stop the current feature work
+2. Tell Nicole: "I found an architecture issue — [description]. I want to refactor [X] before continuing. OK?"
+3. Wait for approval
+4. Refactor first, QA the refactor, then resume the feature
+
+Never paper over architecture debt with workarounds. Today's shortcut is next week's 3-hour debug session.
+
 ## Android Patterns
 
 - All errors must be user-visible (Toast, system message, or dialog) — never silent failures
