@@ -1,5 +1,16 @@
 # PokeClaw — Project Rules
 
+## Project Files
+
+| File | What | When to update |
+|------|------|----------------|
+| `CLAUDE.md` | Project rules | When workflow/rules change |
+| `QA_CHECKLIST.md` | E2E test cases + debug changelog | Every code change |
+| `BACKLOG.md` | Features, bugs, ideas with priority | When new items come in or items get done |
+| `CLAUDE.local.md` | Current session state | Every session |
+
+When Nicole mentions a feature idea, bug, or "之後要做" item → write it into `BACKLOG.md` immediately. Don't rely on session memory.
+
 ## QA-First Development (MANDATORY)
 
 Every code change MUST include E2E QA. No exceptions. This is the highest-priority practice in this project.
