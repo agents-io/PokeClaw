@@ -345,7 +345,6 @@ object BuiltInSkills {
             SkillStep("get_screen_info", description = "Read time picker"),
         ),
         fallbackGoal = "Open Clock app and set a new alarm for {time}.",
-        userFacing = true
     )
 
     fun createCalendarEvent() = Skill(
@@ -372,7 +371,6 @@ object BuiltInSkills {
             SkillStep("input_text", mapOf("text" to "{title}"), description = "Enter title"),
         ),
         fallbackGoal = "Open Calendar and create a new event titled '{title}'.",
-        userFacing = true
     )
 
     fun makeCall() = Skill(
@@ -398,7 +396,6 @@ object BuiltInSkills {
             SkillStep("find_and_tap", mapOf("text" to "{contact}"), description = "Tap contact from results"),
         ),
         fallbackGoal = "Open Phone app and call '{contact}'.",
-        userFacing = true
     )
 
     fun sendSms() = Skill(
@@ -508,6 +505,5 @@ object BuiltInSkills {
             SkillStep("get_screen_info", description = "Read current state"),
         ),
         fallbackGoal = "Open Settings and toggle {setting} on or off.",
-        userFacing = true
     )
 }
