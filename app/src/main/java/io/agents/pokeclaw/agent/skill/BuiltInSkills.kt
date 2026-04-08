@@ -443,7 +443,6 @@ object BuiltInSkills {
             SkillStep("tap", mapOf("x" to "504", "y" to "2000"), description = "Tap center-bottom shutter fallback"),
         ),
         fallbackGoal = "Open the Camera app and tap the shutter button to take a photo.",
-        userFacing = true
     )
 
     fun clearTextField() = Skill(
@@ -475,7 +474,6 @@ object BuiltInSkills {
             SkillStep("get_screen_info", description = "Read all notifications"),
         ),
         fallbackGoal = "Open the notification shade and read all visible notifications.",
-        userFacing = true
     )
 
     fun toggleSetting() = Skill(
