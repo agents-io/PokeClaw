@@ -239,6 +239,7 @@ fun ChatScreen(
                     val userMessages = messages.filter { it.role != ChatMessage.Role.SYSTEM }
                     if (userMessages.isEmpty()) {
                         EmptyStateWithPrompts(
+                            isLocalModel = isLocalModel,
                             onSelectPrompt = { text, isTask ->
                                 prefillText = text
                                 prefillIsTask = isTask
@@ -1033,17 +1034,40 @@ private fun DownloadOverlay(progress: Int, colors: PokeclawColors) {
 
 @Composable
 private fun EmptyStateWithPrompts(
+    isLocalModel: Boolean,
     onSelectPrompt: (String, Boolean) -> Unit,
     colors: PokeclawColors,
     modifier: Modifier = Modifier,
 ) {
     data class Prompt(val text: String, val isTask: Boolean)
-    val prompts = listOf(
-        Prompt("What can you do?", false),
-        Prompt("Summarize this for me", false),
-        Prompt("Open WhatsApp and say hi to Mom", true),
-        Prompt("Monitor Mom's messages on WhatsApp and auto-reply", true),
-    )
+
+    // Cloud: show task examples (user can give tasks from chat)
+    // Local: show chat examples (chat only, tasks go to Workflows tab)
+    val prompts = if (!isLocalModel) {
+        listOf(
+            Prompt("Open WhatsApp and say hi to Mom", true),
+            Prompt("Open YouTube and play cat videos", true),
+            Prompt("What time is it in Tokyo?", false),
+        )
+    } else {
+        listOf(
+            Prompt("What can you do?", false),
+            Prompt("Help me write an email", false),
+            Prompt("Tell me a joke", false),
+        )
+    }
+
+    val headerText = if (!isLocalModel) {
+        "Type anything below — I'll do it on your phone."
+    } else {
+        "Chat with on-device AI — private and offline."
+    }
+
+    val subtitleText = if (!isLocalModel) {
+        "Chat, ask questions, or give phone tasks directly."
+    } else {
+        "For phone tasks like auto-reply, go to Workflows ⚡"
+    }
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -1066,11 +1090,21 @@ private fun EmptyStateWithPrompts(
         )
         Spacer(Modifier.height(4.dp))
         Text(
-            "On-device AI, entirely yours",
+            headerText,
             fontSize = 14.sp,
-            color = colors.textTertiary,
+            color = if (!isLocalModel) colors.accent else colors.textTertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp),
         )
-        Spacer(Modifier.height(32.dp))
+        Spacer(Modifier.height(4.dp))
+        Text(
+            subtitleText,
+            fontSize = 12.sp,
+            color = colors.textTertiary,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 32.dp),
+        )
+        Spacer(Modifier.height(24.dp))
 
         // Suggested prompt chips
         Column(
@@ -1089,7 +1123,6 @@ private fun EmptyStateWithPrompts(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
-                        // Color bar indicator instead of emoji
                         Box(
                             modifier = Modifier
                                 .width(3.dp)
