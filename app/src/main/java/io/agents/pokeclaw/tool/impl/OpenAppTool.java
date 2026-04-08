@@ -68,7 +68,9 @@ public class OpenAppTool extends BaseTool {
         if (service == null) {
             return ToolResult.error("Accessibility service is not running");
         }
-        String packageName = requireString(params, "package_name");
+        String packageName = params.containsKey("package_name")
+                ? requireString(params, "package_name")
+                : requireString(params, "app_name");
 
         // If LLM sends app name instead of package name, resolve it
         if (!packageName.contains(".")) {
