@@ -120,9 +120,9 @@ fun ChatScreen(
     var showSendSheet by remember { mutableStateOf(false) }
     var activatingSkill by remember { mutableStateOf<String?>(null) }
 
-    // Force task mode for local LLM (no free-form chat capability)
+    // Default to task mode for local LLM, but allow switching to chat
     LaunchedEffect(isLocalModel) {
-        if (isLocalModel) isTaskMode = true
+        if (isLocalModel && !isTaskMode) isTaskMode = true
     }
 
     // When activating finishes (2s animation), clear state
@@ -620,14 +620,13 @@ private fun ChatInputBar(
 
         // Skill shortcut panel removed — Chat is pure chat, skills in Task mode only
 
-        // Mode toggle tabs — only show for Cloud LLM
-        if (!isLocalModel) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+        // Mode toggle tabs — always visible
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 12.dp, vertical = 4.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
                 ModeTab(
                     label = "Chat",
                     icon = Icons.Outlined.ChatBubbleOutline,
@@ -645,7 +644,6 @@ private fun ChatInputBar(
                     modifier = Modifier.weight(1f),
                 )
             }
-        }
 
         if (taskInputDisabled && text.isEmpty()) {
             // Local LLM task mode with no prefill: show status label
