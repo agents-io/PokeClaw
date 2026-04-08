@@ -1431,8 +1431,20 @@ private fun TaskSkillsPanel(
                 "Background tasks powered by AI — things a single prompt can't do.",
                 fontSize = 12.sp,
                 color = colors.textTertiary,
-                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+                modifier = Modifier.padding(top = 4.dp, bottom = 2.dp),
             )
+            Surface(
+                shape = RoundedCornerShape(6.dp),
+                color = colors.accent.copy(alpha = 0.12f),
+                modifier = Modifier.padding(top = 4.dp, bottom = 4.dp),
+            ) {
+                Text(
+                    "Experimental — more workflows coming soon",
+                    fontSize = 11.sp,
+                    color = colors.accent,
+                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                )
+            }
         }
 
         // Monitor Messages — always shown (background workflow, both modes need it)

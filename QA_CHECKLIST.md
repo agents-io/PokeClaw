@@ -76,6 +76,21 @@ Every build must pass ALL checks before shipping. Run on Pixel 8 Pro (or equival
 - [ ] **I2. Return to PokeClaw mid-task**: while task runs in WhatsApp → press recents → tap PokeClaw → see task progress + stop button
 - [ ] **I3. Notification during task**: incoming notification while task runs → task not disrupted
 
+## M. Cloud LLM — Complex Tasks
+
+- [ ] **M1. Open YouTube + search**: "open YouTube and search for funny cat videos" → opens YouTube → types in search → results shown → auto-return to PokeClaw
+- [ ] **M2. Send contextual message**: "send sorry to Mom on WhatsApp" → opens WhatsApp → finds Mom → types "sorry" (or LLM-generated apology) → sends → auto-return
+- [ ] **M3. Screen reading**: "check what's on my screen" → reads current screen elements → describes what's visible in chat reply
+- [ ] **M4. System settings**: "open Settings and turn on dark mode" → opens Settings → navigates to Display → toggles dark mode → auto-return
+- [ ] **M5. Multi-step app navigation**: "open WhatsApp and find my last message from Mom" → opens WhatsApp → finds Mom's chat → reads last message → reports back
+- [ ] **M6. Install app from Play Store**: "install Telegram from Play Store" → opens Play Store → searches Telegram → taps Install (or reports already installed)
+- [ ] **M7. Web search**: "open Chrome and search for weather today" → opens Chrome → types query → reads results
+- [ ] **M8. Compose email**: "open Gmail and compose an email to test@example.com saying hello" → opens Gmail → compose → fills To/Subject/Body → (stops before send for safety)
+- [ ] **M9. Take a photo**: "open camera and take a photo" → opens camera app → taps shutter
+- [ ] **M10. Check notifications**: "read my notifications" → pulls down notification shade → reads notification content → reports back
+- [ ] **M11. Task with wrong app name**: "send hi on Watsapp" (typo) → Cloud LLM figures out it means WhatsApp → still works
+- [ ] **M12. Ambiguous task**: "play music" → Cloud LLM picks a music app → opens it → tries to play something
+
 ## L. Task Auto-Return
 
 - [ ] **L1. Auto-return after send message**: "send hi to Girlfriend on WhatsApp" → agent opens WhatsApp → sends → completes → PokeClaw chatroom comes back to foreground
