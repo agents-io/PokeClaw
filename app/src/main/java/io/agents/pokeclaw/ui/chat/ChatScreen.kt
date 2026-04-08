@@ -387,47 +387,56 @@ private fun ChatTopBar(
                 )
             }
         }
-            // Model switcher dropdown
+            // Model switcher dropdown — only show configured/downloaded models
             DropdownMenu(
                 expanded = showModelMenu,
                 onDismissRequest = { showModelMenu = false },
             ) {
-                // Cloud models (only if API key configured)
-                val hasApiKey = io.agents.pokeclaw.utils.KVUtils.getLlmApiKey().isNotEmpty()
-                if (hasApiKey) {
-                    val currentModel = io.agents.pokeclaw.utils.KVUtils.getLlmModelName()
-                    io.agents.pokeclaw.agent.CloudProvider.entries.forEach { provider ->
-                        provider.models.forEach { model ->
-                            DropdownMenuItem(
-                                text = {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            model.displayName,
-                                            fontSize = 13.sp,
-                                            fontWeight = if (model.id == currentModel) FontWeight.Bold else FontWeight.Normal,
-                                        )
-                                        if (model.id == currentModel) {
-                                            Spacer(Modifier.width(6.dp))
-                                            Text("✓", fontSize = 12.sp, color = colors.accent)
-                                        }
+                val kvUtils = io.agents.pokeclaw.utils.KVUtils
+                val apiKey = kvUtils.getLlmApiKey()
+                val baseUrl = kvUtils.getLlmBaseUrl()
+                val currentModel = kvUtils.getLlmModelName()
+
+                // Cloud models: only from the configured provider
+                if (apiKey.isNotEmpty()) {
+                    val activeProvider = io.agents.pokeclaw.agent.CloudProvider.entries.find {
+                        it.defaultBaseUrl == baseUrl
+                    }
+                    val modelsToShow = activeProvider?.models
+                        ?: io.agents.pokeclaw.agent.CloudProvider.OPENAI.models
+                    modelsToShow.forEach { model ->
+                        DropdownMenuItem(
+                            text = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        model.displayName,
+                                        fontSize = 13.sp,
+                                        fontWeight = if (model.id == currentModel && !isLocalModel) FontWeight.Bold else FontWeight.Normal,
+                                    )
+                                    if (model.id == currentModel && !isLocalModel) {
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("✓", fontSize = 12.sp, color = colors.accent)
                                     }
-                                },
-                                onClick = {
-                                    showModelMenu = false
-                                    onModelSwitch(model.id, model.displayName)
-                                },
-                            )
-                        }
+                                }
+                            },
+                            onClick = {
+                                showModelMenu = false
+                                onModelSwitch(model.id, model.displayName)
+                            },
+                        )
                     }
                 }
-                // Local models
-                val localPath = io.agents.pokeclaw.utils.KVUtils.getLocalModelPath()
-                if (localPath.isNotEmpty()) {
-                    if (hasApiKey) HorizontalDivider()
+
+                // Local model: only if file actually downloaded
+                val localPath = kvUtils.getLocalModelPath()
+                if (localPath.isNotEmpty() && java.io.File(localPath).exists()) {
+                    if (apiKey.isNotEmpty()) HorizontalDivider()
+                    val localName = java.io.File(localPath).nameWithoutExtension
+                        .replace("-", " ").replace("_", " ")
                     DropdownMenuItem(
                         text = {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Gemma (On-device)", fontSize = 13.sp,
+                                Text("$localName (On-device)", fontSize = 13.sp,
                                     fontWeight = if (isLocalModel) FontWeight.Bold else FontWeight.Normal)
                                 if (isLocalModel) {
                                     Spacer(Modifier.width(6.dp))
@@ -437,10 +446,11 @@ private fun ChatTopBar(
                         },
                         onClick = {
                             showModelMenu = false
-                            onModelSwitch("LOCAL", "Gemma")
+                            onModelSwitch("LOCAL", localName)
                         },
                     )
                 }
+
                 // Settings shortcut
                 HorizontalDivider()
                 DropdownMenuItem(
