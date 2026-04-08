@@ -64,6 +64,7 @@ Every build must pass ALL checks before shipping. Run on Pixel 8 Pro (or equival
 - [ ] **H3. Layout sizes**: all text/buttons normal size (dp not pt)
 - [ ] **H4. Model switcher**: tap model bar → dropdown → switch model → status updates
 - [ ] **H5. New chat**: tap pencil icon → clears messages → shows welcome screen
+- [ ] **H6. Rename chat**: tap pencil icon (top right) → edit session name → name updates in sidebar
 
 ## I. Cross-App Behavior
 
@@ -103,6 +104,24 @@ Format: `[date] [status] [test-id] description`
 [2026-04-08] [ISSUE]   F3  Floating button disappears when agent navigates to other apps
 [2026-04-08] [ISSUE]   F6  "..." typing indicator coexists with tool action messages
 [2026-04-08] [ISSUE]   B2  YouTube task: LLM completed but user stuck in YouTube, no auto-return
+
+### 2026-04-08 — Post-fix QA run (after TaskEvent, LlmSessionManager, etc.)
+
+[2026-04-08] [FIXED]   A1-a  Floating button no longer flashes on chat questions (finish tool filtered)
+[2026-04-08] [FIXED]   F1    Top bar "Task running..." + Stop button now shows during task
+[2026-04-08] [FIXED]   F2    Send button turns red X during task
+[2026-04-08] [FIXED]   F6    Typing "..." removed when first ToolAction arrives
+[2026-04-08] [PASS]    A3    Chat → Task mixed: "what is 2+2" → reply → "send hi to Girlfriend" → works
+[2026-04-08] [PASS]    A4    Task → Chat: after send message completes → "how are you" → text-only reply
+[2026-04-08] [PASS]    B1    Send message to Girlfriend → 2 rounds, answer in bot bubble
+[2026-04-08] [PASS]    B2    YouTube search → agent navigated, typed query, showing suggestions
+[2026-04-08] [PASS]    F3    Floating button visible in YouTube during task (IDLE state, not RUNNING)
+[2026-04-08] [PASS]    F5    Second task works after first (chat → task sequence)
+[2026-04-08] [PASS]    G1    Cloud welcome screen: correct text + prompts
+[2026-04-08] [PASS]    G7    Cloud Task tab: Workflows header + cards + input bar
+[2026-04-08] [ISSUE]   A1-b  "Accessibility service starting..." still shows in every new chat
+[2026-04-08] [ISSUE]   F3-b  Floating button in other apps shows IDLE (AI) not RUNNING (step/tokens)
+[2026-04-08] [ISSUE]   H6    Pencil icon: cannot rename chat session
 ```
 
 ### Open Issues (unfixed)
@@ -111,8 +130,9 @@ Format: `[date] [status] [test-id] description`
 |----|-------|-----------|----------|
 | A1-a | Floating button flashes on chat questions | `onToolCall(finish)` triggers TASK_NOTIFY even for finish-only calls | Medium |
 | A1-b | "Accessibility starting..." on every new chat | `sendTask()` accessibility check fires before task routing | Low |
-| F1 | Top bar "Task running..." not showing | `isProcessing` not propagated to Compose recomposition during task | High |
-| F2 | Send button not turning red | Same root cause as F1 | High |
-| F3 | Floating button invisible in other apps | EasyFloat overlay may be behind app windows or reclaimed by system | High |
+| ~~F1~~ | ~~Top bar "Task running..." not showing~~ | ~~FIXED~~ | ~~High~~ |
+| ~~F2~~ | ~~Send button not turning red~~ | ~~FIXED~~ | ~~High~~ |
+| H6 | Pencil icon cannot rename chat session | Not implemented / broken | Medium |
+| F3 | Floating button invisible in other apps | ~~FIXED: visible now~~ but shows IDLE not RUNNING state | Medium |
 | F6 | "..." coexists with tool actions | Typing indicator not removed when first ToolAction arrives | Medium |
 | B2-a | No auto-return after task in other app | Agent completes in YouTube but doesn't navigate back to PokeClaw | Low |
