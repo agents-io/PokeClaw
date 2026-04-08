@@ -81,6 +81,7 @@ class ComposeChatActivity : ComponentActivity() {
     private val _sessionTokens = mutableStateOf(0)
     private val _sessionCost = mutableStateOf(0.0)
 
+
     // Permission polling
     private val permHandler = Handler(Looper.getMainLooper())
     private val permPoller = object : Runnable {
@@ -789,6 +790,19 @@ class ComposeChatActivity : ComponentActivity() {
         }
 
         addUser(text)
+
+        // Check required permissions before starting monitor
+        val needsAccessibility = !ClawAccessibilityService.isRunning()
+        val needsNotifAccess = !io.agents.pokeclaw.service.ClawNotificationListener.isConnected()
+        if (needsAccessibility || needsNotifAccess) {
+            val missing = mutableListOf<String>()
+            if (needsAccessibility) missing.add("Accessibility")
+            if (needsNotifAccess) missing.add("Notification Access")
+            Toast.makeText(this, "Enable ${missing.joinToString(" & ")} in Settings first", Toast.LENGTH_LONG).show()
+            startActivity(Intent(this, io.agents.pokeclaw.ui.settings.SettingsActivity::class.java))
+            return
+        }
+
         _isProcessing.value = true
         addSystem("Setting up auto-reply for $contact...")
 
@@ -814,6 +828,15 @@ class ComposeChatActivity : ComponentActivity() {
                 }
             }, 3000)
         }, 1500)
+    }
+
+    /**
+     * Check if PokeClaw's NotificationListenerService is enabled.
+     * Required for monitor/auto-reply to detect incoming messages.
+     */
+    private fun isNotificationListenerEnabled(): Boolean {
+        val flat = android.provider.Settings.Secure.getString(contentResolver, "enabled_notification_listeners") ?: ""
+        return flat.contains(packageName)
     }
 
     /**

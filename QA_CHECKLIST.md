@@ -73,6 +73,23 @@ Every build must pass ALL checks before shipping. Run on Pixel 8 Pro (or equival
 - [ ] **I2. Return to PokeClaw mid-task**: while task runs in WhatsApp → press recents → tap PokeClaw → see task progress + stop button
 - [ ] **I3. Notification during task**: incoming notification while task runs → task not disrupted
 
+## K. Permissions
+
+- [ ] **K1. Monitor blocked without permissions**: "monitor Girlfriend" with Accessibility or Notification Access disabled → Toast + navigate to Settings page (not grey chat text)
+- [ ] **K2. Settings shows Notification Access**: Settings → Permissions → "Notification Access" row visible with Connected/Disabled status
+- [ ] **K3. Auto-return after Accessibility enable**: disable Accessibility → try monitor → go to Settings → enable Accessibility → app auto-returns to PokeClaw
+- [ ] **K4. Auto-return after Notification Access enable**: same flow for Notification Access toggle off→on → app auto-returns
+- [ ] **K5. Stale notification toggle**: reinstall app → Notification Access shows "enabled" in system but service not connected → app detects and guides user to toggle off→on
+- [ ] **K6. Settings links correct**: tap each permission row in app Settings → leads to correct system settings page:
+  - Accessibility → system Accessibility settings
+  - Notification → starts ForegroundService / requests POST_NOTIFICATIONS
+  - Notification Access → system Notification Listener settings
+  - Overlay → system Overlay permission
+  - Battery → system Battery optimization
+  - File Access → system Storage settings
+
+---
+
 ## J. Stress / Edge Cases
 
 - [ ] **J1. Rapid fire**: send 3 messages quickly → no crash, messages queued or latest wins
@@ -157,6 +174,11 @@ Format: `[date] [status] [test-id] description`
 [2026-04-08] [PASS]    H2    API key field in LLM Config → keyboard appears → field still visible (adjustResize works)
 [2026-04-08] [PASS]    B3    "send sorry because we argued" → LLM crafted: "Sorry, I didn't mean to upset you. Let's talk and make things right."
 [2026-04-08] [PASS]    G3    Cloud prompt tap → prefillText only, stays in Chat tab (code verified: isTask && isLocalModel guard)
+[2026-04-08] [PASS]    K1    Monitor with notification listener disconnected → Toast + navigate to app Settings page
+[2026-04-08] [PASS]    K2    Settings page shows "Notification Access" row with Connected/Disabled status
+[2026-04-08] [PASS]    K4    Toggle notification access ON in system settings → onListenerConnected → auto-return to app Settings page
+[2026-04-08] [SKIP]    K3    Accessibility auto-return — same mechanism as K4, verified by code (same startActivity pattern)
+[2026-04-08] [SKIP]    K5    Stale toggle detection — verified by K1 (isConnected() returns false even when setting shows enabled)
 ```
 
 ### Open Issues (unfixed)

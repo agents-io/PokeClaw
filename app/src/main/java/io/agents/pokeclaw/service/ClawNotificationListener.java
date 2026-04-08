@@ -43,6 +43,14 @@ public class ClawNotificationListener extends NotificationListenerService {
         super.onListenerConnected();
         instance = this;
         XLog.i(TAG, "Notification listener connected");
+        // Auto-return to app Settings page so user can see the updated status
+        try {
+            android.content.Intent intent = new android.content.Intent(this, io.agents.pokeclaw.ui.settings.SettingsActivity.class);
+            intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+        } catch (Exception e) {
+            XLog.w(TAG, "Could not bring app to foreground after listener connected", e);
+        }
     }
 
     @Override

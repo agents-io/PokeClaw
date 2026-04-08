@@ -50,6 +50,7 @@ class SettingsActivity : BaseActivity() {
     // Permission menu items — kept for onResume refresh
     private var permAccessibility: io.agents.pokeclaw.widget.MenuItem? = null
     private var permNotification: io.agents.pokeclaw.widget.MenuItem? = null
+    private var permNotifAccess: io.agents.pokeclaw.widget.MenuItem? = null
     private var permOverlay: io.agents.pokeclaw.widget.MenuItem? = null
     private var permBattery: io.agents.pokeclaw.widget.MenuItem? = null
     private var permStorage: io.agents.pokeclaw.widget.MenuItem? = null
@@ -112,6 +113,7 @@ class SettingsActivity : BaseActivity() {
     private fun refreshPermissions() {
         permAccessibility?.setTrailingText(if (ClawAccessibilityService.isRunning()) "Enabled" else "Disabled")
         permNotification?.setTrailingText(if (ForegroundService.isRunning()) "Enabled" else "Disabled")
+        permNotifAccess?.setTrailingText(if (io.agents.pokeclaw.service.ClawNotificationListener.isConnected()) "Connected" else "Disabled")
         permOverlay?.setTrailingText(if (Settings.canDrawOverlays(this)) "Enabled" else "Disabled")
         val pm = getSystemService(POWER_SERVICE) as PowerManager
         permBattery?.setTrailingText(if (pm.isIgnoringBatteryOptimizations(packageName)) "Unrestricted" else "Restricted")
@@ -188,6 +190,17 @@ class SettingsActivity : BaseActivity() {
             showDivider = true
         ).apply {
             setTrailingText(if (ForegroundService.isRunning()) "Enabled" else "Disabled")
+        }
+
+        permNotifAccess = permissionsGroup.addMenuItem(
+            leadingIcon = R.drawable.ic_notification,
+            title = "Notification Access",
+            onClick = {
+                startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+            },
+            showDivider = true
+        ).apply {
+            setTrailingText(if (io.agents.pokeclaw.service.ClawNotificationListener.isConnected()) "Connected" else "Disabled")
         }
 
         permOverlay = permissionsGroup.addMenuItem(

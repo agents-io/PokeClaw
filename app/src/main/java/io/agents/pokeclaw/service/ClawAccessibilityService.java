@@ -89,6 +89,14 @@ public class ClawAccessibilityService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         XLog.i(TAG, "Accessibility service connected");
+        // Auto-return to app Settings page so user can see the updated status
+        try {
+            android.content.Intent intent = new android.content.Intent(this, io.agents.pokeclaw.ui.settings.SettingsActivity.class);
+            intent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP);
+            startActivity(intent);
+        } catch (Exception e) {
+            XLog.w(TAG, "Could not bring app to foreground after service connected", e);
+        }
     }
 
     @Override
