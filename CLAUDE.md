@@ -16,7 +16,20 @@ Every code change MUST include E2E QA. No exceptions. This is the highest-priori
 
 ### QA Test Design
 
-- Each test has a unique ID (e.g., K7, B3, J4)
+**Think like a human user, not an engineer.** The user doesn't know about TaskOrchestrator, AgentService, or LiteRT-LM. They tap buttons, type messages, and expect things to work. Design tests from their perspective:
+
+- "I open the app for the first time" — not "Activity.onCreate fires"
+- "I type hello and tap send" — not "sendChat() is called with text='hello'"
+- "I switch to a different app and come back" — not "onPause/onResume lifecycle"
+- "The app asks me to enable something, I do it, and come back" — not "startActivity(ACTION_ACCESSIBILITY_SETTINGS)"
+
+Cover what real users actually do:
+- Tap the wrong thing, tap twice, tap while something is loading
+- Leave the app mid-task, get a phone call, rotate the screen
+- Have bad internet, no permissions, wrong settings
+- Use the app for the first time with zero setup vs returning user with everything configured
+
+Each test has a unique ID (e.g., K7, B3, J4)
 - Format: `- [ ] **ID. Short name**: step1 → expected1 → step2 → expected2`
 - Tests that need a second device or manual interaction: mark clearly so QA tester knows
 - Tests that can be automated via ADB: write the full adb command sequence
