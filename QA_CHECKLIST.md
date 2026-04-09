@@ -118,6 +118,50 @@ for node in root.iter():
 adb shell input tap 746 2041
 ```
 
+### Two QA Layers
+
+**Layer 1: Backend QA (ADB broadcast) — run every code change**
+- Fast: ~10s per test
+- Uses `am broadcast` to send tasks directly to DebugTaskReceiver
+- Bypasses UI — tests tools, LLM routing, error handling, agent loop
+- Sections: A-M tests
+
+**Layer 2: UI QA (uiautomator) — run every UI change**
+- Slower: ~30s per test
+- Simulates real user: tap input, type text, tap send, verify chat bubble
+- Tests: mode switching, Quick Tasks tap, prompt prefill, model dropdown, empty state
+- Sections: P tests
+
+```bash
+# Layer 2 — simulate real user typing + sending
+# 1. Find and tap input field
+adb shell uiautomator dump /sdcard/ui.xml
+# Parse bounds for the input element with placeholder text
+INPUT_X=504; INPUT_Y=2100  # adjust from dump
+
+# 2. Tap input, type, send
+adb shell input tap $INPUT_X $INPUT_Y        # focus input
+sleep 0.5
+adb shell input text "how%smuch%sbattery"    # type (spaces = %s in adb)
+sleep 0.5
+SEND_X=970; SEND_Y=2100                      # adjust from dump
+adb shell input tap $SEND_X $SEND_Y          # tap send
+
+# 3. Wait for response, verify chat bubble appears
+sleep 15
+adb shell uiautomator dump /sdcard/ui_after.xml
+adb shell cat /sdcard/ui_after.xml | python3 -c "
+import sys, xml.etree.ElementTree as ET
+root = ET.fromstring(sys.stdin.read())
+for node in root.iter():
+    text = node.get('text', '')
+    pkg = node.get('package', '')
+    if text and 'pokeclaw' in pkg.lower() and ('battery' in text.lower() or '%' in text):
+        print(f'FOUND RESPONSE: {text!r}')
+"
+# Should find: "Battery: 73%, not charging, 32°C" or similar in a chat bubble
+```
+
 ### Cross-Device Testing
 
 Test on at least 2 devices:
