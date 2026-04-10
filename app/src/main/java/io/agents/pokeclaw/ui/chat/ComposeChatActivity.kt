@@ -72,7 +72,8 @@ class ComposeChatActivity : ComponentActivity() {
     private val _messages = mutableStateListOf<ChatMessage>()
     private val _modelStatus = mutableStateOf("No model loaded")
     private val _needsPermission = mutableStateOf(false)
-    private val _isProcessing = mutableStateOf(false)
+    private val _isProcessing = mutableStateOf(false)   // True ONLY when a chat/task is actively running
+    private val _inputEnabled = mutableStateOf(true)    // False when model not ready (no task running)
     private val _conversations = mutableStateListOf<ChatHistoryManager.ConversationSummary>()
     private val _isDownloading = mutableStateOf(false)
     private val _downloadProgress = mutableStateOf(0)
@@ -95,8 +96,15 @@ class ComposeChatActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        // Hide floating circle
-        try { FloatingCircleManager.hide() } catch (_: Exception) {}
+        // Hide floating circle only when no task is running
+        // (task running = keep floating pill visible for step/token status)
+        try {
+            if (!appViewModel.isTaskRunning()) {
+                FloatingCircleManager.hide()
+            } else {
+                XLog.d(TAG, "onCreate: task running, keeping floating circle visible")
+            }
+        } catch (_: Exception) {}
 
         // Check for updates
         io.agents.pokeclaw.utils.UpdateChecker.checkForUpdate(this)
@@ -128,6 +136,7 @@ class ComposeChatActivity : ComponentActivity() {
                 modelStatus = _modelStatus.value,
                 needsPermission = _needsPermission.value,
                 isProcessing = _isProcessing.value,
+                inputEnabled = _inputEnabled.value,
                 isDownloading = _isDownloading.value,
                 downloadProgress = _downloadProgress.value,
                 isLocalModel = KVUtils.getLlmProvider() == "LOCAL",
@@ -262,6 +271,9 @@ class ComposeChatActivity : ComponentActivity() {
         } else if (!isModelReady && engine != null && currentModelPath.isNotEmpty()) {
             executor.submit {
                 try {
+                    // Close existing conversation first — LiteRT only supports one at a time
+                    try { conversation?.close() } catch (_: Exception) {}
+                    conversation = null
                     conversation = engine!!.createConversation(
                         ConversationConfig(
                             systemInstruction = Contents.of("You are a helpful AI assistant on an Android phone."),
@@ -272,6 +284,21 @@ class ComposeChatActivity : ComponentActivity() {
                     runOnUiThread { setButtonsEnabled(true) }
                 } catch (e: Exception) {
                     XLog.e(TAG, "Failed to recreate conversation", e)
+                    val isSessionConflict = e.message?.contains("session already exists") == true
+                    runOnUiThread {
+                        if (isSessionConflict) {
+                            _modelStatus.value = "⚠ Model busy — tap model to retry"
+                            Toast.makeText(this@ComposeChatActivity,
+                                "Model is being used by a task. Wait for it to finish, then tap the model name to retry.",
+                                Toast.LENGTH_LONG).show()
+                        } else {
+                            _modelStatus.value = "⚠ Model load failed — tap to retry"
+                            Toast.makeText(this@ComposeChatActivity,
+                                "Failed to load model: ${e.message?.take(80)}",
+                                Toast.LENGTH_LONG).show()
+                        }
+                        setButtonsEnabled(false)
+                    }
                 }
             }
         } else if (!isModelReady && engine == null && currentModelPath.isNotEmpty()) {
@@ -343,7 +370,8 @@ class ComposeChatActivity : ComponentActivity() {
                 setButtonsEnabled(true)
                 XLog.i(TAG, "Cloud chat ready: $modelName via $baseUrl")
             } else {
-                _modelStatus.value = "Cloud LLM not configured"
+                _modelStatus.value = "No model selected"
+                isModelReady = false
                 setButtonsEnabled(false)
             }
             return
@@ -493,9 +521,23 @@ class ComposeChatActivity : ComponentActivity() {
             }
         } catch (e: Exception) {
             XLog.e(TAG, "Model load failed", e)
+            val isSessionConflict = e.message?.contains("session already exists") == true
+                    || e.message?.contains("5 retries") == true
             runOnUiThread {
-                _modelStatus.value = "Error: ${e.message}"
-                addSystem("Failed: ${e.message}")
+                if (isSessionConflict) {
+                    _modelStatus.value = "⚠ Model busy — tap model to retry"
+                    addSystem("Model is being used by a background task. Wait for it to finish, then tap the model name above to reload.")
+                    Toast.makeText(this@ComposeChatActivity,
+                        "Model is busy. Wait for the task to finish, then tap the model name to retry.",
+                        Toast.LENGTH_LONG).show()
+                } else {
+                    _modelStatus.value = "⚠ Load failed — tap model to retry"
+                    addSystem("Failed to load model: ${e.message?.take(100)}")
+                    Toast.makeText(this@ComposeChatActivity,
+                        "Model load failed: ${e.message?.take(80)}",
+                        Toast.LENGTH_LONG).show()
+                }
+                setButtonsEnabled(false)
             }
         }
     }
@@ -518,7 +560,9 @@ class ComposeChatActivity : ComponentActivity() {
                     val usage = llmResponse.tokenUsage
                     val inputTokens = usage?.inputTokenCount() ?: (text.length / 4 + 1)
                     val outputTokens = usage?.outputTokenCount() ?: (responseText.length / 4 + 1)
-                    val modelTag = KVUtils.getLlmModelName()
+                    // Use the actual model name from the API response, not the configured name
+                    val modelTag = llmResponse.modelName ?: KVUtils.getLlmModelName()
+                    XLog.d(TAG, "sendChat: cloud response modelName='${llmResponse.modelName}', fallback='${KVUtils.getLlmModelName()}'")
                     runOnUiThread {
                         val idx = _messages.indexOfLast { it.role == ChatMessage.Role.ASSISTANT }
                         if (idx >= 0) _messages[idx] = _messages[idx].copy(content = responseText, modelName = modelTag)
@@ -676,7 +720,7 @@ class ComposeChatActivity : ComponentActivity() {
         try {
             when (event) {
                 is TaskEvent.Completed -> {
-                    replaceTypingIndicator(event.answer)
+                    replaceTypingIndicator(event.answer, event.modelName)
                     cleanupAfterTask()
                     checkAutoReplyConfirmation()
                 }
@@ -717,13 +761,21 @@ class ComposeChatActivity : ComponentActivity() {
     }
 
     /** Replace "..." typing indicator with actual text, or add new message. */
-    private fun replaceTypingIndicator(text: String) {
-        val activeModel = _modelStatus.value.removePrefix("● ").split(" ·").firstOrNull()?.trim() ?: ""
+    /**
+     * Replace "..." typing indicator with actual response.
+     * @param text the response text
+     * @param actualModelName the real model that generated this response (from API).
+     *                        If null, falls back to parsing _modelStatus (less reliable).
+     */
+    private fun replaceTypingIndicator(text: String, actualModelName: String? = null) {
+        val modelTag = actualModelName
+            ?: _modelStatus.value.removePrefix("● ").split(" ·").firstOrNull()?.trim()
+            ?: ""
         val idx = _messages.indexOfLast { it.role == ChatMessage.Role.ASSISTANT && it.content == "..." }
         if (idx >= 0) {
-            _messages[idx] = ChatMessage(ChatMessage.Role.ASSISTANT, text, modelName = activeModel)
+            _messages[idx] = ChatMessage(ChatMessage.Role.ASSISTANT, text, modelName = modelTag)
         } else {
-            _messages.add(ChatMessage(ChatMessage.Role.ASSISTANT, text, modelName = activeModel))
+            _messages.add(ChatMessage(ChatMessage.Role.ASSISTANT, text, modelName = modelTag))
         }
         saveChat()
     }
@@ -762,19 +814,34 @@ class ComposeChatActivity : ComponentActivity() {
     }
 
     private fun switchModel(modelId: String, displayName: String) {
+        if (modelId == "NONE") {
+            // No model configured for this tab
+            _modelStatus.value = "No model selected"
+            isModelReady = false
+            setButtonsEnabled(false)
+            XLog.i(TAG, "switchModel: NONE — no model configured for current tab")
+            return
+        }
         if (modelId == "LOCAL") {
             KVUtils.setLlmProvider("LOCAL")
             _modelStatus.value = "● Gemma · On-device"
             addSystem("Switched to local model")
             loadModelIfReady()
         } else {
+            // Cloud model — update default cloud config + activate
             val provider = io.agents.pokeclaw.agent.CloudProvider.findProviderForModel(modelId)
-            // Use the actual provider name, not hardcoded OPENAI
-            KVUtils.setLlmProvider(provider?.name ?: "OPENAI")
-            KVUtils.setLlmModelName(modelId)
+            val baseUrl = provider?.defaultBaseUrl
+                ?: KVUtils.getDefaultCloudBaseUrl().ifEmpty { "https://api.openai.com/v1" }
+            // Persist as default cloud model
+            KVUtils.setDefaultCloudModel(modelId)
             if (provider != null) {
-                KVUtils.setLlmBaseUrl(provider.defaultBaseUrl)
+                KVUtils.setDefaultCloudProvider(provider.name)
+                KVUtils.setDefaultCloudBaseUrl(provider.defaultBaseUrl)
             }
+            // Activate
+            KVUtils.setLlmProvider(provider?.name ?: KVUtils.getDefaultCloudProvider().ifEmpty { "OPENAI" })
+            KVUtils.setLlmModelName(modelId)
+            KVUtils.setLlmBaseUrl(baseUrl)
             loadModelIfReady()
             addSystem("Switched to $displayName")
         }
@@ -945,7 +1012,7 @@ class ComposeChatActivity : ComponentActivity() {
     private fun addSystem(text: String) { _messages.add(ChatMessage(ChatMessage.Role.SYSTEM, text)) }
 
     private fun setButtonsEnabled(enabled: Boolean) {
-        _isProcessing.value = !enabled
+        _inputEnabled.value = enabled
     }
 
     private fun saveChat() {

@@ -170,6 +170,7 @@ class TaskOrchestrator(
                     XLog.i(TAG, "Pipeline Tier 2: Skill — ${route.skillId}")
                     val skill = SkillRegistry.findById(route.skillId)
                     if (skill != null) {
+                        FloatingCircleManager.ensureShowing()
                         FloatingCircleManager.showTaskNotify(task, channel)
                         Thread({
                             val skillResult = skillExecutor.execute(skill, route.params) { step, total, desc ->
@@ -231,6 +232,7 @@ class TaskOrchestrator(
                 flushRoundBuffer()
                 XLog.d(TAG, "onLoopStart: round=$round")
                 if (round > 1) {
+                    FloatingCircleManager.ensureShowing()
                     FloatingCircleManager.setRunningState(round, channel)
                     taskEventCallback?.invoke(TaskEvent.LoopStart(round))
                     ForegroundService.updateTaskStatus(ClawApplication.instance, "Step $round")
@@ -265,6 +267,7 @@ class TaskOrchestrator(
                 val isFinish = toolName == "finish" || toolId == "finish"
                 if (!floatingShown && !isFinish) {
                     floatingShown = true
+                    FloatingCircleManager.ensureShowing()
                     FloatingCircleManager.showTaskNotify(task, channel)
                     ForegroundService.updateTaskStatus(ClawApplication.instance, "Running task...")
                 }
@@ -295,13 +298,13 @@ class TaskOrchestrator(
                 }
             }
 
-            override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int) {
-                XLog.i(TAG, "onComplete: rounds=$round, totalTokens=$totalTokens, answer=$finalAnswer")
+            override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int, modelName: String?) {
+                XLog.i(TAG, "onComplete: rounds=$round, totalTokens=$totalTokens, model=$modelName, answer=$finalAnswer")
                 // Strip common LLM-added prefixes from the answer
                 var answer = finalAnswer.ifEmpty { "Done." }
                 answer = answer.removePrefix("Task completed:").removePrefix("Task completed").trim()
                 if (answer.isEmpty()) answer = "Done."
-                taskEventCallback?.invoke(TaskEvent.Completed(answer))
+                taskEventCallback?.invoke(TaskEvent.Completed(answer, modelName))
                 ForegroundService.resetToIdle(ClawApplication.instance)
                 flushRoundBuffer()
                 releaseTask()

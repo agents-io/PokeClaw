@@ -175,6 +175,22 @@ object FloatingCircleManager {
     fun isShowing(): Boolean = isShowing
 
     /**
+     * Ensure the floating window is showing. If it was dismissed (e.g. by
+     * ComposeChatActivity.onCreate), re-show it so task status is visible.
+     */
+    fun ensureShowing() {
+        if (!isShowing && EasyFloat.getFloatView(FLOAT_TAG) == null) {
+            val app = appRef
+            if (app != null) {
+                XLog.i("FloatingCircle", "ensureShowing: re-showing dismissed float")
+                show(app)
+            } else {
+                XLog.w("FloatingCircle", "ensureShowing: no appRef, cannot re-show")
+            }
+        }
+    }
+
+    /**
      * Switch to idle state (waiting for task)
      */
     fun setIdleState() {

@@ -43,13 +43,35 @@ class SettingsViewModel : ViewModel() {
         val telegramBotToken = KVUtils.getTelegramBotToken().isNotEmpty()
         val wechatBotToken = KVUtils.getWechatBotToken().isNotEmpty()
         val map = mapOf(
-            MenuAction.LLM_CONFIG.name to SettingValue.Text(if (KVUtils.hasLlmConfig()) KVUtils.getLlmModelName() else ClawApplication.instance.getString(R.string.common_unconfigured)),
+            MenuAction.LLM_CONFIG.name to SettingValue.Text(getActiveModelDisplayName()),
             MenuAction.DISCORD.name to SettingValue.Text(ClawApplication.instance.getString(if (discordBotToken) R.string.common_bound else R.string.common_unbound)),
             MenuAction.TELEGRAM.name to SettingValue.Text(ClawApplication.instance.getString(if (telegramBotToken) R.string.common_bound else R.string.common_unbound)),
             MenuAction.WECHAT.name to SettingValue.Text(ClawApplication.instance.getString(if (wechatBotToken) R.string.common_bound else R.string.common_unbound)),
             MenuAction.LAN_CONFIG.name to SettingValue.Text(getLanConfigTrailingText())
         )
         _settingItems.value = map
+    }
+
+    /** Show the actual active model, not stale shared key. */
+    private fun getActiveModelDisplayName(): String {
+        val provider = KVUtils.getLlmProvider()
+        val app = ClawApplication.instance
+        return if (provider == "LOCAL") {
+            val path = KVUtils.getLocalModelPath()
+            if (path.isNotEmpty() && java.io.File(path).exists()) {
+                val modelInfo = io.agents.pokeclaw.agent.llm.LocalModelManager.AVAILABLE_MODELS.find { path.endsWith(it.fileName) }
+                (modelInfo?.displayName ?: java.io.File(path).nameWithoutExtension) + " · Local"
+            } else {
+                app.getString(R.string.common_unconfigured)
+            }
+        } else {
+            val cloudModel = KVUtils.getDefaultCloudModel().ifEmpty { KVUtils.getLlmModelName() }
+            if (cloudModel.isNotEmpty()) {
+                "$cloudModel · Cloud"
+            } else {
+                app.getString(R.string.common_unconfigured)
+            }
+        }
     }
 
     /**

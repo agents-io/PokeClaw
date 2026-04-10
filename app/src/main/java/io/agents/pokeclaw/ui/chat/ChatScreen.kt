@@ -114,6 +114,7 @@ fun ChatScreen(
     activeTasks: List<String> = emptyList(),
     onStopTask: (String) -> Unit = {},
     onStopAllTasks: () -> Unit = {},
+    inputEnabled: Boolean = true,
     onModelSwitch: (modelId: String, displayName: String) -> Unit = { _, _ -> },
     colors: PokeclawColors = AbyssDark,
 ) {
@@ -189,35 +190,26 @@ fun ChatScreen(
                             selectedTab = tab
                             val kvUtils = io.agents.pokeclaw.utils.KVUtils
                             if (tab == "cloud") {
-                                // Save current local state, restore cloud config
-                                val apiKey = kvUtils.getLlmApiKey()
-                                if (apiKey.isNotEmpty()) {
-                                    // Restore saved cloud model name, or pick default
-                                    val savedCloud = kvUtils.getString("LAST_CLOUD_MODEL", "")
-                                    val modelId = if (savedCloud.isNotEmpty()) savedCloud else {
-                                        val baseUrl = kvUtils.getLlmBaseUrl()
-                                        val provider = io.agents.pokeclaw.agent.CloudProvider.entries.find {
-                                            it.defaultBaseUrl == baseUrl
-                                        } ?: io.agents.pokeclaw.agent.CloudProvider.OPENAI
-                                        (provider.models.firstOrNull { it.recommended }
-                                            ?: provider.models.first()).id
-                                    }
+                                // Check if cloud default model is configured
+                                if (kvUtils.hasDefaultCloudModel()) {
+                                    val modelId = kvUtils.getDefaultCloudModel()
                                     onModelSwitch(modelId, modelId)
+                                } else {
+                                    // No cloud model configured — signal "no model" state
+                                    io.agents.pokeclaw.utils.XLog.i("ChatScreen", "Cloud tab: no default cloud model configured")
+                                    onModelSwitch("NONE", "")
                                 }
                             } else {
-                                // Save current cloud model name before switching to local
-                                val currentProvider = kvUtils.getLlmProvider()
-                                if (currentProvider != "LOCAL") {
-                                    val currentModel = kvUtils.getLlmModelName()
-                                    if (currentModel.isNotEmpty()) {
-                                        kvUtils.putString("LAST_CLOUD_MODEL", currentModel)
-                                    }
-                                }
-                                val localPath = kvUtils.getLocalModelPath()
-                                if (localPath.isNotEmpty() && java.io.File(localPath).exists()) {
+                                // Check if local default model is configured
+                                if (kvUtils.hasDefaultLocalModel()) {
+                                    val localPath = kvUtils.getLocalModelPath()
                                     val name = java.io.File(localPath).nameWithoutExtension
                                         .replace("-", " ").replace("_", " ")
                                     onModelSwitch("LOCAL", name)
+                                } else {
+                                    // No local model configured — signal "no model" state
+                                    io.agents.pokeclaw.utils.XLog.i("ChatScreen", "Local tab: no default local model configured")
+                                    onModelSwitch("NONE", "")
                                 }
                             }
                         },
@@ -255,6 +247,7 @@ fun ChatScreen(
 
                         ChatInputBar(
                             isProcessing = isProcessing,
+                            inputEnabled = inputEnabled,
                             isTaskMode = isTaskMode,
                             isLocalModel = isLocalUI,
                             onTaskModeChange = { isTaskMode = it },
@@ -774,6 +767,7 @@ private fun ToolGroup(message: ChatMessage, colors: PokeclawColors) {
 @Composable
 private fun ChatInputBar(
     isProcessing: Boolean,
+    inputEnabled: Boolean = true,
     isTaskMode: Boolean,
     isLocalModel: Boolean,
     onTaskModeChange: (Boolean) -> Unit,
@@ -899,7 +893,7 @@ private fun ChatInputBar(
                 onClick = {
                     if (isProcessing) {
                         onStopAll()
-                    } else if (text.isNotBlank()) {
+                    } else if (inputEnabled && text.isNotBlank()) {
                         if (!isLocalModel || isTaskMode) {
                             onSendTask(text.trim())
                             text = ""
@@ -913,7 +907,7 @@ private fun ChatInputBar(
                 },
                 modifier = Modifier
                     .size(34.dp)
-                    .alpha(if (text.isBlank() && !isProcessing) 0.35f else 1f),
+                    .alpha(if ((text.isBlank() || !inputEnabled) && !isProcessing) 0.35f else 1f),
                 containerColor = when {
                     isProcessing -> Color(0xFFF44336)
                     text.isBlank() -> colors.background

@@ -188,6 +188,35 @@ object KVUtils {
     fun getLocalModelPath(): String = getString(KEY_LOCAL_MODEL_PATH, "")
     fun setLocalModelPath(value: String) = putString(KEY_LOCAL_MODEL_PATH, value)
 
+    // ==================== Independent Default Models ====================
+    // Local and Cloud each have their own default model config.
+    // Switching tabs reads from these keys — they never overwrite each other.
+
+    private const val KEY_DEFAULT_CLOUD_MODEL = "KEY_DEFAULT_CLOUD_MODEL"
+    private const val KEY_DEFAULT_CLOUD_PROVIDER = "KEY_DEFAULT_CLOUD_PROVIDER"
+    private const val KEY_DEFAULT_CLOUD_BASE_URL = "KEY_DEFAULT_CLOUD_BASE_URL"
+
+    fun getDefaultCloudModel(): String = getString(KEY_DEFAULT_CLOUD_MODEL, "")
+    fun setDefaultCloudModel(value: String) = putString(KEY_DEFAULT_CLOUD_MODEL, value)
+    fun getDefaultCloudProvider(): String = getString(KEY_DEFAULT_CLOUD_PROVIDER, "")
+    fun setDefaultCloudProvider(value: String) = putString(KEY_DEFAULT_CLOUD_PROVIDER, value)
+    fun getDefaultCloudBaseUrl(): String = getString(KEY_DEFAULT_CLOUD_BASE_URL, "")
+    fun setDefaultCloudBaseUrl(value: String) = putString(KEY_DEFAULT_CLOUD_BASE_URL, value)
+
+    /** Returns true if a local default model is configured and the file exists. */
+    fun hasDefaultLocalModel(): Boolean {
+        val path = getLocalModelPath()
+        return path.isNotEmpty() && java.io.File(path).exists()
+    }
+
+    /** Returns true if a cloud default model is configured (model + API key both present). */
+    fun hasDefaultCloudModel(): Boolean {
+        val model = getDefaultCloudModel()
+        val provider = getDefaultCloudProvider().ifEmpty { "OPENAI" }
+        val apiKey = getApiKeyForProvider(provider).ifEmpty { getLlmApiKey() }
+        return model.isNotEmpty() && apiKey.isNotEmpty()
+    }
+
     /** Returns true if LLM is configured (API key, base URL, or local model path is non-empty) */
     fun hasLlmConfig(): Boolean =
         getLlmApiKey().isNotEmpty() || getLlmBaseUrl().isNotEmpty() || getLocalModelPath().isNotEmpty()

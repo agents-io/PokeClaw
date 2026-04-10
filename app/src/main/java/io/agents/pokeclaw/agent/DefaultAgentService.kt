@@ -454,6 +454,7 @@ class DefaultAgentService : AgentService {
 
         var iterations = 0
         var totalTokens = 0
+        var actualModelName: String? = null  // Track the real model name from API response
         val maxIterations = config.maxIterations
         val loopHistory = LinkedList<RoundFingerprint>()
         var lastScreenHash = 0
@@ -481,6 +482,11 @@ class DefaultAgentService : AgentService {
                 return
             }
 
+            // Capture actual model name from first API response
+            if (actualModelName == null && !llmResponse.modelName.isNullOrEmpty()) {
+                actualModelName = llmResponse.modelName
+                XLog.d(TAG, "runAgentLoop: actual model from API = $actualModelName")
+            }
             // Accumulate token usage
             llmResponse.tokenUsage?.totalTokenCount()?.let { totalTokens += it }
             tokenMonitor.record(
@@ -500,7 +506,8 @@ class DefaultAgentService : AgentService {
                         iterations,
                         "Task stopped: budget limit reached (${tokenStatus.formattedTokens} tokens, ${tokenStatus.formattedCost}). " +
                         "Increase budget in Settings if needed.",
-                        totalTokens
+                        totalTokens,
+                        actualModelName
                     )
                     return
                 }
@@ -545,12 +552,12 @@ class DefaultAgentService : AgentService {
                 val responseText = llmResponse.text ?: ""
                 if (responseText.isNotEmpty()) {
                     XLog.i(TAG, "runAgentLoop: text-only response, completing")
-                    callback.onComplete(iterations, responseText, totalTokens)
+                    callback.onComplete(iterations, responseText, totalTokens, actualModelName)
                     return
                 }
                 // Empty response with no tools — something went wrong, finish
                 XLog.w(TAG, "runAgentLoop: empty response with no tools, finishing")
-                callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_completed), totalTokens)
+                callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_completed), totalTokens, actualModelName)
                 continue
             }
 
@@ -560,7 +567,7 @@ class DefaultAgentService : AgentService {
             // Execute tool calls
             for (toolRequest in llmResponse.toolExecutionRequests) {
                 if (cancelled.get()) {
-                    callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_cancel), totalTokens)
+                    callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_cancel), totalTokens, actualModelName)
                     return
                 }
 
@@ -593,7 +600,7 @@ class DefaultAgentService : AgentService {
                 // finish tool → task complete
                 if (toolName == "finish" && result.isSuccess) {
                     val finishData = result.data
-                    callback.onComplete(iterations, finishData ?: ClawApplication.instance.getString(R.string.agent_task_completed), totalTokens)
+                    callback.onComplete(iterations, finishData ?: ClawApplication.instance.getString(R.string.agent_task_completed), totalTokens, actualModelName)
                     return
                 }
 
@@ -674,7 +681,8 @@ class DefaultAgentService : AgentService {
                             iterations,
                             "Task stopped: agent was stuck (${detection.signal.description}). " +
                             "Used ${status.formattedTokens} tokens (${status.formattedCost}).",
-                            totalTokens
+                            totalTokens,
+                            actualModelName
                         )
                         return
                     }
@@ -688,7 +696,7 @@ class DefaultAgentService : AgentService {
         }
 
         if (cancelled.get()) {
-            callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_cancel), totalTokens)
+            callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_cancel), totalTokens, actualModelName)
         } else {
             callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_max_iterations, maxIterations)), totalTokens)
         }

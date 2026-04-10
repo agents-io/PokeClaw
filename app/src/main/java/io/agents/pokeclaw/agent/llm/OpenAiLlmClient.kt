@@ -105,6 +105,7 @@ internal fun ChatResponse.toLlmResponse(): LlmResponse {
     return LlmResponse(
         text = aiMessage.text(),
         toolExecutionRequests = aiMessage.toolExecutionRequests() ?: emptyList(),
-        tokenUsage = tokenUsage()
+        tokenUsage = tokenUsage(),
+        modelName = modelName()
     )
 }

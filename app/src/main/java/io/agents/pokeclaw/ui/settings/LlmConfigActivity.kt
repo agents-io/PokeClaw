@@ -4,6 +4,7 @@
 package io.agents.pokeclaw.ui.settings
 
 import android.graphics.Color
+import android.graphics.Rect
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.view.Gravity
@@ -13,9 +14,13 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.updatePadding
 import io.agents.pokeclaw.ClawApplication
 import io.agents.pokeclaw.R
 import io.agents.pokeclaw.agent.CloudModel
@@ -28,6 +33,7 @@ import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.widget.CommonToolbar
 import io.agents.pokeclaw.widget.KButton
 import java.util.concurrent.Executors
+import kotlin.math.max
 
 class LlmConfigActivity : BaseActivity() {
 
@@ -81,21 +87,47 @@ class LlmConfigActivity : BaseActivity() {
             }
         }
 
-        // Active model
-        val currentModelId = KVUtils.getLlmModelName()
-        val currentModel = models.find { it.id == currentModelId }
-        if (currentModel != null) {
-            activeModelName.text = currentModel.displayName
-            activeModelMeta.text = "${currentModel.fileName} · On-device"
-            val downloaded = LocalModelManager.isModelDownloaded(this, currentModel)
-            activeModelStatus.text = if (downloaded) "● Ready" else "● Not downloaded"
-            activeModelStatus.setTextColor(if (downloaded) getColor(R.color.colorSuccessPrimary) else getColor(R.color.colorWarningPrimary))
+        // Active model — show what is ACTUALLY active based on provider
+        val currentProvider = KVUtils.getLlmProvider()
+        if (currentProvider == "LOCAL") {
+            val localPath = KVUtils.getLocalModelPath()
+            val localModel = models.find { localPath.endsWith(it.fileName) }
+            if (localModel != null) {
+                activeModelName.text = localModel.displayName
+                activeModelMeta.text = "${localModel.fileName} · On-device"
+                val downloaded = LocalModelManager.isModelDownloaded(this, localModel)
+                activeModelStatus.text = if (downloaded) "● Ready" else "● Not downloaded"
+                activeModelStatus.setTextColor(if (downloaded) getColor(R.color.colorSuccessPrimary) else getColor(R.color.colorWarningPrimary))
+            } else if (localPath.isNotEmpty()) {
+                activeModelName.text = java.io.File(localPath).nameWithoutExtension
+                activeModelMeta.text = "On-device"
+                activeModelStatus.text = "● Ready"
+                activeModelStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
+            } else {
+                activeModelName.text = "No model selected"
+                activeModelMeta.text = "Download a model below"
+                activeModelStatus.text = "● Not configured"
+                activeModelStatus.setTextColor(Color.parseColor("#8b949e"))
+            }
         } else {
-            activeModelName.text = "No model selected"
-            activeModelMeta.text = "Download a model below"
-            activeModelStatus.text = "● Not configured"
-            activeModelStatus.setTextColor(Color.parseColor("#8b949e"))
+            val cloudModel = KVUtils.getDefaultCloudModel().ifEmpty { KVUtils.getLlmModelName() }
+            if (cloudModel.isNotEmpty()) {
+                activeModelName.text = cloudModel
+                val providerName = io.agents.pokeclaw.agent.CloudProvider.findProviderForModel(cloudModel)?.displayName ?: "Cloud"
+                activeModelMeta.text = "$providerName · Cloud"
+                activeModelStatus.text = "● Connected"
+                activeModelStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
+            } else {
+                activeModelName.text = "No model selected"
+                activeModelMeta.text = "Configure a cloud model below"
+                activeModelStatus.text = "● Not configured"
+                activeModelStatus.setTextColor(Color.parseColor("#8b949e"))
+            }
         }
+        val currentModelId = if (currentProvider == "LOCAL") {
+            val localPath = KVUtils.getLocalModelPath()
+            models.find { localPath.endsWith(it.fileName) }?.id ?: ""
+        } else KVUtils.getLlmModelName()
 
         // Build model list
         models.forEach { model ->
@@ -159,12 +191,18 @@ class LlmConfigActivity : BaseActivity() {
                         setOnClickListener {
                             val path = LocalModelManager.getModelPath(this@LlmConfigActivity, model)
                             if (path != null) {
-                                KVUtils.setLlmProvider("LOCAL")
+                                // Save as default local model (independent of cloud config)
                                 KVUtils.setLocalModelPath(path)
-                                KVUtils.setLlmModelName(model.id)
+                                // Only switch active provider if currently on local tab
+                                val currentProvider = KVUtils.getLlmProvider()
+                                val shouldActivateLocal = currentProvider == "LOCAL" || !KVUtils.hasDefaultCloudModel()
+                                if (shouldActivateLocal) {
+                                    KVUtils.setLlmProvider("LOCAL")
+                                    KVUtils.setLlmModelName(model.id)
+                                }
                                 ClawApplication.appViewModelInstance.updateAgentConfig()
                                 ClawApplication.appViewModelInstance.initAgent()
-                                Toast.makeText(this@LlmConfigActivity, "Switched to ${model.displayName}", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this@LlmConfigActivity, "Set default local: ${model.displayName}", Toast.LENGTH_SHORT).show()
                                 recreate()
                             } else {
                                 Toast.makeText(this@LlmConfigActivity, "Model file not found", Toast.LENGTH_SHORT).show()
@@ -271,6 +309,18 @@ class LlmConfigActivity : BaseActivity() {
         val tvStatus = findViewById<TextView>(R.id.tvConnectionStatus)
         val btnTest = findViewById<TextView>(R.id.btnTestConnection)
         val btnSave = findViewById<KButton>(R.id.btnSaveCloud)
+        val btnClear = findViewById<TextView>(R.id.btnClearApiKey)
+        val scrollView = findViewById<ScrollView>(R.id.scrollContent)
+
+        installKeyboardAwareScrolling(scrollView, listOf(etApiKey, etBaseUrl, etModelName))
+
+        // Clear API key button
+        btnClear.setOnClickListener {
+            etApiKey.setText("")
+            KVUtils.setApiKeyForProvider(selectedProvider.name, "")
+            KVUtils.setLlmApiKey("")
+            Toast.makeText(this, "API key cleared", Toast.LENGTH_SHORT).show()
+        }
 
         // Determine current provider from saved config
         val savedProvider = KVUtils.getLlmProvider()
@@ -466,34 +516,76 @@ class LlmConfigActivity : BaseActivity() {
                 return@setOnClickListener
             }
 
-            KVUtils.setLlmProvider("OPENAI") // All cloud providers use OpenAI-compatible API
+            // Save as default cloud model (independent of local config)
+            KVUtils.setDefaultCloudModel(modelId)
+            KVUtils.setDefaultCloudProvider(selectedProvider.name)
+            KVUtils.setDefaultCloudBaseUrl(baseUrl)
             KVUtils.setLlmApiKey(apiKey)
             KVUtils.setApiKeyForProvider(selectedProvider.name, apiKey)
-            KVUtils.setLlmBaseUrl(baseUrl)
-            KVUtils.setLlmModelName(modelId)
+            // Only switch active provider to cloud if currently on cloud tab
+            val currentProvider = KVUtils.getLlmProvider()
+            if (currentProvider != "LOCAL") {
+                KVUtils.setLlmProvider(selectedProvider.name)
+                KVUtils.setLlmBaseUrl(baseUrl)
+                KVUtils.setLlmModelName(modelId)
+            }
             ClawApplication.appViewModelInstance.updateAgentConfig()
             ClawApplication.appViewModelInstance.initAgent()
             ClawApplication.appViewModelInstance.afterInit()
-            Toast.makeText(this, "Saved: $modelId", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Saved cloud default: $modelId", Toast.LENGTH_SHORT).show()
             finish()
         }
 
-        // Update active model card if cloud LLM is active
-        if (savedProvider != "LOCAL" && savedModel.isNotEmpty()) {
-            val activeModelName = findViewById<TextView>(R.id.tvActiveModelName)
-            val activeModelMeta = findViewById<TextView>(R.id.tvActiveModelMeta)
-            val activeModelStatus = findViewById<TextView>(R.id.tvActiveModelStatus)
-            val cloudModel = selectedProvider.models.find { it.id == savedModel }
-            if (cloudModel != null) {
-                activeModelName.text = cloudModel.displayName
-                activeModelMeta.text = "${selectedProvider.displayName} · Cloud"
-                activeModelStatus.text = "● Connected"
-                activeModelStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
-            } else {
-                activeModelName.text = savedModel
-                activeModelMeta.text = "Cloud · Custom"
-                activeModelStatus.text = "● Connected"
-                activeModelStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
+        // Active model card is already set in onCreate based on actual provider
+    }
+
+    /**
+     * Keep focused fields visible above the IME on edge-to-edge layouts.
+     * `adjustResize` alone is not reliable here because the ScrollView content
+     * still needs extra bottom inset + explicit scroll after the keyboard opens.
+     */
+    private fun installKeyboardAwareScrolling(scrollView: ScrollView, fields: List<EditText>) {
+        val baseBottomPadding = scrollView.paddingBottom
+
+        val focusListener = View.OnFocusChangeListener { view, hasFocus ->
+            if (hasFocus) {
+                scrollView.postDelayed({ scrollFieldIntoView(scrollView, view) }, 180)
+            }
+        }
+        fields.forEach { it.onFocusChangeListener = focusListener }
+
+        ViewCompat.setOnApplyWindowInsetsListener(scrollView) { view, insets ->
+            val imeInsets = insets.getInsets(WindowInsetsCompat.Type.ime())
+            val systemInsets = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.updatePadding(bottom = baseBottomPadding + max(imeInsets.bottom, systemInsets.bottom))
+
+            if (imeInsets.bottom > 0) {
+                val focused = currentFocus
+                if (focused is EditText && fields.contains(focused)) {
+                    view.post { scrollFieldIntoView(scrollView, focused) }
+                }
+            }
+            insets
+        }
+        ViewCompat.requestApplyInsets(scrollView)
+    }
+
+    private fun scrollFieldIntoView(scrollView: ScrollView, field: View) {
+        val rect = Rect()
+        field.getDrawingRect(rect)
+        scrollView.offsetDescendantRectToMyCoords(field, rect)
+
+        val margin = dp(16)
+        val visibleTop = scrollView.scrollY + margin
+        val visibleBottom = scrollView.scrollY + scrollView.height - scrollView.paddingBottom - margin
+
+        when {
+            rect.top < visibleTop -> {
+                scrollView.smoothScrollTo(0, (rect.top - margin).coerceAtLeast(0))
+            }
+            rect.bottom > visibleBottom -> {
+                val targetScroll = scrollView.scrollY + (rect.bottom - visibleBottom) + margin
+                scrollView.smoothScrollTo(0, targetScroll.coerceAtLeast(0))
             }
         }
     }

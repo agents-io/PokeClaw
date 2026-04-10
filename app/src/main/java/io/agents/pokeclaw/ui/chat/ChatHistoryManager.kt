@@ -79,7 +79,11 @@ object ChatHistoryManager {
                     sb.appendLine()
                 }
                 ChatMessage.Role.ASSISTANT -> {
-                    sb.appendLine("## 🦞 Assistant")
+                    if (!msg.modelName.isNullOrEmpty()) {
+                        sb.appendLine("## 🦞 Assistant [${msg.modelName}]")
+                    } else {
+                        sb.appendLine("## 🦞 Assistant")
+                    }
                     sb.appendLine(msg.content)
                     sb.appendLine()
                 }
@@ -125,6 +129,7 @@ object ChatHistoryManager {
 
         var inFrontmatter = false
         var currentRole: ChatMessage.Role? = null
+        var currentModelName: String? = null
         val contentBuilder = StringBuilder()
 
         for (line in lines) {
@@ -136,20 +141,26 @@ object ChatHistoryManager {
 
             when {
                 line.startsWith("## User") -> {
-                    flushMessage(messages, currentRole, contentBuilder)
+                    flushMessage(messages, currentRole, contentBuilder, currentModelName)
                     currentRole = ChatMessage.Role.USER
+                    currentModelName = null
                 }
                 line.startsWith("## 🦞 Assistant") -> {
-                    flushMessage(messages, currentRole, contentBuilder)
+                    flushMessage(messages, currentRole, contentBuilder, currentModelName)
                     currentRole = ChatMessage.Role.ASSISTANT
+                    // Extract model name from "## 🦞 Assistant [ModelName]"
+                    val bracketMatch = Regex("\\[(.+)]").find(line)
+                    currentModelName = bracketMatch?.groupValues?.get(1)
                 }
                 line.startsWith("## System") -> {
-                    flushMessage(messages, currentRole, contentBuilder)
+                    flushMessage(messages, currentRole, contentBuilder, currentModelName)
                     currentRole = ChatMessage.Role.SYSTEM
+                    currentModelName = null
                 }
                 line.startsWith("## Tools") -> {
-                    flushMessage(messages, currentRole, contentBuilder)
+                    flushMessage(messages, currentRole, contentBuilder, currentModelName)
                     currentRole = ChatMessage.Role.TOOL_GROUP
+                    currentModelName = null
                 }
                 else -> {
                     if (currentRole != null && line.isNotBlank()) {
@@ -159,14 +170,14 @@ object ChatHistoryManager {
                 }
             }
         }
-        flushMessage(messages, currentRole, contentBuilder)
+        flushMessage(messages, currentRole, contentBuilder, currentModelName)
 
         return messages
     }
 
-    private fun flushMessage(messages: MutableList<ChatMessage>, role: ChatMessage.Role?, content: StringBuilder) {
+    private fun flushMessage(messages: MutableList<ChatMessage>, role: ChatMessage.Role?, content: StringBuilder, modelName: String? = null) {
         if (role != null && content.isNotEmpty()) {
-            messages.add(ChatMessage(role, content.toString().trim()))
+            messages.add(ChatMessage(role, content.toString().trim(), modelName = modelName))
             content.clear()
         }
     }

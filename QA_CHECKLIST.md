@@ -230,7 +230,7 @@ Key OEM differences:
 
 ## C. Cloud LLM — Monitor Workflow
 
-- [ ] **C1. Start monitor**: "monitor Girlfriend on WhatsApp" → top bar shows "Monitoring: Girlfriend" → presses Home
+- [ ] **C1. Start monitor**: "monitor Girlfriend on WhatsApp" → top bar shows "Monitoring: Girlfriend" → user stays in PokeClaw chat (no Home press)
 - [ ] **C2. Auto-reply triggers**: Girlfriend sends message → notification caught → WhatsApp opens → reads context → Cloud LLM generates reply → reply sent
 - [ ] **C3. Stop monitor**: tap top bar → expand → Stop → monitoring stops
 
@@ -266,9 +266,12 @@ Key OEM differences:
 ## H. General UI
 
 - [ ] **H1. Floating button size**: small circle on home screen (not giant)
-- [ ] **H2. Keyboard in LLM Config**: Settings → LLM Config → tap API key → keyboard doesn't block field
+- [ ] **H2. Keyboard in Models screen — API key**: Settings → LLM Config → tap API key → keyboard doesn't block field, field scrolls fully into view
+- [ ] **H2-b. Keyboard in Models screen — Base URL**: switch to Custom provider → tap Base URL → keyboard doesn't block field
+- [ ] **H2-c. Keyboard in Models screen — Model Name**: switch to Custom provider → tap Model Name → keyboard doesn't block field
 - [ ] **H3. Layout sizes**: all text/buttons normal size (dp not pt)
 - [ ] **H4. Model switcher**: tap model bar → dropdown → switch model → status updates
+- [ ] **H4-b. Local backend label is truthful**: Local model falls back GPU→CPU → top-left model status updates to `CPU`, not stale `GPU`
 - [ ] **H5. New chat**: tap pencil icon → clears messages → shows welcome screen
 - [ ] **H6. Rename chat**: long-press session in sidebar → rename option → type new name → name updates in sidebar + persists after app restart
 - [ ] **H7. Delete chat**: long-press session in sidebar → delete → session removed from sidebar + file deleted
@@ -455,6 +458,7 @@ Layer 1 broadcast bypasses UI routing. Only Layer 3 catches routing bugs.
 
 ### Q5. Routing Regression Guards
 - [ ] **Q5-1. No OpenCL crash on Local chat**: Local tab → Chat mode → send message → should NOT get "OpenCL not found" (must use CPU fallback)
+- [ ] **Q5-1b. GPU fallback updates UI label**: Local tab → GPU load/inference fails → fallback to CPU → top-left model status changes to CPU
 - [ ] **Q5-2. No API error on Cloud task**: Cloud tab → send task → should NOT get "invalid_request_error" 
 - [ ] **Q5-3. Tab switch mid-conversation**: send message on Cloud → switch to Local → send message → no crash, correct routing for each
 
@@ -519,6 +523,21 @@ Layer 1 broadcast bypasses UI routing. Only Layer 3 catches routing bugs.
   8. Verify: "Notification Access" row now shows "Connected"
   9. Press back → return to chat → type "monitor Girlfriend on WhatsApp" again
   10. Verify: monitor starts successfully ("✓ Auto-reply is now active")
+
+---
+
+## T. Model Config — Independent Local/Cloud Defaults
+
+- [ ] **T1. Fresh install — both tabs empty**: clear all model config → Local tab → modelStatus = "No model selected", send disabled → Cloud tab → same
+- [ ] **T2. Only local configured**: Settings → Models → Download + "Use" local model → chat → Local tab → model name shown, send enabled → Cloud tab → "No model selected", send disabled → back to Local → model still there
+- [ ] **T3. Only cloud configured**: Settings → Models → Cloud → select provider + model + API key → Save → chat → Cloud tab → model name shown, send enabled → Local tab → if downloaded model exists use it, else "No model selected" → back to Cloud → model still there
+- [ ] **T4. Both configured**: config local + cloud → Local tab → local model shown, send enabled → Cloud tab → cloud model shown, send enabled → Local tab → local model unchanged
+- [ ] **T5. Cloud model switch via dropdown**: Cloud tab → dropdown → pick different model → model updates → switch to Local → switch back to Cloud → still shows new model
+- [ ] **T6. Local model switch via Settings**: Settings → Models → "Use" different local model → return to chat → Local tab shows new model → Cloud config unchanged
+- [ ] **T7. Cloud no API key**: Cloud tab selected, API key empty → "No model selected", send disabled
+- [ ] **T8. Local model file deleted**: Local tab, but model file removed from disk → "No model selected" or prompt re-download
+- [ ] **T9. Set local default while cloud active**: Cloud active in chat → Settings → "Use" local model → return to chat → Cloud model still active until user explicitly switches tabs
+- [ ] **T10. Save cloud default while local active**: Local active in chat → Settings → save cloud model → return to chat → Local model still active; switching to Cloud picks saved cloud model
 
 ---
 

@@ -14,7 +14,7 @@ package io.agents.pokeclaw
 sealed class TaskEvent {
 
     /** LLM responded with text (chat answer or task summary). */
-    data class Response(val text: String) : TaskEvent()
+    data class Response(val text: String, val modelName: String? = null) : TaskEvent()
 
     /** A tool is being executed (e.g. "Send Message", "Open App"). */
     data class ToolAction(val toolName: String) : TaskEvent()
@@ -37,7 +37,7 @@ sealed class TaskEvent {
     ) : TaskEvent()
 
     /** Task completed successfully with an answer/summary. */
-    data class Completed(val answer: String) : TaskEvent()
+    data class Completed(val answer: String, val modelName: String? = null) : TaskEvent()
 
     /** Task failed with an error. */
     data class Failed(val error: String) : TaskEvent()
