@@ -182,6 +182,24 @@ class ComposeChatActivity : ComponentActivity() {
         }
 
         loadSidebarHistory()
+
+        // Restore last conversation if Activity was recreated (e.g., system killed it during a task)
+        if (_messages.isEmpty()) {
+            val savedConvId = KVUtils.getString("CURRENT_CONVERSATION_ID", "")
+            if (savedConvId.isNotEmpty()) {
+                val convos = ChatHistoryManager.listConversations(this)
+                val match = convos.firstOrNull { it.id == savedConvId }
+                if (match != null) {
+                    conversationId = savedConvId
+                    val restored = ChatHistoryManager.load(match.file)
+                    if (restored.isNotEmpty()) {
+                        _messages.addAll(restored)
+                        XLog.i(TAG, "Restored ${restored.size} messages from conversation $savedConvId")
+                    }
+                }
+            }
+        }
+
         loadModelIfReady()
 
         // Release local LLM conversation before task starts so the agent can use the engine
@@ -707,6 +725,7 @@ class ComposeChatActivity : ComponentActivity() {
         } else {
             _messages.add(ChatMessage(ChatMessage.Role.ASSISTANT, text, modelName = activeModel))
         }
+        saveChat()
     }
 
     /** Remove "..." typing indicator if it exists. */
@@ -932,6 +951,8 @@ class ComposeChatActivity : ComponentActivity() {
     private fun saveChat() {
         val modelName = KVUtils.getLocalModelPath().substringAfterLast('/').substringBeforeLast('.')
         ChatHistoryManager.save(this, conversationId, _messages, modelName)
+        // Persist current conversation ID so we can restore on Activity recreation
+        KVUtils.putString("CURRENT_CONVERSATION_ID", conversationId)
         loadSidebarHistory()
     }
 

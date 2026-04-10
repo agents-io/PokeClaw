@@ -710,7 +710,7 @@ Format: `[date] [status] [test-id] description`
 [2026-04-09] [PASS]    P3-3  Quick Tasks collapse/expand: tap handle → collapsed, tap again → expanded
 [2026-04-09] [PASS]    J2    Empty input send: tap send with empty field → nothing sent
 [2026-04-09] [PASS]    Q4-2  Cloud Quick Task E2E: 🦞 Reddit → tap → fills input → send → agent navigated Reddit + searched pokeclaw
-[2026-04-09] [ISSUE]   L1-v9 Session lost on auto-return — after task in other app, auto-return shows empty state (messages lost). Pre-existing issue.
+[2026-04-09] [FIXED]   L1-v9 Session restore — onCreate reads CURRENT_CONVERSATION_ID from KVUtils, reloads saved messages. replaceTypingIndicator now calls saveChat() to persist task results immediately. Verified: "Restored 7 messages from conversation chat_1775787808468"
 [2026-04-09] [NOTE]    Accessibility can't be enabled via ADB on Android 16 — isRunning() checks runtime flag. Force-stop kills service. Normal app lifecycle preserves it.
 [2026-04-09] [FIXED]   F2-v9 Stop button slow — added Future.cancel(true) to interrupt agent thread + abort HTTP call immediately (was: flag-only, waited for LLM round to finish)
 [2026-04-09] [ISSUE]   F2-v9 Stop → return to same session — after stopping task, should return to the SAME chat session, not open new one
