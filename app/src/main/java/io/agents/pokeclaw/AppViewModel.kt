@@ -50,6 +50,10 @@ class AppViewModel : ViewModel() {
     fun startTask(task: String, taskId: String, onEvent: (TaskEvent) -> Unit) {
         onBeforeTask?.invoke()
         taskOrchestrator.taskEventCallback = onEvent
+        if (!updateAgentConfig()) {
+            onEvent(TaskEvent.Failed("AI service not ready"))
+            return
+        }
         taskOrchestrator.startNewTask(Channel.LOCAL, task, taskId)
     }
 

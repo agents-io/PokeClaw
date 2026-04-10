@@ -814,6 +814,12 @@ class ComposeChatActivity : ComponentActivity() {
         XLog.i(TAG, "checkAutoReplyConfirmation: monitor active, staying in PokeClaw")
     }
 
+    private fun syncTaskAgentConfig() {
+        if (!appViewModel.updateAgentConfig()) {
+            XLog.w(TAG, "syncTaskAgentConfig: failed to update task agent config")
+        }
+    }
+
     private fun switchModel(modelId: String, displayName: String) {
         if (modelId == "NONE") {
             // No model configured for this tab
@@ -836,10 +842,12 @@ class ComposeChatActivity : ComponentActivity() {
             _modelStatus.value = "● ${localConfig.displayName} · On-device"
             addSystem("Switched to local model")
             loadModelIfReady()
+            syncTaskAgentConfig()
         } else {
             ModelConfigRepository.activateCloudSelection(modelId)
             loadModelIfReady()
             addSystem("Switched to $displayName")
+            syncTaskAgentConfig()
         }
         XLog.i(TAG, "Model switched to: $modelId ($displayName)")
     }
