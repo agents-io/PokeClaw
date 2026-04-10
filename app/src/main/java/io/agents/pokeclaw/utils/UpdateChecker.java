@@ -5,10 +5,9 @@ package io.agents.pokeclaw.utils;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.pm.ApplicationInfo;
 import android.content.Intent;
 import android.net.Uri;
-
-import io.agents.pokeclaw.BuildConfig;
 
 import org.json.JSONObject;
 
@@ -30,10 +29,8 @@ public class UpdateChecker {
     private static final long CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // Once per day
 
     public static void checkForUpdate(Activity activity) {
-        if (BuildConfig.DEBUG) {
-            XLog.d(TAG, "Skipping update check on debug build");
-            return;
-        }
+        boolean debugBuild = (activity.getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        XLog.d(TAG, "Checking for updates on " + (debugBuild ? "debug" : "release") + " build");
 
         // Only check once per day
         long lastCheck = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLong("last_update_check", 0);
@@ -74,7 +71,7 @@ public class UpdateChecker {
                 io.agents.pokeclaw.utils.KVUtils.INSTANCE.putLong("last_update_check", now);
 
                 if (isNewer(latestTag, currentVersion)) {
-                    activity.runOnUiThread(() -> showUpdateDialog(activity, latestTag, downloadUrl));
+                    activity.runOnUiThread(() -> showUpdateDialog(activity, latestTag, downloadUrl, debugBuild));
                 }
 
             } catch (Exception e) {
@@ -102,11 +99,19 @@ public class UpdateChecker {
         return false;
     }
 
-    private static void showUpdateDialog(Activity activity, String version, String url) {
+    private static void showUpdateDialog(Activity activity, String version, String url, boolean debugBuild) {
         try {
+            StringBuilder message = new StringBuilder()
+                    .append("PokeClaw v")
+                    .append(version)
+                    .append(" is available. You are running an older version.\n\n")
+                    .append("Would you like to download the update?");
+            if (debugBuild) {
+                message.append("\n\nThis build is debuggable. If Android blocks the install, uninstall the old debug build first, then install the new APK.");
+            }
             new AlertDialog.Builder(activity)
                     .setTitle("Update Available")
-                    .setMessage("PokeClaw v" + version + " is available. You are running an older version.\n\nWould you like to download the update?")
+                    .setMessage(message.toString())
                     .setPositiveButton("Download", (d, w) -> {
                         activity.startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
                     })
