@@ -251,6 +251,55 @@ Pull conversation persistence glue out of the Activity so chat UI work stops bei
 - logcat confirmed `Restored 9 messages from conversation chat_1775851530681`
 - foreground UI still showed the existing `ay pong` / `Hello! How can I help you today?` conversation instead of a blank shell
 
+## Phase 2b — Task Flow UI Boundary
+
+### Status
+
+- Landed on `main`
+- Current landing scope: `TaskFlowController` now owns task-mode send flow, monitor start wiring, typed `TaskEvent` rendering, and task cleanup instead of leaving `ComposeChatActivity` to mix task orchestration glue with UI shell work
+
+### Goal
+
+Pull task-specific UI flow out of the Activity so task orchestration work stops being coupled to Compose bindings and chat persistence code.
+
+### New boundary
+
+`TaskFlowController` owns:
+
+- task-mode send entry
+- accessibility / notification gating for task-mode execution
+- monitor-task start flow
+- typed `TaskEvent` rendering into chat messages
+- task cleanup and post-task local-runtime reload
+
+### Keep in `ComposeChatActivity`
+
+- lifecycle hooks
+- Compose bindings
+- sidebar / conversation selection
+- model switch shell wiring
+- top-level navigation intents
+
+### Must Preserve
+
+- same task-entry UX from chat/task surfaces
+- same in-app Settings redirect when Accessibility is missing
+- same monitor stay-in-app behavior
+- same task result rendering and same-session preservation
+
+### Mandatory QA bundle
+
+- `F1-F3`
+- `K1-K3`
+- `Q7-2`, `Q7-7`
+- one task-intent smoke through the debug receiver path
+
+### Early smoke evidence
+
+- Debug task broadcast `battery` still reached the chat shell after the extraction (`TaskTriggerReceiver: Received task via broadcast: battery`, `ComposeChatActivity: Auto-task from intent: battery`)
+- Missing Accessibility still redirected task flow into in-app `SettingsActivity` instead of silently failing
+- Cold start is no longer blocked by Android 15 foreground-service restrictions because app-start `ForegroundService.start()` now fails closed instead of crashing the process
+
 ## Phase 3 — Permission / Accessibility Coordinator
 
 ### Status

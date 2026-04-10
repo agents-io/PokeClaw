@@ -15,6 +15,7 @@ import androidx.core.app.NotificationCompat
 import io.agents.pokeclaw.R
 import io.agents.pokeclaw.server.ConfigServerManager
 import io.agents.pokeclaw.utils.KVUtils
+import io.agents.pokeclaw.utils.XLog
 
 /**
  * Foreground service - persistent notification
@@ -22,6 +23,7 @@ import io.agents.pokeclaw.utils.KVUtils
 class ForegroundService : Service() {
 
     companion object {
+        private const val TAG = "ForegroundService"
         const val CHANNEL_ID = "PokeClaw_foreground_channel"
         const val NOTIFICATION_ID = 1001
 
@@ -97,13 +99,18 @@ class ForegroundService : Service() {
                 }
             }
 
-            val intent = Intent(context, ForegroundService::class.java)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
+            return try {
+                val intent = Intent(context, ForegroundService::class.java)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    context.startForegroundService(intent)
+                } else {
+                    context.startService(intent)
+                }
+                true
+            } catch (e: Exception) {
+                XLog.w(TAG, "Foreground service start blocked or failed", e)
+                false
             }
-            return true
         }
 
         fun stop(context: Context) {
