@@ -146,17 +146,50 @@ class DefaultAgentService : AgentService {
 
         running.set(true)
         cancelled.set(false)
+        var terminalCallback: (() -> Unit)? = null
+
+        val callbackProxy = object : AgentCallback {
+            override fun onLoopStart(round: Int) = callback.onLoopStart(round)
+
+            override fun onContent(round: Int, content: String) = callback.onContent(round, content)
+
+            override fun onToolCall(round: Int, toolId: String, toolName: String, parameters: String) {
+                callback.onToolCall(round, toolId, toolName, parameters)
+            }
+
+            override fun onToolResult(round: Int, toolId: String, toolName: String, parameters: String, result: ToolResult) {
+                callback.onToolResult(round, toolId, toolName, parameters, result)
+            }
+
+            override fun onTokenUpdate(status: TokenMonitor.Status) = callback.onTokenUpdate(status)
+
+            override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int, modelName: String?) {
+                terminalCallback = { callback.onComplete(round, finalAnswer, totalTokens, modelName) }
+            }
+
+            override fun onError(round: Int, error: Exception, totalTokens: Int) {
+                terminalCallback = { callback.onError(round, error, totalTokens) }
+            }
+
+            override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
+                terminalCallback = { callback.onSystemDialogBlocked(round, totalTokens) }
+            }
+        }
 
         taskFuture = executor?.submit {
             try {
-                runAgentLoop(userPrompt, callback)
+                runAgentLoop(userPrompt, callbackProxy)
             } catch (e: Exception) {
-                if (cancelled.get()) {
-                    XLog.i(TAG, "Agent task cancelled (interrupted)")
-                    callback.onComplete(0, ClawApplication.instance.getString(R.string.agent_task_cancel), 0)
-                } else {
-                    XLog.e(TAG, "Agent execution error", e)
-                    callback.onError(0, e, 0)
+                if (terminalCallback == null) {
+                    if (cancelled.get()) {
+                        XLog.i(TAG, "Agent task cancelled (interrupted)")
+                        terminalCallback = {
+                            callback.onComplete(0, ClawApplication.instance.getString(R.string.agent_task_cancel), 0)
+                        }
+                    } else {
+                        XLog.e(TAG, "Agent execution error", e)
+                        terminalCallback = { callback.onError(0, e, 0) }
+                    }
                 }
             } finally {
                 // Close local engine BEFORE clearing running flag so the chat engine
@@ -170,6 +203,9 @@ class DefaultAgentService : AgentService {
                     }
                 }
                 running.set(false)
+                val terminal = terminalCallback
+                terminalCallback = null
+                terminal?.invoke()
             }
         }
     }
@@ -482,6 +518,11 @@ class DefaultAgentService : AgentService {
                 return
             }
 
+            if (cancelled.get()) {
+                callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_cancel), totalTokens, actualModelName)
+                return
+            }
+
             // Capture actual model name from first API response
             if (actualModelName == null && !llmResponse.modelName.isNullOrEmpty()) {
                 actualModelName = llmResponse.modelName
@@ -704,7 +745,13 @@ class DefaultAgentService : AgentService {
 
     override fun cancel() {
         cancelled.set(true)
-        // Interrupt the thread to abort HTTP calls / LLM inference immediately
+        if (config.provider == LlmProvider.LOCAL) {
+            // LiteRT native sendMessage is not interrupt-safe; let the current round yield
+            // naturally, then surface Task cancelled after the client closes cleanly.
+            XLog.i(TAG, "cancel: LOCAL task marked cancelled; waiting for current LiteRT round to finish safely")
+            return
+        }
+        // Cloud/network-backed tasks can be aborted safely via thread interruption.
         taskFuture?.cancel(true)
         XLog.i(TAG, "cancel: flag set + thread interrupted")
     }

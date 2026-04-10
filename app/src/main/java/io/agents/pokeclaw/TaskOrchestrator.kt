@@ -111,14 +111,8 @@ class TaskOrchestrator(
         if (::agentService.isInitialized) {
             agentService.cancel()
         }
-        val (channel, messageId) = releaseTask()
-        if (channel != null && messageId.isNotEmpty()) {
-            ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_task_cancelled), messageId)
-        }
-        taskEventCallback?.invoke(TaskEvent.Cancelled)
-        FloatingCircleManager.setErrorState()
-        onTaskFinished()
-        XLog.d(TAG, "Current task cancelled by user")
+        ForegroundService.updateTaskStatus(ClawApplication.instance, "Stopping task...")
+        XLog.d(TAG, "Current task cancellation requested")
     }
 
     /**
@@ -300,6 +294,25 @@ class TaskOrchestrator(
 
             override fun onComplete(round: Int, finalAnswer: String, totalTokens: Int, modelName: String?) {
                 XLog.i(TAG, "onComplete: rounds=$round, totalTokens=$totalTokens, model=$modelName, answer=$finalAnswer")
+                val cancelAnswers = setOf(
+                    ClawApplication.instance.getString(R.string.agent_task_cancel),
+                    ClawApplication.instance.getString(R.string.agent_task_cancelled),
+                    ClawApplication.instance.getString(R.string.channel_msg_task_cancelled)
+                )
+                if (finalAnswer.trim() in cancelAnswers) {
+                    taskEventCallback?.invoke(TaskEvent.Cancelled)
+                    ForegroundService.resetToIdle(ClawApplication.instance)
+                    flushRoundBuffer()
+                    val (cancelChannel, cancelMessageId) = releaseTask()
+                    if (cancelChannel != null && cancelMessageId.isNotEmpty()) {
+                        ChannelManager.sendMessage(cancelChannel, ClawApplication.instance.getString(R.string.channel_msg_task_cancelled), cancelMessageId)
+                        ChannelManager.flushMessages(cancelChannel)
+                    }
+                    FloatingCircleManager.setErrorState()
+                    onTaskFinished()
+                    XLog.d(TAG, "Current task cancelled by user")
+                    return
+                }
                 // Strip common LLM-added prefixes from the answer
                 var answer = finalAnswer.ifEmpty { "Done." }
                 answer = answer.removePrefix("Task completed:").removePrefix("Task completed").trim()

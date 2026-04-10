@@ -174,15 +174,23 @@ class ComposeChatActivity : ComponentActivity() {
                 },
                 onStopAllTasks = {
                     // Cancel running agent task
+                    var requestedTaskStop = false
                     if (appViewModel.isTaskRunning()) {
                         appViewModel.stopTask()
-                        _isProcessing.value = false
+                        requestedTaskStop = true
                     }
                     // Stop all monitoring
+                    var stoppedMonitoring = false
                     if (autoReplyManager.isEnabled) {
                         autoReplyManager.stopAll()
+                        stoppedMonitoring = true
                     }
-                    Toast.makeText(this, "All tasks stopped", Toast.LENGTH_SHORT).show()
+                    val message = when {
+                        requestedTaskStop -> "Stopping current task..."
+                        stoppedMonitoring -> "All tasks stopped"
+                        else -> "No active tasks"
+                    }
+                    Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
                 },
                 onModelSwitch = { modelId, displayName -> switchModel(modelId, displayName) },
                 colors = composeColors,
