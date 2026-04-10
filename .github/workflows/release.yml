@@ -1,0 +1,72 @@
+name: Release APK
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build APK
+        run: ./gradlew assembleDebug
+
+      - name: Extract release notes from README
+        env:
+          VERSION: ${{ github.ref_name }}
+        run: |
+          python <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          version = os.environ["VERSION"].removeprefix("v")
+          text = Path("README.md").read_text()
+          header = re.compile(rf"^### v{re.escape(version)}\b.*$", re.MULTILINE)
+          match = header.search(text)
+          if not match:
+              raise SystemExit(f"Could not find changelog entry for v{version} in README.md")
+
+          rest = text[match.end():]
+          next_header = re.search(r"^### v", rest, re.MULTILINE)
+          notes = (rest[:next_header.start()] if next_header else rest).strip()
+          if not notes:
+              raise SystemExit(f"Changelog entry for v{version} is empty")
+
+          Path("release-notes.md").write_text(notes + "\n")
+          PY
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: app/build/outputs/apk/debug/*.apk
+          body_path: release-notes.md
+          draft: false
+          prerelease: false
