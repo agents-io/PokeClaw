@@ -46,6 +46,19 @@ adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw \
   --es task 'config:' --es provider 'LOCAL' --es base_url '$MODEL_PATH' --es model_name 'gemma4-e2b'"
 ```
 
+### Batch Quick-Task Sweeps
+
+```bash
+# Cloud quick tasks
+cd /home/nicole/MyGithub/PokeClaw
+./scripts/e2e-quick-tasks.sh cloud
+
+# Local quick tasks
+./scripts/e2e-quick-tasks.sh local
+```
+
+The runner emits `PASS / FAIL / BLOCKED / TIMEOUT` and writes a timestamped log file under `/tmp/`.
+
 ### Send a Task via ADB (for M tests)
 
 ```bash
@@ -77,6 +90,7 @@ For each M test, check:
 3. **Rounds** — system queries should be 2 rounds, complex tasks 5-15
 4. **Auto-return** — after task, PokeClaw chatroom should come back to foreground
 5. **Graceful failure** — if task can't complete, clear error message (not stuck/loop)
+6. **Env-dependent quick tasks** — if a sample contact/app is missing on this device, require the correct tool + a graceful failure; literal send/call success should be marked `BLOCKED`, not product `FAIL`
 
 ### Verify UI via Uiautomator
 
@@ -769,6 +783,9 @@ Format: `[date] [status] [test-id] description`
 [2026-04-10] [PASS]    M8/M1-a  Cloud task `search youtube for lofi beats` → `open_app` → `input_text(node_id=...)` succeeds → `system_key(enter)` → `get_screen_info` → `finish`; completes in 6 rounds / 46.7K tokens, no budget stop, auto-return restores `ComposeChatActivity`
 [2026-04-10] [PASS]    M8-alt/M1-a  Alternate phrasing `search for lofi beats on youtube` follows the same generic path (`open_app` → `input_text(node_id=...)` → `system_key` → `get_screen_info` → `finish`) and also completes in 6 rounds / 47.5K tokens
 [2026-04-10] [PASS]    M1-control  Non-search control task `how much battery left` remains unaffected by the search guard: `get_device_info(category=battery)` → `finish`; completes in 2 rounds / 10.4K tokens with no `InAppSearchGuard` activity
+[2026-04-10] [PASS]    LQ1-LQ5  Local reasoning quick-task sweep on Pixel 8 Pro: notifications triage, clipboard explain, storage analysis, notification summary, and battery advice all completed on-device via LiteRT CPU fallback with correct tool routing and no crashes/loops
+[2026-04-10] [PASS]    LQ7-LQ10/LQ12/LQ13  Local deterministic quick-task sweep: installed apps, phone temperature, bluetooth state, battery, storage, and Android version all returned correct device data through `get_installed_apps` / `get_device_info`, with no stale-session or routing regressions
+[2026-04-10] [PASS]    LQ6/LQ11  Contact-specific local quick tasks still route the correct tools (`send_message`, `make_call`) and fail gracefully when `Mom` does not exist on this device; treat literal send/call success as env-blocked coverage, not a product failure
 ```
 
 ### Bugs Found During v9 QA
