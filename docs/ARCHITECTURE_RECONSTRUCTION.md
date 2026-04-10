@@ -91,6 +91,19 @@ Use a **phased strangler approach**, not a rewrite.
 
 Each phase should land as a small, reviewable set of commits with a matching regression bundle.
 
+## Phase Overview
+
+- **Phase 0 — QA Gate First**: freeze checklist discipline and rerun bundles so refactors stop happening against a fuzzy test baseline
+- **Phase 1 — Chat Runtime Extraction**: move chat runtime/model lifecycle out of `ComposeChatActivity`
+- **Phase 1b — Conversation Persistence Boundary**: move conversation save/restore and current-conversation identity into a dedicated store
+- **Phase 2 — Task Session Store**: make live task/session truth authoritative in one place
+- **Phase 2b — Task Flow UI Boundary**: move task-send/task-event glue out of `ComposeChatActivity`
+- **Phase 2c — Active Task Shell Boundary**: move top-bar active-task/monitor shell state and stop actions into a dedicated controller
+- **Phase 3 — Permission / Accessibility Truth Boundary**: keep system permission truth and app-visible state aligned
+- **Phase 4 — Structured Monitor Targets**: replace raw contact-name-only monitor requests with a structured app-aware target model
+- **Phase 5 — Local Model Lifecycle Cleanup**: isolate device compatibility, import, fallback, and engine bring-up from UI code
+- **Phase 6 — RC QA Sweep**: rerun the full release checklist once the reconstruction phases above stop moving
+
 ## Phase 0 — QA Gate First
 
 Before broad refactors, freeze the test rules.

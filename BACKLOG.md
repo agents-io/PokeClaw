@@ -13,6 +13,7 @@ Priority: `P0` = blocks users, fix now. `P1` = next up. `P2` = when we get to it
 - [ ] **P2** K3-a: Auto-return fires on every service connect, not just user-initiated permission enable
 - [ ] **P2** B2-a: No auto-return to PokeClaw after task completes in another app (e.g., stuck in YouTube)
 - [ ] **P1** Investigate MediaTek/Samsung local-engine bring-up failures that still report OpenCL/LiteRT engine creation errors on some devices even after GPU→CPU fallback
+- [ ] **P2** Settings screen: active model row breaks layout when the model name is long; keep the label/value aligned and truncate or wrap cleanly without shoving the left label into a narrow column
 
 ## Features
 
@@ -32,6 +33,7 @@ Priority: `P0` = blocks users, fix now. `P1` = next up. `P2` = when we get to it
 - [ ] **P1** Release QA: verify locally signed `0.5.1+` public APK can upgrade in-place over the next signed public build once the stable key is installed in GitHub Actions
 - [x] ~~**P1** M1-M12 QA: Cloud LLM complex tasks~~ — done 2026-04-08, 10/12 PASS
 - [ ] **P2** K6: Verify each Settings permission row leads to correct system settings page
+- [ ] **P2** Settings layout QA: verify long local/cloud model names render cleanly on the Settings screen across Pixel/Samsung widths
 - [ ] **P2** Download free space check — done 2026-04-08 (StatFs before download)
 
 ## Ideas / Research

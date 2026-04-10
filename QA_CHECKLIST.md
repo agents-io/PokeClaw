@@ -663,6 +663,7 @@ Layer 1 broadcast bypasses UI routing. Only Layer 3 catches routing bugs.
   - Overlay → system Overlay permission
   - Battery → system Battery optimization
   - File Access → system Storage settings
+- [ ] **K6-b. Settings model row handles long names**: Settings → active local/cloud model has a long name → label/value stay aligned, text truncates or wraps cleanly, and the left "Model" label does not collapse into a narrow vertical stack
 - [ ] **K7. Full permission setup flow (E2E)**:
   1. Fresh state: disable Notification Access for PokeClaw
   2. Open PokeClaw → type "monitor Girlfriend on WhatsApp" → send
