@@ -25,12 +25,16 @@ android {
             val props = Properties().apply {
                 rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
             }
-            val keystorePath = props.getProperty("KEYSTORE_FILE", "")
+            fun readSigningValue(key: String): String {
+                return System.getenv(key)?.takeIf { it.isNotBlank() }
+                    ?: props.getProperty(key, "").trim()
+            }
+            val keystorePath = readSigningValue("KEYSTORE_FILE")
             if (keystorePath.isNotEmpty()) {
                 storeFile = file(keystorePath)
-                storePassword = props.getProperty("KEYSTORE_PASSWORD", "")
-                keyAlias = props.getProperty("KEY_ALIAS", "")
-                keyPassword = props.getProperty("KEY_PASSWORD", "")
+                storePassword = readSigningValue("KEYSTORE_PASSWORD")
+                keyAlias = readSigningValue("KEY_ALIAS")
+                keyPassword = readSigningValue("KEY_PASSWORD")
             }
         }
     }

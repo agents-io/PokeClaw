@@ -8,11 +8,15 @@ Priority: `P0` = blocks users, fix now. `P1` = next up. `P2` = when we get to it
 
 ## Bugs
 
+- [ ] **P0** Release publishing: install stable signing secrets on `agents-io/PokeClaw` so tag-based GitHub releases can ship a signed `release` APK instead of failing closed
+- [ ] **P1** Historical upgrade gap: users on the older public debug signing path still need a one-time uninstall + reinstall because the original public signing key is already lost
 - [ ] **P2** K3-a: Auto-return fires on every service connect, not just user-initiated permission enable
 - [ ] **P2** B2-a: No auto-return to PokeClaw after task completes in another app (e.g., stuck in YouTube)
+- [ ] **P1** Investigate MediaTek/Samsung local-engine bring-up failures that still report OpenCL/LiteRT engine creation errors on some devices even after GPU→CPU fallback
 
 ## Features
 
+- [ ] **P1** Local model import UX: keep shared-storage `.litertlm` import easy and explain clearly why other apps' `Android/data/...` sandboxes (for example Edge Gallery) are not directly readable
 - [ ] **P1** Tinder automation: auto swipe + monitor matches + auto-reply using same monitor architecture as WhatsApp
 - [x] ~~**P1** NLP Playbooks (Layer 2): 5 playbooks in system prompt (Search in App, Navigate Settings, Compose Email, Read Screen, Read Notifications)~~ — done 2026-04-08
 - [x] ~~**P1** In-chat task auto-return~~ — done 2026-04-08
@@ -25,6 +29,7 @@ Priority: `P0` = blocks users, fix now. `P1` = next up. `P2` = when we get to it
 ## QA Gaps
 
 - [ ] **P1** C2: Auto-reply trigger E2E — needs 2nd device to send WhatsApp message to Girlfriend
+- [ ] **P1** Release QA: verify locally signed `0.5.1+` public APK can upgrade in-place over the next signed public build once the stable key is installed in GitHub Actions
 - [x] ~~**P1** M1-M12 QA: Cloud LLM complex tasks~~ — done 2026-04-08, 10/12 PASS
 - [ ] **P2** K6: Verify each Settings permission row leads to correct system settings page
 - [ ] **P2** Download free space check — done 2026-04-08 (StatFs before download)
