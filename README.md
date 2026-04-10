@@ -166,6 +166,39 @@ As on-device models get smarter, the skills become less necessary. A future 7B o
 
 No API keys. No cloud config. No account.
 
+## Roadmap
+
+This is the current direction for PokeClaw based on real device testing, open issues, and the most common feature requests.
+
+### Near-term
+
+- **Stabler public releases and upgrades.** The release/signing path is being locked down so future public APKs upgrade cleanly instead of falling back to uninstall/reinstall behavior from the older debug-signed builds.
+- **Lower-RAM local model options.** Right now the built-in local model choices are still too heavy for a lot of mid-range phones. Smaller on-device models are high priority.
+- **More reliable local model downloads.** Resume/retry behavior, partial download cleanup, and corrupted-model detection are all being hardened so downloads survive weak connections and screen-off/resume cases better.
+- **Broader device compatibility.** Samsung, Xiaomi, Dimensity, and low-RAM device issues are being used as real-world test cases for GPU→CPU fallback, model loading, accessibility reconnects, and generic UI control.
+- **More generic phone-control skills.** We are continuing to replace brittle, app-specific assumptions with generic tools and reusable skills so tasks survive OEM UI changes better.
+
+### In progress
+
+- **Import your own local `.litertlm` models.** User-accessible local model import is on the roadmap so you can bring your own LiteRT model instead of being locked to the built-in download list.
+- **More built-in workflows.** More quick-task / skill coverage is planned beyond the first WhatsApp-centric workflows.
+- **Remote control / remote conversation flows.** Controlling a phone from another device is a real request and is on the longer roadmap, but it is not the current top priority compared with local reliability and device coverage.
+
+### Known platform constraints
+
+- **Edge Gallery model detection is not fully under our control.** Android hides other apps' `Android/data/...` sandboxes from normal file-pickers, so PokeClaw cannot generically "see" Edge Gallery's downloaded models unless they are exported into a user-accessible location first.
+- **Sideload + accessibility apps may trigger OEM security warnings.** Samsung / Play Protect warnings are being addressed through a cleaner release/signing path, but sideload trust prompts are partly controlled by the platform and OEM policy.
+
+### Where feature requests go
+
+If you want something added, please open an issue. The roadmap above is intentionally built from real requests like:
+
+- smaller local models for lower-end phones
+- importing your own local models
+- cleaner upgrade/install paths
+- remote control from another phone
+- broader distribution paths like F-Droid
+
 ## Help Wanted
 
 This is the first local LLM that can autonomously control a phone. Built in two all-nighters on a model that dropped days ago. It's already pretty impressive that this works at all, and it's only going to get better as on-device models improve.
