@@ -142,6 +142,8 @@ As on-device models get smarter, the skills become less necessary. A future 7B o
 
 [**Download APK**](https://github.com/agents-io/PokeClaw/releases/latest)
 
+> Note: If you are updating from an older public debug build and Android says the package is incompatible, uninstall the old build once and then install the latest APK fresh. We verified that older public builds still receive the in-app update prompt, but the old public debug signing path requires a one-time reinstall for v0.5.0.
+
 ### Requirements
 
 | | Minimum | Recommended |
@@ -185,6 +187,7 @@ Every issue makes this better. Every star helps more people find it.
 - **Task budget default is now unlimited.** Fresh installs no longer inherit a fake default cap during development; users can still set a manual token/cost budget in Settings if they want one.
 - **Previously misleading status rows now tell the truth.** Local GPU→CPU fallback now shows the real backend, the Accessibility status row reflects the real system state, and the Task Budget row shows `Unlimited` when no manual budget is set.
 - **The updater now covers more real-world installs.** From v0.5.0 onward, accidental debug-build users also get the once-per-day GitHub release check, and the dialog warns when Android may require uninstalling an old debug build before installing the new APK.
+- **Verified release-upgrade behavior.** Older public `0.4.0` builds do show the `v0.5.0` in-app update prompt, but upgrading from the old public debug signing path to the new public APK is a one-time uninstall + reinstall instead of an in-place replace.
 
 ### v0.4.1 (2026-04-08)
 - **Experimental task badge.** Task tab now shows `Experimental — more workflows coming soon`.
