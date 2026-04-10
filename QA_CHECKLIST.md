@@ -763,6 +763,8 @@ Format: `[date] [status] [test-id] description`
 [2026-04-10] [FIXED]   Q7-local  Local stop now avoids interrupting LiteRT mid-round; terminal cleanup waits for the task-side client to close, and `TaskOrchestrator` only releases the task after the cancel completion callback arrives
 [2026-04-10] [PASS]    Q7-1b/Q7-3/Q7-4  Local task "how much battery left" → tap Stop → 1s later UI still shows `Task running...` + `Stop` while safe unwind is in progress → app remains on `ComposeChatActivity` → logs show `Task cancelled` → send button resets to arrow
 [2026-04-10] [PASS]    Q7-5-local  After local stop, a second local task starts and completes normally — no `already running`, no `session already exists`, no crash
+[2026-04-10] [FIXED]   Dbg-u1  Debug builds no longer show the release `Update Available` dialog on launch; `UpdateChecker` now skips version checks when `BuildConfig.DEBUG` is true
+[2026-04-10] [PASS]    Dbg-u1  Cold launch after reinstall → no modal shown; `adb logcat` records `UpdateChecker: Skipping update check on debug build`
 ```
 
 ### Bugs Found During v9 QA

@@ -8,6 +8,8 @@ import android.app.AlertDialog;
 import android.content.Intent;
 import android.net.Uri;
 
+import io.agents.pokeclaw.BuildConfig;
+
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -28,6 +30,11 @@ public class UpdateChecker {
     private static final long CHECK_INTERVAL_MS = 24 * 60 * 60 * 1000; // Once per day
 
     public static void checkForUpdate(Activity activity) {
+        if (BuildConfig.DEBUG) {
+            XLog.d(TAG, "Skipping update check on debug build");
+            return;
+        }
+
         // Only check once per day
         long lastCheck = io.agents.pokeclaw.utils.KVUtils.INSTANCE.getLong("last_update_check", 0);
         long now = System.currentTimeMillis();
