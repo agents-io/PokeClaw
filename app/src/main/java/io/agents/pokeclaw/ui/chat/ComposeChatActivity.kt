@@ -411,14 +411,15 @@ class ComposeChatActivity : ComponentActivity() {
         }
 
         if (modelPath.isEmpty()) {
-            // Pick best model that fits device RAM
-            val totalRam = (Runtime.getRuntime().maxMemory() / 1024 / 1024 / 1024).toInt() + 1
-            val actMgr = getSystemService(android.app.ActivityManager::class.java)
-            val memInfo = android.app.ActivityManager.MemoryInfo()
-            actMgr.getMemoryInfo(memInfo)
-            val deviceRamGb = (memInfo.totalMem / 1024 / 1024 / 1024).toInt() + 1
-            val defaultModel = LocalModelManager.AVAILABLE_MODELS.firstOrNull { it.minRamGb <= deviceRamGb }
-                ?: LocalModelManager.AVAILABLE_MODELS.last()
+            val defaultModel = LocalModelManager.bestSupportedModel(this)
+            if (defaultModel == null) {
+                val deviceRamGb = LocalModelManager.getDeviceRamGb(this)
+                _modelStatus.value = "Local model unavailable on this device"
+                _isDownloading.value = false
+                setButtonsEnabled(false)
+                addSystem("This device reports ${deviceRamGb}GB RAM. Current built-in local models need at least ${LocalModelManager.AVAILABLE_MODELS.minOf { it.minRamGb }}GB.")
+                return
+            }
             _modelStatus.value = "Downloading ${defaultModel.displayName}..."
             _isDownloading.value = true
             _downloadProgress.value = 0

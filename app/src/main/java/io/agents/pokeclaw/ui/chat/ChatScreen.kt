@@ -801,9 +801,9 @@ private fun ChatInputBar(
     val taskBorder = colors.accent.copy(alpha = 0.25f)
 
     Column(
-        modifier = Modifier.background(
-            if (isTaskMode && isLocalModel) taskBg else colors.surface
-        )
+        modifier = Modifier
+            .background(if (isTaskMode && isLocalModel) taskBg else colors.surface)
+            .navigationBarsPadding()
     ) {
         HorizontalDivider(
             color = if (isTaskMode && isLocalModel) taskBorder else colors.divider,

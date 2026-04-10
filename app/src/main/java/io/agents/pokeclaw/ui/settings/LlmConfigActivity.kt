@@ -70,6 +70,7 @@ class LlmConfigActivity : BaseActivity() {
         val activeModelStatus = findViewById<TextView>(R.id.tvActiveModelStatus)
         val modelList = findViewById<LinearLayout>(R.id.layoutModelList)
         val resolvedConfig = ModelConfigRepository.snapshot()
+        val deviceRamGb = LocalModelManager.getDeviceRamGb(this)
 
         // Apply theme to active model card text
         activeModelName.setTextColor(tc.aiText)
@@ -136,6 +137,7 @@ class LlmConfigActivity : BaseActivity() {
         models.forEach { model ->
             val downloaded = LocalModelManager.isModelDownloaded(this, model)
             val isActive = model.id == currentModelId
+            val supportedOnDevice = LocalModelManager.isModelSupportedOnDevice(this, model)
 
             val card = CardView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
@@ -168,9 +170,10 @@ class LlmConfigActivity : BaseActivity() {
             info.addView(nameTV)
 
             val descTV = TextView(this).apply {
-                text = "${model.sizeBytes / 1_000_000} MB · ${model.minRamGb}GB+ RAM"
+                val baseText = "${model.sizeBytes / 1_000_000} MB · ${model.minRamGb}GB+ RAM"
+                text = if (supportedOnDevice) baseText else "$baseText · This phone reports ${deviceRamGb}GB"
                 textSize = 12f
-                setTextColor(Color.parseColor("#8b949e"))
+                setTextColor(if (supportedOnDevice) Color.parseColor("#8b949e") else getColor(R.color.colorWarningPrimary))
             }
             info.addView(descTV)
 
@@ -180,34 +183,43 @@ class LlmConfigActivity : BaseActivity() {
             if (downloaded) {
                 if (isActive) {
                     val check = TextView(this).apply {
-                        text = "✓ Active"
+                        text = if (supportedOnDevice) "✓ Active" else "⚠ Active"
                         textSize = 12f
-                        setTextColor(getColor(R.color.colorSuccessPrimary))
+                        setTextColor(if (supportedOnDevice) getColor(R.color.colorSuccessPrimary) else getColor(R.color.colorWarningPrimary))
                     }
                     row.addView(check)
                 } else {
-                    val useBtn = TextView(this).apply {
-                        text = "Use"
-                        textSize = 13f
-                        setTextColor(getColor(R.color.colorBrandPrimary))
-                        setPadding(dp(12), dp(6), dp(12), dp(6))
-                        setOnClickListener {
-                            val path = LocalModelManager.getModelPath(this@LlmConfigActivity, model)
-                            if (path != null) {
-                                // Save as default local model (independent of cloud config)
-                                // Only switch active provider if currently on local tab
-                                val shouldActivateLocal = ModelConfigRepository.isLocalActive() || !KVUtils.hasDefaultCloudModel()
-                                ModelConfigRepository.saveLocalDefault(path, model.id, shouldActivateLocal)
-                                ClawApplication.appViewModelInstance.updateAgentConfig()
-                                ClawApplication.appViewModelInstance.initAgent()
-                                Toast.makeText(this@LlmConfigActivity, "Set default local: ${model.displayName}", Toast.LENGTH_SHORT).show()
-                                recreate()
-                            } else {
-                                Toast.makeText(this@LlmConfigActivity, "Model file not found", Toast.LENGTH_SHORT).show()
+                    if (supportedOnDevice) {
+                        val useBtn = TextView(this).apply {
+                            text = "Use"
+                            textSize = 13f
+                            setTextColor(getColor(R.color.colorBrandPrimary))
+                            setPadding(dp(12), dp(6), dp(12), dp(6))
+                            setOnClickListener {
+                                val path = LocalModelManager.getModelPath(this@LlmConfigActivity, model)
+                                if (path != null) {
+                                    // Save as default local model (independent of cloud config)
+                                    // Only switch active provider if currently on local tab
+                                    val shouldActivateLocal = ModelConfigRepository.isLocalActive() || !KVUtils.hasDefaultCloudModel()
+                                    ModelConfigRepository.saveLocalDefault(path, model.id, shouldActivateLocal)
+                                    ClawApplication.appViewModelInstance.updateAgentConfig()
+                                    ClawApplication.appViewModelInstance.initAgent()
+                                    Toast.makeText(this@LlmConfigActivity, "Set default local: ${model.displayName}", Toast.LENGTH_SHORT).show()
+                                    recreate()
+                                } else {
+                                    Toast.makeText(this@LlmConfigActivity, "Model file not found", Toast.LENGTH_SHORT).show()
+                                }
                             }
                         }
+                        row.addView(useBtn)
+                    } else {
+                        row.addView(TextView(this).apply {
+                            text = "Needs ${model.minRamGb}GB+"
+                            textSize = 12f
+                            setTextColor(getColor(R.color.colorWarningPrimary))
+                            setPadding(dp(12), dp(6), dp(12), dp(6))
+                        })
                     }
-                    row.addView(useBtn)
 
                     // Delete button
                     val delBtn = TextView(this).apply {
@@ -224,46 +236,55 @@ class LlmConfigActivity : BaseActivity() {
                     row.addView(delBtn)
                 }
             } else {
-                val dlBtn = TextView(this).apply {
-                    text = "↓ Download"
-                    textSize = 13f
-                    setTextColor(getColor(R.color.colorInfoPrimary))
-                    setPadding(dp(12), dp(6), dp(12), dp(6))
-                    setOnClickListener {
-                        if (isDownloading) {
-                            Toast.makeText(this@LlmConfigActivity, "Already downloading", Toast.LENGTH_SHORT).show()
-                            return@setOnClickListener
-                        }
-                        isDownloading = true
-                        text = "Downloading..."
-                        isEnabled = false
+                if (supportedOnDevice) {
+                    val dlBtn = TextView(this).apply {
+                        text = "↓ Download"
+                        textSize = 13f
+                        setTextColor(getColor(R.color.colorInfoPrimary))
+                        setPadding(dp(12), dp(6), dp(12), dp(6))
+                        setOnClickListener {
+                            if (isDownloading) {
+                                Toast.makeText(this@LlmConfigActivity, "Already downloading", Toast.LENGTH_SHORT).show()
+                                return@setOnClickListener
+                            }
+                            isDownloading = true
+                            text = "Downloading..."
+                            isEnabled = false
 
-                        executor.submit {
-                            LocalModelManager.downloadModel(this@LlmConfigActivity, model, object : LocalModelManager.DownloadCallback {
-                                override fun onProgress(bytesDownloaded: Long, totalBytes: Long, bytesPerSecond: Long) {
-                                    val pct = if (totalBytes > 0) (bytesDownloaded * 100 / totalBytes).toInt() else 0
-                                    runOnUiThread { text = "$pct%" }
-                                }
-                                override fun onComplete(modelPath: String) {
-                                    runOnUiThread {
-                                        isDownloading = false
-                                        Toast.makeText(this@LlmConfigActivity, "Downloaded!", Toast.LENGTH_SHORT).show()
-                                        recreate()
+                            executor.submit {
+                                LocalModelManager.downloadModel(this@LlmConfigActivity, model, object : LocalModelManager.DownloadCallback {
+                                    override fun onProgress(bytesDownloaded: Long, totalBytes: Long, bytesPerSecond: Long) {
+                                        val pct = if (totalBytes > 0) (bytesDownloaded * 100 / totalBytes).toInt() else 0
+                                        runOnUiThread { text = "$pct%" }
                                     }
-                                }
-                                override fun onError(error: String) {
-                                    runOnUiThread {
-                                        isDownloading = false
-                                        text = "↓ Download"
-                                        isEnabled = true
-                                        Toast.makeText(this@LlmConfigActivity, error, Toast.LENGTH_LONG).show()
+                                    override fun onComplete(modelPath: String) {
+                                        runOnUiThread {
+                                            isDownloading = false
+                                            Toast.makeText(this@LlmConfigActivity, "Downloaded!", Toast.LENGTH_SHORT).show()
+                                            recreate()
+                                        }
                                     }
-                                }
-                            })
+                                    override fun onError(error: String) {
+                                        runOnUiThread {
+                                            isDownloading = false
+                                            text = "↓ Download"
+                                            isEnabled = true
+                                            Toast.makeText(this@LlmConfigActivity, error, Toast.LENGTH_LONG).show()
+                                        }
+                                    }
+                                })
+                            }
                         }
                     }
+                    row.addView(dlBtn)
+                } else {
+                    row.addView(TextView(this).apply {
+                        text = "Needs ${model.minRamGb}GB+"
+                        textSize = 12f
+                        setTextColor(getColor(R.color.colorWarningPrimary))
+                        setPadding(dp(12), dp(6), dp(12), dp(6))
+                    })
                 }
-                row.addView(dlBtn)
             }
 
             card.addView(row)

@@ -67,8 +67,26 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                 engine = shared
             }
         } catch (e: Exception) {
-            XLog.e(TAG, "ensureEngine: failed to get engine from EngineHolder", e)
-            throw e
+            val triedGpu = backend is com.google.ai.edge.litertlm.Backend.GPU
+            if (!triedGpu) {
+                XLog.e(TAG, "ensureEngine: failed to get engine from EngineHolder", e)
+                throw e
+            }
+
+            XLog.w(TAG, "ensureEngine: GPU engine init failed, retrying on CPU: ${e.message}")
+            gpuFailed = true
+            io.agents.pokeclaw.utils.KVUtils.setLocalBackendPreference("CPU")
+            try { EngineHolder.close() } catch (_: Exception) {}
+            engine = null
+            val cpuShared = EngineHolder.getOrCreate(
+                modelPath,
+                context.cacheDir.path,
+                com.google.ai.edge.litertlm.Backend.CPU()
+            )
+            if (engine !== cpuShared) {
+                XLog.i(TAG, "ensureEngine: obtained shared CPU engine for $modelPath")
+                engine = cpuShared
+            }
         }
     }
 

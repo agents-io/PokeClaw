@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit
 object LocalModelManager {
 
     private const val TAG = "LocalModelManager"
+    private const val SIZE_TOLERANCE_BYTES = 32L * 1024L * 1024L
 
     /** Available models for download */
     data class ModelInfo(
@@ -57,15 +58,30 @@ object LocalModelManager {
      * Devices with 12GB+ RAM get E4B, everyone else gets E2B.
      */
     fun recommendedModel(context: Context): ModelInfo {
-        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
-        val memInfo = android.app.ActivityManager.MemoryInfo()
-        activityManager.getMemoryInfo(memInfo)
-        val totalRamGb = (memInfo.totalMem / (1024L * 1024L * 1024L)).toInt()
+        val totalRamGb = getDeviceRamGb(context)
         return if (totalRamGb >= 12) {
             AVAILABLE_MODELS.first { it.id == "gemma4-e4b" }
         } else {
             AVAILABLE_MODELS.first { it.id == "gemma4-e2b" }
         }
+    }
+
+    fun getDeviceRamGb(context: Context): Int {
+        val activityManager = context.getSystemService(Context.ACTIVITY_SERVICE) as android.app.ActivityManager
+        val memInfo = android.app.ActivityManager.MemoryInfo()
+        activityManager.getMemoryInfo(memInfo)
+        return (memInfo.totalMem / (1024L * 1024L * 1024L)).toInt() + 1
+    }
+
+    fun bestSupportedModel(context: Context): ModelInfo? {
+        val deviceRamGb = getDeviceRamGb(context)
+        return AVAILABLE_MODELS
+            .filter { it.minRamGb <= deviceRamGb }
+            .maxByOrNull { it.minRamGb }
+    }
+
+    fun isModelSupportedOnDevice(context: Context, model: ModelInfo): Boolean {
+        return getDeviceRamGb(context) >= model.minRamGb
     }
 
     interface DownloadCallback {
@@ -88,7 +104,7 @@ object LocalModelManager {
      */
     fun isModelDownloaded(context: Context, model: ModelInfo): Boolean {
         val file = File(getModelDir(context), model.fileName)
-        return file.exists() && file.length() > 0
+        return isValidModelFile(file, model)
     }
 
     /**
@@ -96,7 +112,7 @@ object LocalModelManager {
      */
     fun getModelPath(context: Context, model: ModelInfo): String? {
         val file = File(getModelDir(context), model.fileName)
-        return if (file.exists() && file.length() > 0) file.absolutePath else null
+        return if (isValidModelFile(file, model)) file.absolutePath else null
     }
 
     /**
@@ -113,6 +129,7 @@ object LocalModelManager {
         val modelDir = getModelDir(context)
         val targetFile = File(modelDir, model.fileName)
         val tempFile = File(modelDir, "${model.fileName}.downloading")
+        cleanupInvalidFiles(model, targetFile, tempFile)
 
         // Check free space before starting download
         try {
@@ -154,12 +171,18 @@ object LocalModelManager {
                 return
             }
 
-            val totalBytes = if (response.code == 206) {
+            val isResumedResponse = existingBytes > 0 && response.code == 206
+            if (existingBytes > 0 && !isResumedResponse) {
+                XLog.w(TAG, "Server ignored Range request for ${model.fileName}; restarting download from scratch")
+                tempFile.delete()
+            }
+
+            val totalBytes = if (isResumedResponse) {
                 // Partial content — total size from Content-Range header
                 val contentRange = response.header("Content-Range")
                 contentRange?.substringAfterLast("/")?.toLongOrNull() ?: model.sizeBytes
             } else {
-                response.body?.contentLength()?.let { it + existingBytes } ?: model.sizeBytes
+                response.body?.contentLength() ?: model.sizeBytes
             }
 
             val body = response.body ?: run {
@@ -167,11 +190,12 @@ object LocalModelManager {
                 return
             }
 
-            val outputStream = FileOutputStream(tempFile, existingBytes > 0)
+            val startingBytes = if (isResumedResponse) existingBytes else 0L
+            val outputStream = FileOutputStream(tempFile, isResumedResponse)
             val buffer = ByteArray(8192)
-            var downloadedBytes = existingBytes
+            var downloadedBytes = startingBytes
             var lastReportTime = System.currentTimeMillis()
-            var lastReportedBytes = existingBytes
+            var lastReportedBytes = startingBytes
 
             body.byteStream().use { input ->
                 outputStream.use { output ->
@@ -193,9 +217,18 @@ object LocalModelManager {
                 }
             }
 
+            if (!isValidModelFile(tempFile, model)) {
+                tempFile.delete()
+                callback.onError("Downloaded file looks incomplete or corrupted. Please retry.")
+                return
+            }
+
             // Rename temp to final
             if (targetFile.exists()) targetFile.delete()
-            tempFile.renameTo(targetFile)
+            if (!tempFile.renameTo(targetFile)) {
+                callback.onError("Download finished but PokeClaw could not move the model into place")
+                return
+            }
 
             // Save model path to config
             KVUtils.setLocalModelPath(targetFile.absolutePath)
@@ -217,5 +250,31 @@ object LocalModelManager {
         val tempFile = File(getModelDir(context), "${model.fileName}.downloading")
         tempFile.delete()
         return if (file.exists()) file.delete() else true
+    }
+
+    private fun cleanupInvalidFiles(model: ModelInfo, targetFile: File, tempFile: File) {
+        if (targetFile.exists() && !isValidModelFile(targetFile, model)) {
+            XLog.w(TAG, "Removing invalid completed model file: ${targetFile.absolutePath} (${targetFile.length()} bytes)")
+            targetFile.delete()
+        }
+        if (tempFile.exists() && tempFile.length() > expectedUpperBound(model)) {
+            XLog.w(TAG, "Removing oversized partial download: ${tempFile.absolutePath} (${tempFile.length()} bytes)")
+            tempFile.delete()
+        }
+    }
+
+    private fun isValidModelFile(file: File, model: ModelInfo): Boolean {
+        if (!file.exists()) return false
+        val length = file.length()
+        if (length <= 0L) return false
+        return length in expectedLowerBound(model)..expectedUpperBound(model)
+    }
+
+    private fun expectedLowerBound(model: ModelInfo): Long {
+        return (model.sizeBytes - maxOf(SIZE_TOLERANCE_BYTES, model.sizeBytes / 20)).coerceAtLeast(1L)
+    }
+
+    private fun expectedUpperBound(model: ModelInfo): Long {
+        return model.sizeBytes + maxOf(SIZE_TOLERANCE_BYTES, model.sizeBytes / 20)
     }
 }
