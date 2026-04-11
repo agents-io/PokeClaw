@@ -37,6 +37,18 @@ object LlmSessionManager {
         }
 
         val cloud = config.activeCloud
+        return createCloudChatModel(cloud, temperature)
+    }
+
+    fun createDefaultCloudChatModel(temperature: Double = 0.7): dev.langchain4j.model.chat.ChatModel? {
+        val cloud = ModelConfigRepository.snapshot().defaultCloud
+        return createCloudChatModel(cloud, temperature)
+    }
+
+    private fun createCloudChatModel(
+        cloud: CloudModelConfig,
+        temperature: Double = 0.7
+    ): dev.langchain4j.model.chat.ChatModel? {
         if (cloud.apiKey.isEmpty()) {
             XLog.w(TAG, "createCloudChatModel: no API key configured")
             return null
@@ -127,6 +139,22 @@ object LlmSessionManager {
             response.aiMessage().text()
         } catch (e: Exception) {
             XLog.w(TAG, "singleShotCloud failed: ${e.message}")
+            null
+        }
+    }
+
+    fun singleShotDefaultCloud(systemPrompt: String, userPrompt: String, temperature: Double = 0.7): String? {
+        return try {
+            val chatModel = createDefaultCloudChatModel(temperature) ?: return null
+            val messages = listOf<ChatMessage>(
+                SystemMessage.from(systemPrompt),
+                UserMessage.from(userPrompt)
+            )
+            val request = ChatRequest.builder().messages(messages).build()
+            val response = chatModel.chat(request)
+            response.aiMessage().text()
+        } catch (e: Exception) {
+            XLog.w(TAG, "singleShotDefaultCloud failed: ${e.message}")
             null
         }
     }

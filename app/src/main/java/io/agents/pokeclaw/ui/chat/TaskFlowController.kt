@@ -21,6 +21,7 @@ import io.agents.pokeclaw.agent.llm.ModelConfigRepository
 import io.agents.pokeclaw.service.ClawAccessibilityService
 import io.agents.pokeclaw.service.ForegroundService
 import io.agents.pokeclaw.service.AutoReplyManager
+import io.agents.pokeclaw.service.MissedCallFollowUpManager
 import io.agents.pokeclaw.ui.settings.SettingsActivity
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
@@ -326,15 +327,20 @@ class TaskFlowController(
 
     private fun buildBackgroundStatusContext(): String? {
         val autoReplyManager = AutoReplyManager.getInstance()
-        if (!autoReplyManager.isEnabled) return null
-
-        val contacts = autoReplyManager.monitoredContacts.toList()
-        if (contacts.isEmpty()) return null
+        val contacts = if (autoReplyManager.isEnabled) autoReplyManager.monitoredContacts.toList() else emptyList()
+        val missedCallActive = MissedCallFollowUpManager.isEnabled()
+        if (contacts.isEmpty() && !missedCallActive) return null
 
         return buildString {
-            append("Background monitor active for: ")
-            append(contacts.joinToString(", "))
-            append('.')
+            if (contacts.isNotEmpty()) {
+                append("Background monitor active for: ")
+                append(contacts.joinToString(", "))
+                append('.')
+            }
+            if (missedCallActive) {
+                if (isNotEmpty()) append(' ')
+                append("Missed-call follow-up via SMS is armed.")
+            }
         }
     }
 

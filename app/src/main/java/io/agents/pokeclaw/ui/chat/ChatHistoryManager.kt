@@ -294,4 +294,43 @@ object ChatHistoryManager {
      * Delete a conversation.
      */
     fun delete(file: File): Boolean = file.delete()
+
+    fun appendMessage(
+        context: Context,
+        conversationId: String,
+        message: ChatMessage,
+        modelHint: String = "Background automation",
+    ) {
+        if (conversationId.isBlank()) return
+
+        val existingFile = listConversations(context).firstOrNull { it.id == conversationId }?.file
+        val existingMessages = existingFile?.let { load(it) } ?: emptyList()
+        val existingModel = existingFile?.let { readFrontmatterValue(it, "model") }.orEmpty()
+        save(
+            context = context,
+            conversationId = conversationId,
+            messages = existingMessages + message,
+            model = existingModel.ifBlank { modelHint }
+        )
+    }
+
+    private fun readFrontmatterValue(file: File, key: String): String {
+        if (!file.exists()) return ""
+        file.useLines { lines ->
+            var inFm = false
+            for (line in lines) {
+                if (line == "---") {
+                    if (!inFm) {
+                        inFm = true
+                        continue
+                    }
+                    break
+                }
+                if (inFm && line.startsWith("$key: ")) {
+                    return line.removePrefix("$key: ").trim()
+                }
+            }
+        }
+        return ""
+    }
 }

@@ -6,6 +6,7 @@ package io.agents.pokeclaw
 import io.agents.pokeclaw.agent.DefaultAgentService
 import io.agents.pokeclaw.base.BaseApp
 import io.agents.pokeclaw.channel.ChannelManager
+import io.agents.pokeclaw.service.MissedCallFollowUpManager
 import io.agents.pokeclaw.tool.ToolRegistry
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
@@ -35,6 +36,7 @@ class ClawApplication : BaseApp() {
         ToolRegistry.getInstance().registerAllTools(ToolRegistry.DeviceType.MOBILE)
         io.agents.pokeclaw.agent.skill.SkillRegistry.loadBuiltInSkills()
         io.agents.pokeclaw.agent.PlaybookManager.loadAll(this)
+        MissedCallFollowUpManager.initialize(this)
         XLog.e(TAG, "ClawApplication initialized, tools registered: ${ToolRegistry.getInstance().getAllTools().size}")
 
         // Write network logs to file (set to true when debugging)

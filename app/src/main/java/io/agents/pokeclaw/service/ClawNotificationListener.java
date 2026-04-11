@@ -65,10 +65,15 @@ public class ClawNotificationListener extends NotificationListenerService {
     public void onNotificationPosted(StatusBarNotification sbn) {
         if (sbn == null) return;
         String pkg = sbn.getPackageName();
-        if (!MESSAGING_APPS.contains(pkg)) return;
 
         Notification notification = sbn.getNotification();
-        if (notification == null || notification.extras == null) return;
+        if (notification == null) return;
+
+        if (Notification.CATEGORY_MISSED_CALL.equals(notification.category)) {
+            MissedCallFollowUpManager.INSTANCE.onMissedCallNotificationPosted(this);
+        }
+
+        if (!MESSAGING_APPS.contains(pkg) || notification.extras == null) return;
 
         Bundle extras = notification.extras;
         String title = extras.getString(Notification.EXTRA_TITLE, "");

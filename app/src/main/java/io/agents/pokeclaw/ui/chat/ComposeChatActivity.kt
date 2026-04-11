@@ -12,6 +12,7 @@ import android.os.Looper
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
 import io.agents.pokeclaw.agent.llm.ModelConfigRepository
@@ -21,6 +22,7 @@ import io.agents.pokeclaw.ui.settings.LlmConfigActivity
 import io.agents.pokeclaw.ui.settings.SettingsActivity
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
+import kotlinx.coroutines.launch
 import java.util.concurrent.Executors
 
 /**
@@ -95,6 +97,10 @@ class ComposeChatActivity : ComponentActivity() {
         ActiveTaskShellController(appViewModel = appViewModel)
     }
 
+    private val missedCallFlowController by lazy {
+        MissedCallFlowController(activity = this)
+    }
+
     // Permission polling
     private val permHandler = Handler(Looper.getMainLooper())
     private val permPoller = object : Runnable {
@@ -131,6 +137,8 @@ class ComposeChatActivity : ComponentActivity() {
 
         setContent {
             val activeTasks by activeTaskShellController.activeTasks.collectAsState()
+            val monitorActive by activeTaskShellController.monitorActive.collectAsState()
+            val missedCallFollowUpActive by activeTaskShellController.missedCallActive.collectAsState()
 
             ChatScreen(
                 messages = _messages.toList(),
@@ -147,6 +155,9 @@ class ComposeChatActivity : ComponentActivity() {
                 onSendChat = { sendChat(it) },
                 onSendTask = { taskFlowController.sendTask(it) },
                 onStartMonitor = { target -> taskFlowController.startMonitor(target) },
+                onStartMissedCallFollowUp = { prompt ->
+                    missedCallFlowController.start(prompt, conversationStore.currentConversationId)
+                },
                 onSendDirectMessage = { contact, app, message ->
                     taskFlowController.sendTask("send \"$message\" to $contact on $app")
                 },
@@ -168,6 +179,8 @@ class ComposeChatActivity : ComponentActivity() {
                     refreshSidebarHistory()
                 },
                 activeTasks = activeTasks,
+                monitorActive = monitorActive,
+                missedCallFollowUpActive = missedCallFollowUpActive,
                 onStopTask = { contact ->
                     _isTaskRunning.value = appViewModel.isTaskRunning()
                     Toast.makeText(
@@ -188,6 +201,24 @@ class ComposeChatActivity : ComponentActivity() {
                 onModelSwitch = { modelId, displayName -> switchModel(modelId, displayName) },
                 colors = composeColors,
             )
+        }
+
+        lifecycleScope.launch {
+            BackgroundChatBridge.events.collect { event ->
+                if (event.conversationId == conversationStore.currentConversationId) {
+                    val alreadyPresent = _messages.any {
+                        it.timestamp == event.message.timestamp &&
+                            it.role == event.message.role &&
+                            it.content == event.message.content
+                    }
+                    if (!alreadyPresent) {
+                        _messages.add(event.message)
+                        saveChat()
+                    }
+                } else {
+                    refreshSidebarHistory()
+                }
+            }
         }
 
         refreshSidebarHistory()

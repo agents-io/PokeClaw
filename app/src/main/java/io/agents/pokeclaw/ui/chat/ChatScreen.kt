@@ -125,6 +125,7 @@ fun ChatScreen(
     onSendChat: (String) -> Unit,
     onSendTask: (String) -> Unit,
     onStartMonitor: (MonitorTargetSpec) -> Unit = {},
+    onStartMissedCallFollowUp: (String) -> Unit = {},
     onSendDirectMessage: (contact: String, app: String, message: String) -> Unit = { _, _, _ -> },
     onNewChat: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -136,6 +137,8 @@ fun ChatScreen(
     onDeleteConversation: (ChatHistoryManager.ConversationSummary) -> Unit = {},
     onRenameConversation: (ChatHistoryManager.ConversationSummary, String) -> Unit = { _, _ -> },
     activeTasks: List<String> = emptyList(),
+    monitorActive: Boolean = false,
+    missedCallFollowUpActive: Boolean = false,
     onStopTask: (String) -> Unit = {},
     onStopAllTasks: () -> Unit = {},
     inputEnabled: Boolean = true,
@@ -162,6 +165,7 @@ fun ChatScreen(
     val isLocalUI = selectedTab == "local"
     // Skill dialog and activation states
     var showMonitorSheet by remember { mutableStateOf(false) }
+    var showMissedCallFollowUpSheet by remember { mutableStateOf(false) }
     var showSendSheet by remember { mutableStateOf(false) }
     var activatingSkill by remember { mutableStateOf<String?>(null) }
 
@@ -282,7 +286,9 @@ fun ChatScreen(
                                 if (isLocalUI) isTaskMode = true
                             },
                             onMonitorClick = { showMonitorSheet = true },
-                            monitorActive = activeTasks.isNotEmpty(),
+                            onMissedCallFollowUpClick = { showMissedCallFollowUpSheet = true },
+                            monitorActive = monitorActive,
+                            missedCallFollowUpActive = missedCallFollowUpActive,
                             colors = colors,
                         )
 
@@ -352,6 +358,18 @@ fun ChatScreen(
                 showMonitorSheet = false
                 activatingSkill = "monitor"
                 onStartMonitor(target)
+            },
+            colors = colors,
+        )
+    }
+
+    if (showMissedCallFollowUpSheet) {
+        MissedCallFollowUpDialog(
+            onDismiss = { showMissedCallFollowUpSheet = false },
+            onStart = { prompt ->
+                showMissedCallFollowUpSheet = false
+                activatingSkill = "missed_call_follow_up"
+                onStartMissedCallFollowUp(prompt)
             },
             colors = colors,
         )
@@ -1306,7 +1324,9 @@ private fun QuickTasksPanel(
     isLocalModel: Boolean,
     onFillTask: (String) -> Unit,
     onMonitorClick: () -> Unit,
+    onMissedCallFollowUpClick: () -> Unit,
     monitorActive: Boolean,
+    missedCallFollowUpActive: Boolean,
     colors: PokeclawColors,
 ) {
     var expanded by remember { mutableStateOf(true) }
@@ -1484,6 +1504,56 @@ private fun QuickTasksPanel(
                     }
                 }
                 Spacer(Modifier.height(6.dp))
+
+                if (!isLocalModel) {
+                    val missedCallBorderColor = if (missedCallFollowUpActive) colors.accent else colors.inputBorder
+                    Surface(
+                        onClick = {
+                            if (!missedCallFollowUpActive) onMissedCallFollowUpClick()
+                        },
+                        shape = RoundedCornerShape(10.dp),
+                        color = colors.background,
+                        border = androidx.compose.foundation.BorderStroke(
+                            if (missedCallFollowUpActive) 1.dp else 0.5.dp,
+                            missedCallBorderColor,
+                        ),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(10.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(34.dp)
+                                    .background(
+                                        colors.accent.copy(alpha = 0.12f),
+                                        RoundedCornerShape(9.dp),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text("\uD83D\uDCDE", fontSize = 15.sp)
+                            }
+                            Spacer(Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    if (missedCallFollowUpActive) "Active" else "Missed Call Follow-Up",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = colors.textPrimary,
+                                )
+                                Text(
+                                    if (missedCallFollowUpActive) "SMS follow-up armed — use the top bar to stop" else "Catch missed calls and follow up over SMS",
+                                    fontSize = 9.sp,
+                                    color = colors.textTertiary,
+                                )
+                            }
+                            if (!missedCallFollowUpActive) {
+                                Text("›", color = colors.textTertiary, fontSize = 14.sp)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(6.dp))
+                }
             } // end Background Column
         }
     }
@@ -2273,6 +2343,78 @@ private fun SendMessageDialog(
     )
 }
 
+@Composable
+private fun MissedCallFollowUpDialog(
+    onDismiss: () -> Unit,
+    onStart: (String) -> Unit,
+    colors: PokeclawColors,
+) {
+    var prompt by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = colors.surface,
+        title = {
+            Text(
+                "Missed Call Follow-Up",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = colors.textPrimary
+            )
+        },
+        text = {
+            Column {
+                Text(
+                    "Cloud-only. When a call is missed, PokeClaw will draft and send an SMS, then keep replying over SMS.",
+                    fontSize = 12.sp,
+                    color = colors.textSecondary
+                )
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = prompt,
+                    onValueChange = { prompt = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 160.dp),
+                    placeholder = {
+                        Text(
+                            "Example: You are a hair salon booking assistant. Be warm, concise, and help callers book or reschedule appointments by SMS.",
+                            color = colors.textTertiary,
+                            fontSize = 13.sp
+                        )
+                    },
+                    textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = colors.accent,
+                        unfocusedBorderColor = colors.inputBorder,
+                        cursorColor = colors.accent,
+                        focusedTextColor = colors.textPrimary,
+                        unfocusedTextColor = colors.textPrimary,
+                    ),
+                    minLines = 6,
+                    maxLines = 10,
+                    shape = RoundedCornerShape(10.dp),
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = { if (prompt.isNotBlank()) onStart(prompt.trim()) },
+                enabled = prompt.isNotBlank(),
+                colors = ButtonDefaults.buttonColors(containerColor = colors.accent),
+                shape = RoundedCornerShape(10.dp),
+            ) {
+                Text("Start via SMS")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel", color = colors.textSecondary)
+            }
+        },
+    )
+}
+
 // ======================== ACTIVE TASK BAR ========================
 
 @Composable
@@ -2308,7 +2450,7 @@ private fun ActiveTaskBar(
                 )
                 Spacer(Modifier.width(10.dp))
                 Text(
-                    text = if (tasks.size == 1) "Monitoring: ${tasks[0]}" else "${tasks.size} monitoring",
+                    text = if (tasks.size == 1) tasks[0] else "${tasks.size} background automations",
                     color = colors.textPrimary,
                     fontSize = 13.sp,
                     maxLines = 1,

@@ -169,6 +169,7 @@ object KVUtils {
     private const val KEY_PENDING_ACCESSIBILITY_RETURN_AT = "KEY_PENDING_ACCESSIBILITY_RETURN_AT"
     private const val KEY_PENDING_NOTIFICATION_ACCESS_RETURN = "KEY_PENDING_NOTIFICATION_ACCESS_RETURN"
     private const val KEY_PENDING_NOTIFICATION_ACCESS_RETURN_AT = "KEY_PENDING_NOTIFICATION_ACCESS_RETURN_AT"
+    private const val KEY_CURRENT_CONVERSATION_ID = "CURRENT_CONVERSATION_ID"
 
     fun markPendingAccessibilityReturn() {
         putBoolean(KEY_PENDING_ACCESSIBILITY_RETURN, true)
@@ -206,6 +207,9 @@ object KVUtils {
         putLong(KEY_PENDING_NOTIFICATION_ACCESS_RETURN_AT, 0L)
     }
 
+    fun getCurrentConversationId(): String = getString(KEY_CURRENT_CONVERSATION_ID, "")
+    fun setCurrentConversationId(value: String) = putString(KEY_CURRENT_CONVERSATION_ID, value)
+
     private const val KEY_LLM_API_KEY = "KEY_LLM_API_KEY"
     private const val KEY_LLM_BASE_URL = "KEY_LLM_BASE_URL"
     private const val KEY_LLM_MODEL_NAME = "KEY_LLM_MODEL_NAME"
@@ -239,6 +243,10 @@ object KVUtils {
     private const val KEY_DEFAULT_CLOUD_MODEL = "KEY_DEFAULT_CLOUD_MODEL"
     private const val KEY_DEFAULT_CLOUD_PROVIDER = "KEY_DEFAULT_CLOUD_PROVIDER"
     private const val KEY_DEFAULT_CLOUD_BASE_URL = "KEY_DEFAULT_CLOUD_BASE_URL"
+    private const val KEY_MISSED_CALL_FOLLOW_UP_ENABLED = "KEY_MISSED_CALL_FOLLOW_UP_ENABLED"
+    private const val KEY_MISSED_CALL_FOLLOW_UP_PROMPT = "KEY_MISSED_CALL_FOLLOW_UP_PROMPT"
+    private const val KEY_MISSED_CALL_FOLLOW_UP_CONVERSATION_ID = "KEY_MISSED_CALL_FOLLOW_UP_CONVERSATION_ID"
+    private const val KEY_MISSED_CALL_FOLLOW_UP_ARMED_AT = "KEY_MISSED_CALL_FOLLOW_UP_ARMED_AT"
 
     fun getDefaultCloudModel(): String = getString(KEY_DEFAULT_CLOUD_MODEL, "")
     fun setDefaultCloudModel(value: String) = putString(KEY_DEFAULT_CLOUD_MODEL, value)
@@ -246,6 +254,15 @@ object KVUtils {
     fun setDefaultCloudProvider(value: String) = putString(KEY_DEFAULT_CLOUD_PROVIDER, value)
     fun getDefaultCloudBaseUrl(): String = getString(KEY_DEFAULT_CLOUD_BASE_URL, "")
     fun setDefaultCloudBaseUrl(value: String) = putString(KEY_DEFAULT_CLOUD_BASE_URL, value)
+
+    fun isMissedCallFollowUpEnabled(): Boolean = getBoolean(KEY_MISSED_CALL_FOLLOW_UP_ENABLED, false)
+    fun setMissedCallFollowUpEnabled(enabled: Boolean) = putBoolean(KEY_MISSED_CALL_FOLLOW_UP_ENABLED, enabled)
+    fun getMissedCallFollowUpPrompt(): String = getString(KEY_MISSED_CALL_FOLLOW_UP_PROMPT, "")
+    fun setMissedCallFollowUpPrompt(value: String) = putString(KEY_MISSED_CALL_FOLLOW_UP_PROMPT, value)
+    fun getMissedCallFollowUpConversationId(): String = getString(KEY_MISSED_CALL_FOLLOW_UP_CONVERSATION_ID, "")
+    fun setMissedCallFollowUpConversationId(value: String) = putString(KEY_MISSED_CALL_FOLLOW_UP_CONVERSATION_ID, value)
+    fun getMissedCallFollowUpArmedAt(): Long = getLong(KEY_MISSED_CALL_FOLLOW_UP_ARMED_AT, 0L)
+    fun setMissedCallFollowUpArmedAt(value: Long) = putLong(KEY_MISSED_CALL_FOLLOW_UP_ARMED_AT, value)
 
     /** Returns true if a local default model is configured and the file exists. */
     fun hasDefaultLocalModel(): Boolean {

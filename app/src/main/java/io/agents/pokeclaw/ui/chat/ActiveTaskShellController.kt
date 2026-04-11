@@ -9,6 +9,7 @@ import io.agents.pokeclaw.ClawApplication
 import io.agents.pokeclaw.AppViewModel
 import io.agents.pokeclaw.service.AutoReplyManager
 import io.agents.pokeclaw.service.ForegroundService
+import io.agents.pokeclaw.service.MissedCallFollowUpManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,10 +24,15 @@ class ActiveTaskShellController(
 ) {
 
     private val autoReplyManager = AutoReplyManager.getInstance()
+    private val missedCallFollowUpManager = MissedCallFollowUpManager
     private val handler = Handler(Looper.getMainLooper())
     private val _activeTasks = MutableStateFlow<List<String>>(emptyList())
+    private val _monitorActive = MutableStateFlow(false)
+    private val _missedCallActive = MutableStateFlow(false)
 
     val activeTasks: StateFlow<List<String>> = _activeTasks.asStateFlow()
+    val monitorActive: StateFlow<Boolean> = _monitorActive.asStateFlow()
+    val missedCallActive: StateFlow<Boolean> = _missedCallActive.asStateFlow()
 
     private val poller = object : Runnable {
         override fun run() {
@@ -46,6 +52,12 @@ class ActiveTaskShellController(
     }
 
     fun stopTask(contact: String): String {
+        val missedCallLabel = missedCallFollowUpManager.activeLabel()
+        if (missedCallLabel != null && contact == missedCallLabel) {
+            refreshActiveTasks()
+            return missedCallFollowUpManager.stop(ClawApplication.instance)
+        }
+
         autoReplyManager.removeContact(contact)
         if (autoReplyManager.monitoredContacts.isEmpty()) {
             autoReplyManager.isEnabled = false
@@ -68,20 +80,32 @@ class ActiveTaskShellController(
             stoppedMonitoring = true
         }
 
+        var stoppedMissedCallFollowUp = false
+        if (missedCallFollowUpManager.isEnabled()) {
+            missedCallFollowUpManager.stop(ClawApplication.instance)
+            stoppedMissedCallFollowUp = true
+        }
+
         refreshActiveTasks()
         ForegroundService.resetToIdle(ClawApplication.instance)
         return when {
             requestedTaskStop -> "Stopping current task..."
+            stoppedMissedCallFollowUp -> "Stopped missed-call follow-up"
             stoppedMonitoring -> "All tasks stopped"
             else -> "No active tasks"
         }
     }
 
     private fun refreshActiveTasks() {
-        _activeTasks.value = if (autoReplyManager.isEnabled) {
+        val monitorTasks = if (autoReplyManager.isEnabled) {
             autoReplyManager.monitoredContacts.toList()
         } else {
             emptyList()
         }
+        val backgroundTasks = monitorTasks.toMutableList()
+        missedCallFollowUpManager.activeLabel()?.let { backgroundTasks.add(it) }
+        _monitorActive.value = monitorTasks.isNotEmpty()
+        _missedCallActive.value = missedCallFollowUpManager.isEnabled()
+        _activeTasks.value = backgroundTasks
     }
 }

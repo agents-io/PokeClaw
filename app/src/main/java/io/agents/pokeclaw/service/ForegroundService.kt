@@ -70,11 +70,30 @@ class ForegroundService : Service() {
 
         fun syncToBackgroundState(context: Context): Boolean {
             val manager = AutoReplyManager.getInstance()
-            return if (manager.isEnabled && manager.monitoredContacts.isNotEmpty()) {
+            val monitorCount = manager.monitoredContacts.size
+            val missedCallActive = MissedCallFollowUpManager.isEnabled()
+            return when {
+                monitorCount > 0 && missedCallActive -> {
+                    showNotification(
+                        context,
+                        "PokeClaw · Background active",
+                        "${monitorCount + 1} background automations active"
+                    )
+                }
+                monitorCount > 0 -> {
                 showMonitorStatus(context)
-            } else {
-                stop(context)
-                false
+                }
+                missedCallActive -> {
+                    showNotification(
+                        context,
+                        "PokeClaw · Background active",
+                        "Missed-call follow-up via SMS is armed"
+                    )
+                }
+                else -> {
+                    stop(context)
+                    false
+                }
             }
         }
 
