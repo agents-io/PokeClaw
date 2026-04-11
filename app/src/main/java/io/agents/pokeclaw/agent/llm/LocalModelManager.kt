@@ -5,7 +5,6 @@ package io.agents.pokeclaw.agent.llm
 
 import android.content.Context
 import android.os.StatFs
-import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -305,9 +304,6 @@ object LocalModelManager {
                 callback.onError("Download finished but PokeClaw could not move the model into place")
                 return
             }
-
-            // Save model path to config
-            KVUtils.setLocalModelPath(targetFile.absolutePath)
 
             XLog.i(TAG, "Model downloaded: ${targetFile.absolutePath} (${targetFile.length()} bytes)")
             callback.onComplete(targetFile.absolutePath)

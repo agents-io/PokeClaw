@@ -253,6 +253,11 @@ class LlmConfigActivity : BaseActivity() {
                                     }
                                     override fun onComplete(modelPath: String) {
                                         runOnUiThread {
+                                            ModelConfigRepository.saveLocalDefault(
+                                                modelPath = modelPath,
+                                                modelId = model.id,
+                                                activateNow = false
+                                            )
                                             isDownloading = false
                                             Toast.makeText(this@LlmConfigActivity, "Downloaded!", Toast.LENGTH_SHORT).show()
                                             recreate()

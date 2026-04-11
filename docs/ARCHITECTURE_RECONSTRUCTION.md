@@ -498,6 +498,7 @@ This is the phase that makes lower-RAM support and more local models safer to ad
 - Phase 5 state cleanup also started:
   - `LocalModelManager` now exposes shared device-support, built-in catalog, and active-model summary state
   - `LlmConfigActivity` and `ChatSessionController` now read the same RAM/support/downloaded state instead of maintaining parallel calculations
+  - `LocalModelManager.downloadModel()` no longer mutates MMKV model selection as a side effect; caller boundaries now own "downloaded file" vs "selected local model"
 - Current limitation:
   - the Phase 5 device smoke rerun is temporarily blocked by ADB attach state (`adb devices -l` returned no device after the landing)
   - do not infer a product regression from that block; rerun `H4/H4-b`, `Q3-1`, `Q5-1`, `Q5-1b`, and `LQ1-LQ13` as soon as the Pixel is visible again
