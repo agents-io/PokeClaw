@@ -44,8 +44,6 @@ The current public build is open-source and already handles real chat, task, and
 Monitor a WhatsApp contact and auto-reply:
 
 
-https://github.com/user-attachments/assets/4cb4c2bf-90e1-4391-8e08-9d6113634a41
-
 Context-aware WhatsApp auto-reply:
 
 https://github.com/user-attachments/assets/5a43d4d5-458a-4eea-a0a5-58d113255741
