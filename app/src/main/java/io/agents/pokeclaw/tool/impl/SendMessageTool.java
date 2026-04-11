@@ -12,6 +12,7 @@ import io.agents.pokeclaw.service.ClawAccessibilityService;
 import io.agents.pokeclaw.tool.BaseTool;
 import io.agents.pokeclaw.tool.ToolParameter;
 import io.agents.pokeclaw.tool.ToolResult;
+import io.agents.pokeclaw.utils.ContactMatchUtils;
 import io.agents.pokeclaw.utils.XLog;
 
 import java.util.ArrayList;
@@ -55,7 +56,7 @@ public class SendMessageTool extends BaseTool {
     @Override
     public List<ToolParameter> getParameters() {
         return Arrays.asList(
-                new ToolParameter("contact", "string", "Contact name to message (e.g. 'Mom', 'John')", true),
+                new ToolParameter("contact", "string", "Contact name or phone number to message (e.g. 'Mom', '+1 604 555 1234')", true),
                 new ToolParameter("message", "string", "The message text to send", true),
                 new ToolParameter("app", "string", "Messaging app name (default: WhatsApp)", false)
         );
@@ -153,14 +154,15 @@ public class SendMessageTool extends BaseTool {
     private boolean isAlreadyInChatWith(ClawAccessibilityService service, String contact) {
         AccessibilityNodeInfo root = service.getRootInActiveWindow();
         if (root == null) return false;
+        java.util.LinkedHashSet<String> normalizedAliases = ContactMatchUtils.buildNormalizedAliases(contact);
+        java.util.LinkedHashSet<String> digitAliases = ContactMatchUtils.buildDigitAliases(contact);
 
         // Search top 300px of screen for a text matching the contact name
         List<AccessibilityNodeInfo> topNodes = new ArrayList<>();
         collectTextNodesInRegion(root, 0, 300, topNodes);
         for (AccessibilityNodeInfo node : topNodes) {
-            CharSequence text = node.getText();
-            if (text != null && text.toString().toLowerCase().contains(contact.toLowerCase())) {
-                XLog.d(TAG, "isAlreadyInChatWith: found '" + text + "' in toolbar");
+            if (ContactMatchUtils.matchesTarget(node.getText(), node.getContentDescription(), normalizedAliases, digitAliases)) {
+                XLog.d(TAG, "isAlreadyInChatWith: matched toolbar target text=" + node.getText() + " desc=" + node.getContentDescription());
                 return true;
             }
         }
@@ -171,7 +173,7 @@ public class SendMessageTool extends BaseTool {
         if (node == null) return;
         Rect bounds = new Rect();
         node.getBoundsInScreen(bounds);
-        if (bounds.top >= minY && bounds.bottom <= maxY && node.getText() != null) {
+        if (bounds.top >= minY && bounds.bottom <= maxY && (node.getText() != null || node.getContentDescription() != null)) {
             result.add(node);
         }
         for (int i = 0; i < node.getChildCount(); i++) {
@@ -205,7 +207,8 @@ public class SendMessageTool extends BaseTool {
      * More reliable than findAccessibilityNodeInfosByText which misses nodes in some apps.
      */
     private boolean findAndTapContact(ClawAccessibilityService service, String contact) throws InterruptedException {
-        String lowerContact = contact.toLowerCase();
+        java.util.LinkedHashSet<String> normalizedAliases = ContactMatchUtils.buildNormalizedAliases(contact);
+        java.util.LinkedHashSet<String> digitAliases = ContactMatchUtils.buildDigitAliases(contact);
 
         for (int attempt = 0; attempt < 2; attempt++) {
             AccessibilityNodeInfo root = service.getRootInActiveWindow();
@@ -213,15 +216,18 @@ public class SendMessageTool extends BaseTool {
 
             // Collect ALL text nodes in the tree
             List<AccessibilityNodeInfo> matches = new ArrayList<>();
-            collectNodesWithText(root, lowerContact, matches);
+            collectNodesWithText(root, normalizedAliases, digitAliases, matches);
             XLog.i(TAG, "findAndTapContact: attempt " + attempt + " found " + matches.size() + " matches for '" + contact + "'");
 
             // Prefer nodes with actual text (not just contentDescription) — these are the chat list entries
             // Sort: text matches first, then desc matches
             AccessibilityNodeInfo bestMatch = null;
             for (AccessibilityNodeInfo node : matches) {
-                CharSequence text = node.getText();
-                if (text != null && text.toString().toLowerCase().contains(lowerContact)) {
+                if (ContactMatchUtils.matchesCandidate(
+                    node.getText() != null ? node.getText().toString() : null,
+                    normalizedAliases,
+                    digitAliases
+                )) {
                     bestMatch = node; // Text match = best
                     break;
                 }
@@ -254,20 +260,24 @@ public class SendMessageTool extends BaseTool {
      * Recursively collect nodes whose text or contentDescription contains the target string.
      * This is our own tree walk — does not rely on the flaky findAccessibilityNodeInfosByText API.
      */
-    private void collectNodesWithText(AccessibilityNodeInfo node, String lowerTarget, List<AccessibilityNodeInfo> results) {
+    private void collectNodesWithText(
+        AccessibilityNodeInfo node,
+        java.util.LinkedHashSet<String> normalizedAliases,
+        java.util.LinkedHashSet<String> digitAliases,
+        List<AccessibilityNodeInfo> results
+    ) {
         if (node == null) return;
 
         CharSequence text = node.getText();
         CharSequence desc = node.getContentDescription();
-        if ((text != null && text.toString().toLowerCase().contains(lowerTarget)) ||
-            (desc != null && desc.toString().toLowerCase().contains(lowerTarget))) {
+        if (ContactMatchUtils.matchesTarget(text, desc, normalizedAliases, digitAliases)) {
             results.add(node);
         }
 
         for (int i = 0; i < node.getChildCount(); i++) {
             AccessibilityNodeInfo child = node.getChild(i);
             if (child != null) {
-                collectNodesWithText(child, lowerTarget, results);
+                collectNodesWithText(child, normalizedAliases, digitAliases, results);
             }
         }
     }

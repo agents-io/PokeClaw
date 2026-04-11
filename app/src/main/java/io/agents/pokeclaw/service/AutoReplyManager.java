@@ -12,6 +12,7 @@ import io.agents.pokeclaw.tool.ToolRegistry;
 import io.agents.pokeclaw.tool.ToolResult;
 import io.agents.pokeclaw.tool.impl.SendMessageTool;
 import io.agents.pokeclaw.ClawApplication;
+import io.agents.pokeclaw.utils.ContactMatchUtils;
 import io.agents.pokeclaw.utils.XLog;
 
 import java.util.ArrayList;
@@ -20,7 +21,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -52,9 +52,9 @@ public class AutoReplyManager {
             this.displayName = displayName;
             this.appName = appName;
             this.packageName = packageName;
-            this.key = packageName + "|" + normalizeNameStatic(displayName);
-            this.normalizedAliases = buildNormalizedAliases(displayName);
-            this.digitAliases = buildDigitAliases(displayName);
+            this.key = packageName + "|" + normalizeNameStatic(displayName) + "|" + digitsOnly(displayName);
+            this.normalizedAliases = ContactMatchUtils.buildNormalizedAliases(displayName);
+            this.digitAliases = ContactMatchUtils.buildDigitAliases(displayName);
         }
 
         public String getDisplayName() {
@@ -79,43 +79,13 @@ public class AutoReplyManager {
 
         private boolean matches(String incomingPackage, String incomingTitle) {
             if (!packageName.equals(incomingPackage)) return false;
-
-            String normalizedTitle = normalizeNameStatic(incomingTitle);
-            for (String alias : normalizedAliases) {
-                if (!alias.isEmpty() && normalizedTitle.contains(alias)) {
-                    return true;
-                }
-            }
-
-            String titleDigits = digitsOnly(incomingTitle);
-            for (String alias : digitAliases) {
-                if (!alias.isEmpty() && titleDigits.contains(alias)) {
-                    return true;
-                }
-            }
-
-            return false;
+            return ContactMatchUtils.matchesCandidate(incomingTitle, normalizedAliases, digitAliases);
         }
 
         private boolean matchesRemovalQuery(String query) {
-            String normalizedQuery = normalizeNameStatic(query);
-            if (normalizedQuery.equals(normalizeNameStatic(displayName))) return true;
-            if (normalizedQuery.equals(normalizeNameStatic(getDisplayLabel()))) return true;
-            return normalizedQuery.equals(normalizeNameStatic(appName + " " + displayName));
-        }
-
-        private static LinkedHashSet<String> buildNormalizedAliases(String displayName) {
-            LinkedHashSet<String> aliases = new LinkedHashSet<>();
-            String normalized = normalizeNameStatic(displayName);
-            if (!normalized.isEmpty()) aliases.add(normalized);
-            return aliases;
-        }
-
-        private static LinkedHashSet<String> buildDigitAliases(String displayName) {
-            LinkedHashSet<String> aliases = new LinkedHashSet<>();
-            String digits = digitsOnly(displayName);
-            if (digits.length() >= 6) aliases.add(digits);
-            return aliases;
+            return ContactMatchUtils.matchesCandidate(query, normalizedAliases, digitAliases) ||
+                ContactMatchUtils.matchesCandidate(query, ContactMatchUtils.buildNormalizedAliases(getDisplayLabel()), ContactMatchUtils.buildDigitAliases(getDisplayLabel())) ||
+                ContactMatchUtils.matchesCandidate(query, ContactMatchUtils.buildNormalizedAliases(appName + " " + displayName), ContactMatchUtils.buildDigitAliases(appName + " " + displayName));
         }
     }
 
@@ -344,6 +314,8 @@ public class AutoReplyManager {
                 // Navigate to the contact's chatroom
                 AccessibilityNodeInfo root = svc.getRootInActiveWindow();
                 if (root != null) {
+                    LinkedHashSet<String> normalizedAliases = ContactMatchUtils.buildNormalizedAliases(finalContact);
+                    LinkedHashSet<String> digitAliases = ContactMatchUtils.buildDigitAliases(finalContact);
                     // Check if already in the right chatroom:
                     // 1) contact name in toolbar AND 2) message input field exists
                     boolean inChat = false;
@@ -351,8 +323,7 @@ public class AutoReplyManager {
                     List<AccessibilityNodeInfo> topNodes = new ArrayList<>();
                     collectTopBarNodes(root, topNodes);
                     for (AccessibilityNodeInfo node : topNodes) {
-                        CharSequence t = node.getText();
-                        if (t != null && t.toString().toLowerCase().contains(finalContact.toLowerCase())) {
+                        if (ContactMatchUtils.matchesTarget(node.getText(), node.getContentDescription(), normalizedAliases, digitAliases)) {
                             hasContactInToolbar = true;
                             break;
                         }
@@ -387,13 +358,16 @@ public class AutoReplyManager {
                         root = svc.getRootInActiveWindow();
                         if (root != null) {
                             List<AccessibilityNodeInfo> matches = new ArrayList<>();
-                            findNodesContainingText(root, finalContact.toLowerCase(), matches);
+                            findNodesContainingText(root, normalizedAliases, digitAliases, matches);
                             if (!matches.isEmpty()) {
                                 // Prefer nodes matched by getText (chat entry) over contentDescription (profile pic)
                                 AccessibilityNodeInfo best = matches.get(0);
                                 for (AccessibilityNodeInfo m : matches) {
-                                    CharSequence t = m.getText();
-                                    if (t != null && t.toString().toLowerCase().contains(finalContact.toLowerCase())) {
+                                    if (ContactMatchUtils.matchesCandidate(
+                                        m.getText() != null ? m.getText().toString() : null,
+                                        normalizedAliases,
+                                        digitAliases
+                                    )) {
                                         best = m;
                                         break;
                                     }
@@ -493,13 +467,11 @@ public class AutoReplyManager {
     }
 
     private static String normalizeNameStatic(String name) {
-        if (name == null) return "";
-        return name.trim().replaceAll("\\s+", " ").toLowerCase(Locale.ROOT);
+        return ContactMatchUtils.normalizeText(name);
     }
 
     private static String digitsOnly(String value) {
-        if (value == null) return "";
-        return value.replaceAll("\\D+", "");
+        return ContactMatchUtils.digitsOnly(value);
     }
 
     /**
@@ -662,7 +634,13 @@ public class AutoReplyManager {
         CharSequence pkg = root.getPackageName();
         if (pkg == null || !monitoredApps.contains(pkg.toString())) return false;
         String toolbarName = findContactNameInToolbar(root);
-        return toolbarName.toLowerCase().contains(contact.toLowerCase());
+        LinkedHashSet<String> normalizedAliases = ContactMatchUtils.buildNormalizedAliases(contact);
+        LinkedHashSet<String> digitAliases = ContactMatchUtils.buildDigitAliases(contact);
+        return ContactMatchUtils.matchesCandidate(
+            toolbarName,
+            normalizedAliases,
+            digitAliases
+        );
     }
 
     /**
@@ -912,7 +890,7 @@ public class AutoReplyManager {
         if (node == null) return;
         android.graphics.Rect bounds = new android.graphics.Rect();
         node.getBoundsInScreen(bounds);
-        if (bounds.top < 300 && node.getText() != null) {
+        if (bounds.top < 300 && (node.getText() != null || node.getContentDescription() != null)) {
             result.add(node);
         }
         for (int i = 0; i < node.getChildCount(); i++) {
@@ -922,17 +900,21 @@ public class AutoReplyManager {
     }
 
     /** Recursively find nodes whose text or contentDescription contains target */
-    private void findNodesContainingText(AccessibilityNodeInfo node, String lowerTarget, List<AccessibilityNodeInfo> results) {
+    private void findNodesContainingText(
+        AccessibilityNodeInfo node,
+        Set<String> normalizedAliases,
+        Set<String> digitAliases,
+        List<AccessibilityNodeInfo> results
+    ) {
         if (node == null) return;
         CharSequence text = node.getText();
         CharSequence desc = node.getContentDescription();
-        if ((text != null && text.toString().toLowerCase().contains(lowerTarget)) ||
-            (desc != null && desc.toString().toLowerCase().contains(lowerTarget))) {
+        if (ContactMatchUtils.matchesTarget(text, desc, normalizedAliases, digitAliases)) {
             results.add(node);
         }
         for (int i = 0; i < node.getChildCount(); i++) {
             AccessibilityNodeInfo child = node.getChild(i);
-            if (child != null) findNodesContainingText(child, lowerTarget, results);
+            if (child != null) findNodesContainingText(child, normalizedAliases, digitAliases, results);
         }
     }
 
@@ -1042,7 +1024,7 @@ public class AutoReplyManager {
 
     private String normalizeAppName(String appName) {
         if (appName == null) return "WhatsApp";
-        String lower = appName.trim().toLowerCase(Locale.ROOT);
+        String lower = appName.trim().toLowerCase(java.util.Locale.ROOT);
         switch (lower) {
             case "telegram":
                 return "Telegram";

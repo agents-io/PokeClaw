@@ -8,6 +8,10 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
@@ -34,6 +38,10 @@ import io.agents.pokeclaw.agent.skill.SkillCategory
 import io.agents.pokeclaw.agent.skill.SkillRegistry
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.focus.FocusManager
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -88,6 +96,17 @@ val AbyssDark = PokeclawColors(
     inputBorder = Color(0xFF1E293B),
 )
 
+private fun Modifier.dismissKeyboardOnBackgroundTap(onDismissKeyboard: () -> Unit): Modifier =
+    pointerInput(onDismissKeyboard) {
+        awaitEachGesture {
+            awaitFirstDown(pass = PointerEventPass.Final)
+            val up = waitForUpOrCancellation(pass = PointerEventPass.Final)
+            if (up != null) {
+                onDismissKeyboard()
+            }
+        }
+    }
+
 // ======================== MAIN SCREEN ========================
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -122,6 +141,12 @@ fun ChatScreen(
     onModelSwitch: (modelId: String, displayName: String) -> Unit = { _, _ -> },
     colors: PokeclawColors = AbyssDark,
 ) {
+    val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
+    val dismissKeyboard = {
+        keyboardController?.hide()
+        focusManager.clearFocus()
+    }
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     // Shared state for prompt chip → input bar prefill
@@ -278,6 +303,7 @@ fun ChatScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(padding)
+                    .dismissKeyboardOnBackgroundTap(dismissKeyboard)
             ) {
                 if (!isDownloading) {
                     // v9: always show messages or empty state regardless of mode
@@ -297,6 +323,7 @@ fun ChatScreen(
                         MessageList(
                             messages = messages,
                             colors = colors,
+                            onBackgroundTap = dismissKeyboard,
                             modifier = Modifier.fillMaxSize(),
                         )
                     }
@@ -592,6 +619,7 @@ private fun PermissionBanner(onClick: () -> Unit, colors: PokeclawColors) {
 private fun MessageList(
     messages: List<ChatMessage>,
     colors: PokeclawColors,
+    onBackgroundTap: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -605,7 +633,11 @@ private fun MessageList(
 
     LazyColumn(
         state = listState,
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .pointerInput(onBackgroundTap) {
+                detectTapGestures(onTap = { onBackgroundTap() })
+            },
         contentPadding = PaddingValues(vertical = 8.dp),
     ) {
         items(messages.size) { index ->
@@ -809,6 +841,7 @@ private fun ChatInputBar(
 ) {
     var text by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
+    val keyboardController = LocalSoftwareKeyboardController.current
     // Consume prefill from prompt chips
     LaunchedEffect(prefillText) {
         if (prefillText.isNotEmpty()) {
@@ -925,10 +958,12 @@ private fun ChatInputBar(
                             onSendTask(text.trim())
                             text = ""
                             focusManager.clearFocus()
+                            keyboardController?.hide()
                         } else {
                             onSendChat(text.trim())
                             text = ""
                             focusManager.clearFocus()
+                            keyboardController?.hide()
                         }
                     }
                 },

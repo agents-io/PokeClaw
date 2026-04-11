@@ -372,6 +372,7 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 - [ ] **B2. Complex task**: "open YouTube and search for funny cat videos" → opens YouTube → searches → multiple steps shown
 - [ ] **B3. Task with context**: "I'm arguing with my girlfriend" → then "send sorry to Girlfriend on WhatsApp" → message content should reflect context
 - [ ] **B4. Failed contact**: "send hi to Dad on WhatsApp" → Dad not in contacts → LLM reports failure in bot bubble (not stuck, not "Task completed")
+- [ ] **B4-b. Name or phone number send target**: send to a saved contact by name, then by phone-number formatting (`+country`, local digits, or spaced/hyphenated form) → same person is resolved without requiring an exact WhatsApp display name match
 - [ ] **B5. Failed app**: "send hi to Girlfriend on Signal" → Signal not installed → LLM reports can't open app
 
 ## C. Cloud LLM — Monitor Workflow
@@ -419,6 +420,7 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 - [ ] **H2. Keyboard in Models screen — API key**: Settings → LLM Config → tap API key → keyboard doesn't block field, field scrolls fully into view
 - [ ] **H2-b. Keyboard in Models screen — Base URL**: switch to Custom provider → tap Base URL → keyboard doesn't block field
 - [ ] **H2-c. Keyboard in Models screen — Model Name**: switch to Custom provider → tap Model Name → keyboard doesn't block field
+- [ ] **H2-d. Chat keyboard dismiss**: focus chat input → keyboard appears → tap a non-button space in the chatroom/message area → input loses focus and keyboard hides
 - [ ] **H3. Layout sizes**: all text/buttons normal size (dp not pt)
 - [ ] **H4. Model switcher**: tap model bar → dropdown → switch model → status updates
 - [x] **H4-b. Local backend label is truthful**: Local model falls back GPU→CPU → top-left model status updates to `CPU`, not stale `GPU`

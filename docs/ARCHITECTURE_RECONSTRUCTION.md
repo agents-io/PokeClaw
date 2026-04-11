@@ -514,6 +514,9 @@ This is the phase that makes lower-RAM support and more local models safer to ad
 - Practical QA note:
   - stale absolute tap coordinates are not a valid regression signal once the IME shifts the input bar
   - for Compose chat smoke, collapse any notification shade / foreground interruption first, then re-dump live bounds before tapping send
+- Brittle-path hardening now in flight:
+  - `send_message` and monitor contact matching no longer depend purely on exact display-name text; name and phone-number formatting now share one deterministic matcher
+  - chat keyboard dismissal now has an explicit focus-clear path for tapping back into the chatroom, but the final focused-device QA should still be tracked under `H2-d`
 
 ## Phase 6 — Release / Distribution Surface
 
