@@ -434,6 +434,9 @@ class DefaultAgentService : AgentService {
             return
         }
 
+        val parsedPrompt = TaskPromptEnvelope.parse(userPrompt)
+        val rawUserRequest = parsedPrompt.currentRequest
+
         // Build System Prompt — use optimized prompt for local LLM
         val basePrompt = if (config.provider == LlmProvider.LOCAL) {
             LOCAL_TASK_PROMPT
@@ -441,14 +444,14 @@ class DefaultAgentService : AgentService {
             config.systemPrompt
         }
 
-        val inAppSearchGuard = InAppSearchGuard.fromTask(userPrompt)
-        val emailComposeGuard = EmailComposeGuard.fromTask(userPrompt)
+        val inAppSearchGuard = InAppSearchGuard.fromTask(rawUserRequest)
+        val emailComposeGuard = EmailComposeGuard.fromTask(rawUserRequest)
 
         // For local LLM, inject matching playbook into system prompt
         val playbookSection = if (config.provider == LlmProvider.LOCAL) {
-            val matched = PlaybookManager.match(userPrompt)
+            val matched = PlaybookManager.match(rawUserRequest)
             if (matched != null) {
-                XLog.i(TAG, "Playbook matched: ${matched.id} for '$userPrompt'")
+                XLog.i(TAG, "Playbook matched: ${matched.id} for '$rawUserRequest'")
                 "\n\n## Playbook: ${matched.name}\nFollow these steps exactly:\n\n${matched.body}"
             } else ""
         } else ""
@@ -464,9 +467,21 @@ class DefaultAgentService : AgentService {
         val messages = mutableListOf<ChatMessage>()
         messages.add(SystemMessage.from(fullSystemPrompt))
 
+        val promptForModel = if (parsedPrompt.hasChatHistory) {
+            buildString {
+                append("You are continuing an existing chatroom. Use the conversation below as context when the current request refers to earlier messages.\n\n")
+                append("Chatroom so far:\n")
+                append(parsedPrompt.chatHistory!!.trim())
+                append("\n\nCurrent user request:\n")
+                append(rawUserRequest)
+            }
+        } else {
+            rawUserRequest
+        }
+
         // Opt-2: Pre-warm — only attach screen info for task-like prompts.
         // Chat/questions should NOT see screen data (it confuses the LLM into using tools).
-        val lowerPrompt = userPrompt.lowercase()
+        val lowerPrompt = rawUserRequest.lowercase()
         val looksLikeTask = lowerPrompt.contains("open ") || lowerPrompt.contains("send ") ||
             lowerPrompt.contains("tap ") || lowerPrompt.contains("search ") ||
             lowerPrompt.contains("play ") || lowerPrompt.contains("take ") ||
@@ -487,13 +502,13 @@ class DefaultAgentService : AgentService {
                     val screenResult = screenTool.execute(emptyMap())
                     if (screenResult.isSuccess && !screenResult.data.isNullOrBlank()) {
                         XLog.i(TAG, "runAgentLoop: pre-warm screen attached (${screenResult.data!!.length} chars)")
-                        "$userPrompt\n\nCurrent screen:\n${screenResult.data}"
-                    } else userPrompt
-                } else userPrompt
-            } catch (e: Exception) { userPrompt }
+                        "$promptForModel\n\nCurrent screen:\n${screenResult.data}"
+                    } else promptForModel
+                } else promptForModel
+            } catch (e: Exception) { promptForModel }
         } else {
             XLog.i(TAG, "runAgentLoop: chat-like prompt, skipping pre-warm screen")
-            userPrompt
+            promptForModel
         }
         messages.add(UserMessage.from(enrichedPrompt))
 

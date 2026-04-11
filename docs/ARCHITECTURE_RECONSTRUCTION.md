@@ -20,6 +20,15 @@ The goal is not "rewrite everything." The goal is:
   - the QA bundle that must be rerun
 - No broad rewrite across unrelated subsystems in one go.
 
+## Task Context Contract
+
+- The chatroom itself is multi-turn in both Cloud and Local.
+- Background monitors stay isolated from chat history.
+- Quick tasks are just task templates; they follow the same task pipeline as typed tasks.
+- Cloud tasks launched from the main chatroom may inherit the active chatroom history.
+- Local tasks stay prompt-only for now; they should not pretend to carry the full chat transcript into the task engine.
+- Any future "explicit handoff" for Local must be added as a product feature, not as an accidental side effect.
+
 ## Current Hotspots
 
 ### 1. `ComposeChatActivity` is still too broad

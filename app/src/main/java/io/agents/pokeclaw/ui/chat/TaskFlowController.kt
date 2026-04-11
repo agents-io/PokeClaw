@@ -16,6 +16,8 @@ import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.AppViewModel
 import io.agents.pokeclaw.ServiceBindingState
 import io.agents.pokeclaw.TaskEvent
+import io.agents.pokeclaw.agent.TaskPromptEnvelope
+import io.agents.pokeclaw.agent.llm.ModelConfigRepository
 import io.agents.pokeclaw.service.ClawAccessibilityService
 import io.agents.pokeclaw.service.ForegroundService
 import io.agents.pokeclaw.service.AutoReplyManager
@@ -102,6 +104,7 @@ class TaskFlowController(
             return
         }
 
+        val agentPromptOverride = buildAgentPromptOverride(text)
         addUser(text)
         uiState.isProcessing.value = true
         XLog.i(TAG, "sendTask: isProcessing=TRUE")
@@ -119,7 +122,7 @@ class TaskFlowController(
 
             activity.runOnUiThread {
                 try {
-                    appViewModel.startTask(text, taskId) { event ->
+                    appViewModel.startTask(text, taskId, agentPromptOverride = agentPromptOverride) { event ->
                         activity.runOnUiThread { handleTaskEvent(event) }
                     }
                 } catch (e: Exception) {
@@ -276,5 +279,26 @@ class TaskFlowController(
 
     private fun openSettings() {
         activity.startActivity(Intent(activity, SettingsActivity::class.java))
+    }
+
+    private fun buildAgentPromptOverride(rawTask: String): String? {
+        if (ModelConfigRepository.snapshot().isLocalActive()) {
+            return null
+        }
+
+        val historyLines = uiState.messages.mapNotNull { message ->
+            val content = message.content.trim()
+            if (content.isEmpty() || content == "...") {
+                return@mapNotNull null
+            }
+            when (message.role) {
+                ChatMessage.Role.USER -> "User: $content"
+                ChatMessage.Role.ASSISTANT -> "Assistant: $content"
+                ChatMessage.Role.SYSTEM -> "System: $content"
+                ChatMessage.Role.TOOL_GROUP -> null
+            }
+        }
+
+        return TaskPromptEnvelope.build(historyLines, rawTask)
     }
 }

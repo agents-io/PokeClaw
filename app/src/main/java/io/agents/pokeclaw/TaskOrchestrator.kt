@@ -103,7 +103,13 @@ class TaskOrchestrator(
     /**
      * Start a new task. Routes through the 3-tier pipeline.
      */
-    fun startNewTask(channel: Channel, task: String, messageID: String, isFallback: Boolean = false) {
+    fun startNewTask(
+        channel: Channel,
+        task: String,
+        messageID: String,
+        agentPromptOverride: String? = null,
+        isFallback: Boolean = false,
+    ) {
         // Acquire task lock if not already held
         if (!isTaskRunning()) {
             if (!tryAcquireTask(messageID, channel, task)) {
@@ -211,7 +217,8 @@ class TaskOrchestrator(
 
         var floatingShown = false
 
-        agentService.executeTask(task, object : AgentCallback {
+        val agentPrompt = agentPromptOverride?.takeIf { it.isNotBlank() } ?: task
+        agentService.executeTask(agentPrompt, object : AgentCallback {
             override fun onLoopStart(round: Int) {
                 flushRoundBuffer()
                 XLog.d(TAG, "onLoopStart: round=$round")

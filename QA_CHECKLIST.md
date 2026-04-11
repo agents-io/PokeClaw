@@ -265,6 +265,7 @@ This checklist is **not** yet a fully rerun 100% green master sheet. The honest 
   - Local contact-specific send/call flows
   - Cross-app floating-pill stop flows
 - **Still blocked or not fully rerun end-to-end**
+  - same-chatroom memory continuity (`Q8-1` to `Q8-4`) — must be rerun whenever chat runtime / persistence changes
   - incoming-message auto-reply while staying in-app (`L5`, `L5-b`) — needs a second live sender device or equivalent live source
   - some OEM-specific real-device failures from GitHub issues (`Samsung`, `Xiaomi`, `Dimensity`, low-RAM devices)
   - full public-release upgrade validation from the next stable-signed public build
@@ -308,7 +309,13 @@ Do **not** rerun the entire world after every refactor. Rerun the right bundle f
   - `P7-1`, `P7-2`, `P7-3`
   - `Q3-1`
   - `Q7-7`
+  - `Q8-1`, `Q8-2`, `Q8-3`, `Q8-4`
   - one persisted markdown-history spot check for `<!-- pokeclaw:timestamp=... -->`
+- **Cloud task-context handoff changes**
+  - `Q2-1`, `Q2-2`, `Q7-7`
+  - `Q8-1`, `Q8-3`
+  - `Q9-1`, `Q9-2`
+  - one real Cloud chatroom task that refers to earlier context (for example `send that summary by email`)
 - **Task lifecycle / orchestration changes**
   - `F1-F6`
   - `I1-I3`
@@ -632,6 +639,16 @@ Layer 1 broadcast bypasses UI routing. Only Layer 3 catches routing bugs.
 - [ ] **Q7-5. Second task after stop**: stop task 1 → start task 2 → task 2 executes normally (no "Agent is already running" error)
 - [ ] **Q7-6. Stop from floating button**: task running in other app → tap floating circle → "Tap to stop" → task stops, returns to PokeClaw
 - [ ] **Q7-7. Auto-return preserves conversation**: task completes in other app → auto-return to PokeClaw → previous messages + task result visible in same conversation
+
+### Q8. Chatroom Memory Continuity
+- [ ] **Q8-1. Cloud same-chatroom memory**: in one Cloud chatroom, tell it a fact (e.g. "Remember: call Mom at 3pm") → exchange 2-3 unrelated turns → ask "What time did I say to call Mom?" → it should answer from the earlier message, not act like the chat started fresh
+- [ ] **Q8-2. Local same-chatroom memory**: in one Local chatroom, tell it a fact → exchange 2-3 unrelated turns → ask for the fact again → it should answer from the same ongoing conversation, not as one-shot QA
+- [ ] **Q8-3. Cloud relaunch memory continuity**: in one Cloud chatroom, establish a fact → fully relaunch the app → reopen the same conversation → ask for the fact again → it should still answer from the restored conversation context
+- [ ] **Q8-4. Local relaunch memory continuity**: in one Local chatroom, establish a fact → fully relaunch the app → reopen the same conversation → ask for the fact again → it should still answer from the restored conversation context
+
+### Q9. Chat -> Task Context Handoff
+- [ ] **Q9-1. Cloud task inherits chatroom history**: in one Cloud chatroom, ask for a summary or establish a reusable fact → then send a task like `send that summary by email` or `text that to Monica` without repeating the content → task should use the earlier chatroom context and complete using the referenced content
+- [ ] **Q9-2. Local task stays prompt-only**: in one Local chatroom, establish a fact/summary → switch to Task mode and send a vague task like `send that summary by email` without repeating the content → app should not pretend it has the full chat context; expected product behavior is either a graceful failure or a result that clearly depends only on the current task prompt
 
 ## N. Tinder Automation
 
