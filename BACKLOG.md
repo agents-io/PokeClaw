@@ -37,6 +37,7 @@ Priority: `P0` = blocks users, fix now. `P1` = next up. `P2` = when we get to it
 ## QA Gaps
 
 - [ ] **P0** Missed-call follow-up E2E: missed-call notification / phone-state trigger reaches PokeClaw, follow-up message is sent to the caller, and the result/status is visible in the same chatroom
+- [ ] **P1** Missed-call SMS thread persistence: after the first follow-up SMS is sent, the caller thread should survive process death / app restart instead of only living in memory
 - [ ] **P1** C2: Auto-reply trigger E2E — needs 2nd device to send WhatsApp message to Girlfriend
 - [ ] **P1** Release QA: verify locally signed `0.5.1+` public APK can upgrade in-place over the next signed public build once the stable key is installed in GitHub Actions
 - [x] ~~**P1** M1-M12 QA: Cloud LLM complex tasks~~ — done 2026-04-08, 10/12 PASS
