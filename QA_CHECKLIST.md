@@ -387,6 +387,9 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 - [ ] For monitor QA, an external sender path is available:
   - WhatsApp: second phone / second WhatsApp account
   - Telegram: second Telegram account or a Telegram bot token + already-started bot chat on this device
+- [ ] For missed-call QA, an external caller path is available:
+  - second phone / second SIM / VoIP caller that can place a real call to this handset
+  - one messaging route already configured for follow-up (for example WhatsApp, SMS, or Telegram)
 
 ### Monitor QA Sender Rules
 
@@ -426,6 +429,13 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 - [ ] **C4. Start Telegram monitor**: "monitor NicoleBot on Telegram" → top bar shows "Monitoring: NicoleBot" → user stays in PokeClaw chat
 - [ ] **C5. Telegram auto-reply triggers**: external Telegram sender / bot sends message → notification caught → Telegram opens → reads context → Cloud LLM generates reply → reply sent
 - [ ] **C6. Stop Telegram monitor**: tap top bar → expand → Stop → Telegram monitoring stops without affecting WhatsApp monitors
+
+## C2. Background Call Follow-Up
+
+- [ ] **C7. Missed-call follow-up arms cleanly**: enable the missed-call auto follow-up workflow for a chosen person/number/app → app shows clear in-chat status of what is armed
+- [ ] **C8. Real missed call triggers follow-up**: external caller rings this handset, the call is missed, and PokeClaw sends the configured follow-up message to that caller through the chosen app/channel
+- [ ] **C9. Missed-call result is visible in chatroom**: after the follow-up fires, the same PokeClaw conversation shows a clear status/result bubble instead of hiding the action purely in background state
+- [ ] **C10. Wrong caller does not trigger**: a different number/contact calls and is missed → no follow-up is sent for the protected target workflow
 
 ## D. Local LLM — Chat
 

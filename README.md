@@ -200,6 +200,7 @@ This is the current direction for PokeClaw based on real device testing, open is
 ### Near-term
 
 - **Stabler public releases and upgrades.** The release/signing path is being locked down so future public APKs upgrade cleanly instead of falling back to uninstall/reinstall behavior from the older debug-signed builds.
+- **Missed-call auto follow-up.** A high-priority use case is: someone calls, you miss it, and PokeClaw automatically sends a follow-up message to that caller and keeps the status visible in the same chatroom.
 - **Lower-RAM local model options.** Right now the built-in local model choices are still too heavy for a lot of mid-range phones. Smaller on-device models are high priority.
 - **More small local models for real device coverage.** 1B–1.5B class models for lower-end phones are on the roadmap so more devices can at least run a usable local agent instead of being locked out by RAM limits.
 - **More reliable local model downloads.** Resume/retry behavior, partial download cleanup, and corrupted-model detection are all being hardened so downloads survive weak connections and screen-off/resume cases better.
@@ -223,6 +224,7 @@ This is the current direction for PokeClaw based on real device testing, open is
 
 If you want something added, please open an issue. The roadmap above is intentionally built from real requests like:
 
+- missed-call auto follow-up messages
 - smaller local models for lower-end phones
 - importing your own local models
 - custom local model sources / hosted downloads
