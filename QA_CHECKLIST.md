@@ -248,6 +248,7 @@ This checklist is **not** yet a fully rerun 100% green master sheet. The honest 
     - Real local UI send still works after runtime consolidation: `say pong` → `Pong! 🏓`
     - Assistant bubble model tag remains aligned with the actual backend after send
     - Local single-shot and auto-reply entrypoints now share the same runtime boundary as chat/session bring-up
+    - Settings and chat now share the same built-in local model support/catalog state instead of each recalculating RAM/support/downloaded status
   - Chat bubble metadata smoke:
     - User bubbles render a subtle IG-style time footer under the bubble
     - Assistant bubbles render `model name · time` under the bubble
@@ -967,6 +968,7 @@ Format: `[date] [status] [test-id] description`
 [2026-04-10] [PASS]    Phase4-r4  Live device dialog smoke: Monitor dialog now shows the supported app list (`WhatsApp`, `Telegram`, `Messages`, `LINE`, `WeChat`) and retained `Telegram` as the selected app in the live screenshot instead of collapsing back to WhatsApp
 [2026-04-10] [PASS]    Phase5-r1  Local runtime consolidation compile gate: `LocalModelRuntime` now owns shared `openConversation(...)` and `runSingleShot(...)`, and `ChatSessionController`, `LocalLlmClient`, `LlmSessionManager.singleShotLocal()`, and `AutoReplyManager.generateReplyLocal()` all compile against the same runtime boundary (`compileDebugKotlin`, `compileDebugJavaWithJavac`, `assembleDebug`)
 [2026-04-10] [BLOCKED] Phase5-r2  Targeted device smoke for the new shared local runtime boundary is blocked by ADB attach state (`adb devices -l` returned no attached devices after the Phase 5 landing). Re-run `H4/H4-b`, `Q3-1`, `Q5-1`, `Q5-1b`, and the local quick-task bundle as soon as the Pixel is visible again instead of treating the missing device as an app regression
+[2026-04-10] [PASS]    Phase5-r3  Local model state consolidation compile gate: `LocalModelManager` now exposes shared device-support, catalog, and active-model state so `LlmConfigActivity` and `ChatSessionController` stop maintaining separate RAM/support/downloaded calculations (`compileDebugKotlin`, `compileDebugJavaWithJavac`)
 [2026-04-10] [NOTE]    QA-wf-r2  Device-state guard for Compose UI smoke: if notification shade or another app steals foreground, collapse/foreground PokeClaw again before judging the refactor; if IME moves the input bar, re-dump live bounds instead of reusing stale tap coordinates
 ```
 

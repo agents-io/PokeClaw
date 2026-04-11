@@ -70,7 +70,8 @@ class LlmConfigActivity : BaseActivity() {
         val activeModelStatus = findViewById<TextView>(R.id.tvActiveModelStatus)
         val modelList = findViewById<LinearLayout>(R.id.layoutModelList)
         val resolvedConfig = ModelConfigRepository.snapshot()
-        val deviceRamGb = LocalModelManager.getDeviceRamGb(this)
+        val deviceSupport = LocalModelManager.deviceSupport(this)
+        val catalog = LocalModelManager.catalog(this).associateBy { it.model.id }
 
         // Apply theme to active model card text
         activeModelName.setTextColor(tc.aiText)
@@ -93,25 +94,17 @@ class LlmConfigActivity : BaseActivity() {
 
         // Active model — show what is ACTUALLY active based on provider
         if (resolvedConfig.activeMode == ActiveModelMode.LOCAL) {
-            val localPath = resolvedConfig.local.modelPath
-            val localModel = models.find { localPath.endsWith(it.fileName) }
-            if (localModel != null) {
-                activeModelName.text = localModel.displayName
-                activeModelMeta.text = "${localModel.fileName} · On-device"
-                val downloaded = LocalModelManager.isModelDownloaded(this, localModel)
-                activeModelStatus.text = if (downloaded) "● Ready" else "● Not downloaded"
-                activeModelStatus.setTextColor(if (downloaded) getColor(R.color.colorSuccessPrimary) else getColor(R.color.colorWarningPrimary))
-            } else if (localPath.isNotEmpty()) {
-                activeModelName.text = resolvedConfig.local.displayName
-                activeModelMeta.text = "On-device"
-                activeModelStatus.text = "● Ready"
-                activeModelStatus.setTextColor(getColor(R.color.colorSuccessPrimary))
-            } else {
-                activeModelName.text = "No model selected"
-                activeModelMeta.text = "Download a model below"
-                activeModelStatus.text = "● Not configured"
-                activeModelStatus.setTextColor(Color.parseColor("#8b949e"))
-            }
+            val activeState = LocalModelManager.resolveActiveModelState(this, resolvedConfig.local)
+            activeModelName.text = activeState.displayName
+            activeModelMeta.text = activeState.metaText
+            activeModelStatus.text = activeState.statusText
+            activeModelStatus.setTextColor(
+                when (activeState.statusKind) {
+                    LocalModelManager.StatusKind.READY -> getColor(R.color.colorSuccessPrimary)
+                    LocalModelManager.StatusKind.WARNING -> getColor(R.color.colorWarningPrimary)
+                    LocalModelManager.StatusKind.NEUTRAL -> Color.parseColor("#8b949e")
+                }
+            )
         } else {
             val cloudModel = resolvedConfig.activeCloud.modelName
             if (cloudModel.isNotEmpty()) {
@@ -135,9 +128,10 @@ class LlmConfigActivity : BaseActivity() {
 
         // Build model list
         models.forEach { model ->
-            val downloaded = LocalModelManager.isModelDownloaded(this, model)
+            val modelEntry = catalog[model.id]
+            val downloaded = modelEntry?.isDownloaded == true
             val isActive = model.id == currentModelId
-            val supportedOnDevice = LocalModelManager.isModelSupportedOnDevice(this, model)
+            val supportedOnDevice = modelEntry?.isSupported == true
 
             val card = CardView(this).apply {
                 layoutParams = LinearLayout.LayoutParams(
@@ -171,7 +165,7 @@ class LlmConfigActivity : BaseActivity() {
 
             val descTV = TextView(this).apply {
                 val baseText = "${model.sizeBytes / 1_000_000} MB · ${model.minRamGb}GB+ RAM"
-                text = if (supportedOnDevice) baseText else "$baseText · This phone reports ${deviceRamGb}GB"
+                text = if (supportedOnDevice) baseText else "$baseText · This phone reports ${deviceSupport.deviceRamGb}GB"
                 textSize = 12f
                 setTextColor(if (supportedOnDevice) Color.parseColor("#8b949e") else getColor(R.color.colorWarningPrimary))
             }

@@ -495,6 +495,9 @@ This is the phase that makes lower-RAM support and more local models safer to ad
   - `ChatSessionController` conversation bring-up goes through `LocalModelRuntime.openConversation(...)`
   - `LocalLlmClient` tool-call conversations go through the same runtime boundary
   - `LlmSessionManager.singleShotLocal()` and `AutoReplyManager.generateReplyLocal()` both route through `LocalModelRuntime.runSingleShot(...)`
+- Phase 5 state cleanup also started:
+  - `LocalModelManager` now exposes shared device-support, built-in catalog, and active-model summary state
+  - `LlmConfigActivity` and `ChatSessionController` now read the same RAM/support/downloaded state instead of maintaining parallel calculations
 - Current limitation:
   - the Phase 5 device smoke rerun is temporarily blocked by ADB attach state (`adb devices -l` returned no device after the landing)
   - do not infer a product regression from that block; rerun `H4/H4-b`, `Q3-1`, `Q5-1`, `Q5-1b`, and `LQ1-LQ13` as soon as the Pixel is visible again

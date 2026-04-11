@@ -34,6 +34,32 @@ object LocalModelManager {
         val minRamGb: Int
     )
 
+    data class DeviceSupport(
+        val deviceRamGb: Int,
+        val minimumBuiltInRamGb: Int,
+        val bestSupportedModel: ModelInfo?,
+    )
+
+    data class CatalogEntry(
+        val model: ModelInfo,
+        val isDownloaded: Boolean,
+        val isSupported: Boolean,
+        val path: String?,
+    )
+
+    data class ActiveModelState(
+        val displayName: String,
+        val metaText: String,
+        val statusText: String,
+        val statusKind: StatusKind,
+    )
+
+    enum class StatusKind {
+        READY,
+        WARNING,
+        NEUTRAL,
+    }
+
     val AVAILABLE_MODELS = listOf(
         ModelInfo(
             id = "gemma4-e2b",
@@ -73,15 +99,65 @@ object LocalModelManager {
         return (memInfo.totalMem / (1024L * 1024L * 1024L)).toInt() + 1
     }
 
-    fun bestSupportedModel(context: Context): ModelInfo? {
+    fun deviceSupport(context: Context): DeviceSupport {
         val deviceRamGb = getDeviceRamGb(context)
-        return AVAILABLE_MODELS
-            .filter { it.minRamGb <= deviceRamGb }
-            .maxByOrNull { it.minRamGb }
+        return DeviceSupport(
+            deviceRamGb = deviceRamGb,
+            minimumBuiltInRamGb = AVAILABLE_MODELS.minOf { it.minRamGb },
+            bestSupportedModel = AVAILABLE_MODELS
+                .filter { it.minRamGb <= deviceRamGb }
+                .maxByOrNull { it.minRamGb }
+        )
+    }
+
+    fun bestSupportedModel(context: Context): ModelInfo? {
+        return deviceSupport(context).bestSupportedModel
     }
 
     fun isModelSupportedOnDevice(context: Context, model: ModelInfo): Boolean {
-        return getDeviceRamGb(context) >= model.minRamGb
+        return deviceSupport(context).deviceRamGb >= model.minRamGb
+    }
+
+    fun catalog(context: Context): List<CatalogEntry> {
+        val support = deviceSupport(context)
+        return AVAILABLE_MODELS.map { model ->
+            CatalogEntry(
+                model = model,
+                isDownloaded = isModelDownloaded(context, model),
+                isSupported = model.minRamGb <= support.deviceRamGb,
+                path = getModelPath(context, model),
+            )
+        }
+    }
+
+    fun resolveActiveModelState(context: Context, localConfig: LocalModelConfig): ActiveModelState {
+        val modelPath = localConfig.modelPath
+        if (modelPath.isBlank()) {
+            return ActiveModelState(
+                displayName = "No model selected",
+                metaText = "Download a model below",
+                statusText = "● Not configured",
+                statusKind = StatusKind.NEUTRAL,
+            )
+        }
+
+        val matchedModel = AVAILABLE_MODELS.find { modelPath.endsWith(it.fileName) }
+        if (matchedModel != null) {
+            val downloaded = isModelDownloaded(context, matchedModel)
+            return ActiveModelState(
+                displayName = matchedModel.displayName,
+                metaText = "${matchedModel.fileName} · On-device",
+                statusText = if (downloaded) "● Ready" else "● Not downloaded",
+                statusKind = if (downloaded) StatusKind.READY else StatusKind.WARNING,
+            )
+        }
+
+        return ActiveModelState(
+            displayName = localConfig.displayName.ifBlank { File(modelPath).nameWithoutExtension },
+            metaText = "On-device",
+            statusText = if (File(modelPath).exists()) "● Ready" else "● Missing file",
+            statusKind = if (File(modelPath).exists()) StatusKind.READY else StatusKind.WARNING,
+        )
     }
 
     interface DownloadCallback {

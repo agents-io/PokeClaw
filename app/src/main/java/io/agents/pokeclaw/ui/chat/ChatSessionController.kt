@@ -120,14 +120,14 @@ class ChatSessionController(
         }
 
         if (modelPath.isEmpty()) {
-            val defaultModel = LocalModelManager.bestSupportedModel(activity)
+            val deviceSupport = LocalModelManager.deviceSupport(activity)
+            val defaultModel = deviceSupport.bestSupportedModel
             if (defaultModel == null) {
-                val deviceRamGb = LocalModelManager.getDeviceRamGb(activity)
                 uiState.modelStatus.value = "Local model unavailable on this device"
                 uiState.isDownloading.value = false
                 setButtonsEnabled(false)
                 addSystem(
-                    "This device reports ${deviceRamGb}GB RAM. Current built-in local models need at least ${LocalModelManager.AVAILABLE_MODELS.minOf { it.minRamGb }}GB."
+                    "This device reports ${deviceSupport.deviceRamGb}GB RAM. Current built-in local models need at least ${deviceSupport.minimumBuiltInRamGb}GB."
                 )
                 return
             }
