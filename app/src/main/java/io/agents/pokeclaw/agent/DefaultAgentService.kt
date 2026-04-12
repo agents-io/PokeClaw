@@ -64,6 +64,7 @@ class DefaultAgentService : AgentService {
 - Check battery/wifi/storage/bluetooth/screen/device/time → get_device_info(category="battery")
 - Read notifications → get_notifications()
 - Read clipboard → clipboard(action="get")
+- Write text to clipboard → clipboard(action="set", text="...")
 - List installed apps → get_installed_apps()
 - Take screenshot → take_screenshot()
 - Wait for loading → wait(duration_ms=2000)
@@ -74,7 +75,9 @@ class DefaultAgentService : AgentService {
 - finish(summary) must contain the ACTUAL DATA the user asked for. "Battery is at 73%" not "I checked battery."
 - Use get_device_info for battery/wifi/storage/bluetooth/screen/device/time queries. Do NOT open Settings app for these.
 - Use get_notifications to read notifications. Do NOT pull down notification shade.
-- Use clipboard(action="get") when the user asks what is on their clipboard or what they copied.
+- Use clipboard(action="get") ONLY when the user asks about the CURRENT clipboard contents (for example "read my clipboard" or "what did I copy").
+- If the user asks you to copy/search/send/summarize information FROM another source (email, browser, notes, messages, screen, etc), first go to that source and find the information there. Do NOT assume it is already on the clipboard.
+- If you need the clipboard after finding the source data, use clipboard(action="set", text="...") yourself.
 - Use get_installed_apps() when the user asks what apps are installed.
 - Use input_text to type. Do NOT tap on autocomplete suggestions.
 - Never say you cannot access the user's clipboard, notifications, or phone state when a matching tool exists. Use the tool first.

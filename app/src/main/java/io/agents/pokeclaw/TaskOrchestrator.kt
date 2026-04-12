@@ -96,7 +96,9 @@ class TaskOrchestrator(
         if (::agentService.isInitialized) {
             agentService.cancel()
         }
-        ForegroundService.updateTaskStatus(ClawApplication.instance, "Stopping task...")
+        if (ForegroundService.isRunning()) {
+            ForegroundService.updateTaskStatus(ClawApplication.instance, "Stopping task...")
+        }
         XLog.d(TAG, "Current task cancellation requested")
     }
 
@@ -123,8 +125,6 @@ class TaskOrchestrator(
                 taskSessionStore.updateTaskText(task)
             }
         }
-
-        ForegroundService.updateTaskStatus(ClawApplication.instance, "Running task...")
 
         // Tier 1: Deterministic routing
         val route = pipelineRouter.route(task)
@@ -231,7 +231,9 @@ class TaskOrchestrator(
                     FloatingCircleManager.ensureShowing()
                     FloatingCircleManager.setRunningState(round, channel)
                     taskEventCallback?.invoke(TaskEvent.LoopStart(round))
-                    ForegroundService.updateTaskStatus(ClawApplication.instance, "Step $round")
+                    if (ForegroundService.isRunning()) {
+                        ForegroundService.updateTaskStatus(ClawApplication.instance, "Step $round")
+                    }
                 }
             }
 

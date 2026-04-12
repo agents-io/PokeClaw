@@ -71,11 +71,6 @@ internal class EmailComposeGuard private constructor(
     }
 
     companion object {
-        private val EXPLICIT_EMAIL_TASK = Regex(
-            """^\s*(?:write|compose|draft|send)\s+(?:an?\s+)?email\b.*$""",
-            RegexOption.IGNORE_CASE
-        )
-
         private val UI_COMPOSE_TOOLS = setOf(
             "open_app",
             "tap",
@@ -89,7 +84,13 @@ internal class EmailComposeGuard private constructor(
 
         fun fromTask(task: String): EmailComposeGuard {
             val trimmed = task.trim()
-            val match = if (EXPLICIT_EMAIL_TASK.matches(trimmed)) Match(trimmed) else null
+            val normalized = trimmed.lowercase()
+            val startsWithComposeVerb = normalized.startsWith("write ") ||
+                normalized.startsWith("compose ") ||
+                normalized.startsWith("draft ") ||
+                normalized.startsWith("send ")
+            val mentionsEmail = normalized.contains(" email") || normalized.startsWith("email ")
+            val match = if (startsWithComposeVerb && mentionsEmail) Match(trimmed) else null
             return EmailComposeGuard(match)
         }
 

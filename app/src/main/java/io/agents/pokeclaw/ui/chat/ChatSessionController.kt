@@ -42,6 +42,7 @@ class ChatSessionController(
     private val uiState: ChatSessionUiState,
     private val onPersistConversation: () -> Unit,
     private val onRefreshSidebarHistory: () -> Unit,
+    private val isTaskRunning: () -> Boolean,
 ) {
 
     companion object {
@@ -109,6 +110,12 @@ class ChatSessionController(
 
         cloudClient = null
         val modelPath = resolvedConfig.local.modelPath
+        if (isTaskRunning()) {
+            uiState.modelStatus.value = "● Local task using model"
+            isModelReady = false
+            setButtonsEnabled(false)
+            return
+        }
         XLog.d(TAG, "loadModelIfReady: stored=$modelPath loaded=$loadedModelPath engine=${engine != null}")
 
         if (modelPath.isNotEmpty() && engine != null && modelPath != loadedModelPath) {

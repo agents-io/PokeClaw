@@ -72,7 +72,8 @@ class ComposeChatActivity : ComponentActivity() {
                 sessionCost = _sessionCost,
             ),
             onPersistConversation = { saveChat() },
-            onRefreshSidebarHistory = { refreshSidebarHistory() }
+            onRefreshSidebarHistory = { refreshSidebarHistory() },
+            isTaskRunning = { appViewModel.isTaskRunning() },
         )
     }
 
