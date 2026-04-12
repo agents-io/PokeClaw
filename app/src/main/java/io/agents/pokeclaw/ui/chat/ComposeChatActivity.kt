@@ -55,6 +55,7 @@ class ComposeChatActivity : ComponentActivity() {
     // Session-level token tracking for chat mode
     private val _sessionTokens = mutableStateOf(0)
     private val _sessionCost = mutableStateOf(0.0)
+    private var deferLocalChatBootstrapForAutoTask = false
 
     private val chatSessionController by lazy {
         ChatSessionController(
@@ -88,6 +89,7 @@ class ComposeChatActivity : ComponentActivity() {
                 isTaskRunning = _isTaskRunning,
             ),
             onPersistConversation = { saveChat() },
+            onTaskSettled = { deferLocalChatBootstrapForAutoTask = false },
         )
     }
 
@@ -206,10 +208,13 @@ class ComposeChatActivity : ComponentActivity() {
             }
         }
 
-        chatSessionController.loadModelIfReady(
-            conversationId = conversationStore.currentConversationId,
-            visibleMessages = _messages.toList(),
-        )
+        deferLocalChatBootstrapForAutoTask = shouldDeferLocalChatBootstrap(intent)
+        if (!deferLocalChatBootstrapForAutoTask) {
+            chatSessionController.loadModelIfReady(
+                conversationId = conversationStore.currentConversationId,
+                visibleMessages = _messages.toList(),
+            )
+        }
         _isLocalModelActive.value = ModelConfigRepository.isLocalActive()
 
         // Release local LLM conversation before task starts so the agent can use the engine
@@ -226,6 +231,7 @@ class ComposeChatActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        deferLocalChatBootstrapForAutoTask = shouldDeferLocalChatBootstrap(intent)
         handleIntentAutomation(intent, initialDelayMs = 1000)
     }
 
@@ -239,10 +245,12 @@ class ComposeChatActivity : ComponentActivity() {
         permHandler.removeCallbacks(permPoller)
         permHandler.postDelayed(permPoller, 1000)
         activeTaskShellController.onResume()
-        chatSessionController.onResume(
-            conversationId = conversationStore.currentConversationId,
-            visibleMessages = _messages.toList(),
-        )
+        if (!deferLocalChatBootstrapForAutoTask) {
+            chatSessionController.onResume(
+                conversationId = conversationStore.currentConversationId,
+                visibleMessages = _messages.toList(),
+            )
+        }
     }
 
     override fun onPause() {
@@ -270,6 +278,7 @@ class ComposeChatActivity : ComponentActivity() {
         val chatText = intent?.getStringExtra(EXTRA_CHAT)?.takeIf { it.isNotBlank() }
         val automationText = taskText ?: chatText ?: return
         val isTask = taskText != null
+        val isDeferredLocalTask = isTask && shouldDeferLocalChatBootstrap(intent)
 
         XLog.i(
             TAG,
@@ -279,6 +288,10 @@ class ComposeChatActivity : ComponentActivity() {
         val handler = Handler(Looper.getMainLooper())
         handler.postDelayed(object : Runnable {
             override fun run() {
+                if (isDeferredLocalTask) {
+                    taskFlowController.sendTask(automationText)
+                    return
+                }
                 if (chatSessionController.isModelReady()) {
                     if (isTask) {
                         taskFlowController.sendTask(automationText)
@@ -290,6 +303,11 @@ class ComposeChatActivity : ComponentActivity() {
                 }
             }
         }, initialDelayMs)
+    }
+
+    private fun shouldDeferLocalChatBootstrap(intent: Intent?): Boolean {
+        val taskText = intent?.getStringExtra(EXTRA_TASK)?.takeIf { it.isNotBlank() } ?: return false
+        return taskText.isNotBlank() && ModelConfigRepository.isLocalActive()
     }
 
     private fun syncTaskAgentConfig() {

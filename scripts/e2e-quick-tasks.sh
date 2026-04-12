@@ -9,8 +9,8 @@ TIMEOUT=0
 TOTAL=0
 
 RESULTS_FILE="${RESULTS_FILE:-/tmp/pokeclaw-e2e-${MODE}-quick-tasks-$(date +%Y%m%d-%H%M%S).log}"
-LOCAL_MODEL_PATH="${LOCAL_MODEL_PATH:-/storage/emulated/0/Android/data/io.agents.pokeclaw/files/models/gemma-4-E2B-it.litertlm}"
-LOCAL_MODEL_NAME="${LOCAL_MODEL_NAME:-gemma4-e2b}"
+LOCAL_MODEL_PATH="${LOCAL_MODEL_PATH:-}"
+LOCAL_MODEL_NAME="${LOCAL_MODEL_NAME:-}"
 CLOUD_MODEL_NAME="${CLOUD_MODEL_NAME:-gpt-4.1}"
 
 adb_retry() {
@@ -33,8 +33,38 @@ print_usage() {
     echo "Env:"
     echo "  RESULTS_FILE=/tmp/custom.log"
     echo "  LOCAL_MODEL_PATH=/storage/.../model.litertlm"
-    echo "  LOCAL_MODEL_NAME=gemma4-e2b"
+    echo "  LOCAL_MODEL_NAME=gemma4-e4b"
     echo "  CLOUD_MODEL_NAME=gpt-4.1"
+}
+
+resolve_local_model() {
+    if [ -n "$LOCAL_MODEL_PATH" ] && [ -n "$LOCAL_MODEL_NAME" ]; then
+        return 0
+    fi
+
+    local models_dir="/storage/emulated/0/Android/data/io.agents.pokeclaw/files/models"
+    local e4b_path="${models_dir}/gemma-4-E4B-it.litertlm"
+    local e2b_path="${models_dir}/gemma-4-E2B-it.litertlm"
+
+    if [ -z "$LOCAL_MODEL_PATH" ]; then
+        if adb shell "[ -f '$e4b_path' ]" >/dev/null 2>&1; then
+            LOCAL_MODEL_PATH="$e4b_path"
+        elif adb shell "[ -f '$e2b_path' ]" >/dev/null 2>&1; then
+            LOCAL_MODEL_PATH="$e2b_path"
+        fi
+    fi
+
+    if [ -z "$LOCAL_MODEL_NAME" ] && [ -n "$LOCAL_MODEL_PATH" ]; then
+        case "$LOCAL_MODEL_PATH" in
+            *gemma-4-E4B-it.litertlm) LOCAL_MODEL_NAME="gemma4-e4b" ;;
+            *gemma-4-E2B-it.litertlm) LOCAL_MODEL_NAME="gemma4-e2b" ;;
+        esac
+    fi
+
+    if [ -z "$LOCAL_MODEL_PATH" ] || [ -z "$LOCAL_MODEL_NAME" ]; then
+        echo "Unable to resolve local model. Set LOCAL_MODEL_PATH and LOCAL_MODEL_NAME." >&2
+        exit 1
+    fi
 }
 
 configure_mode() {
@@ -51,6 +81,7 @@ configure_mode() {
             adb_retry adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task 'config:' --es api_key '$OPENAI_API_KEY' --es model_name '$CLOUD_MODEL_NAME'" >/dev/null
             ;;
         local)
+            resolve_local_model
             adb_retry adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task 'config:' --es provider 'LOCAL' --es base_url '$LOCAL_MODEL_PATH' --es model_name '$LOCAL_MODEL_NAME'" >/dev/null
             ;;
         -h|--help|help)

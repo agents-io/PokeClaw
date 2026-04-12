@@ -14,6 +14,11 @@ internal class DirectDeviceDataGuard private constructor(
     private val match: Match?
 ) {
 
+    data class DeterministicToolCall(
+        val toolName: String,
+        val params: Map<String, Any>,
+    )
+
     data class Match(
         val taskText: String,
         val taskLabel: String,
@@ -70,6 +75,46 @@ internal class DirectDeviceDataGuard private constructor(
     companion object {
         fun fromTask(task: String): DirectDeviceDataGuard {
             return DirectDeviceDataGuard(parse(task))
+        }
+
+        fun matchesNonInteractiveDeviceDataTask(task: String): Boolean {
+            val match = parse(task) ?: return false
+            return match.taskLabel != "screen-reading"
+        }
+
+        fun deterministicToolCall(task: String): DeterministicToolCall? {
+            val normalized = normalize(task)
+            return when {
+                isClipboardDataRequest(normalized) ->
+                    DeterministicToolCall("clipboard", mapOf("action" to "get"))
+
+                normalized.contains("notif") || normalized.contains("notification") ->
+                    DeterministicToolCall("get_notifications", emptyMap())
+
+                normalized.contains("what apps do i have") ||
+                    normalized.contains("installed apps") ||
+                    normalized.contains("apps do i have") ->
+                    DeterministicToolCall("get_installed_apps", emptyMap())
+
+                normalized.contains("battery") ->
+                    DeterministicToolCall("get_device_info", mapOf("category" to "battery"))
+
+                normalized.contains("wifi") ->
+                    DeterministicToolCall("get_device_info", mapOf("category" to "wifi"))
+
+                normalized.contains("bluetooth") ->
+                    DeterministicToolCall("get_device_info", mapOf("category" to "bluetooth"))
+
+                normalized.contains("storage") ->
+                    DeterministicToolCall("get_device_info", mapOf("category" to "storage"))
+
+                normalized.contains("android version") ||
+                    normalized.contains("phone temp") ||
+                    normalized.contains("temperature") ->
+                    DeterministicToolCall("get_device_info", mapOf("category" to if (normalized.contains("android version")) "device" else "battery"))
+
+                else -> null
+            }
         }
 
         private fun parse(task: String): Match? {

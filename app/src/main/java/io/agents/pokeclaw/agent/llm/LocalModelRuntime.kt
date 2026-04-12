@@ -99,6 +99,10 @@ object LocalModelRuntime {
                 lastError = e
                 XLog.w(TAG, "openConversation attempt $attempt failed for $modelPath: ${e.message}")
 
+                if (isSessionConflict(e)) {
+                    throw IllegalStateException("Local model session already in use", e)
+                }
+
                 if (!forceCpu && isGpuBackendFailure(e)) {
                     XLog.w(TAG, "openConversation: GPU path failed, forcing CPU for $modelPath")
                     forceCpuEngine(context, modelPath)
@@ -169,5 +173,13 @@ object LocalModelRuntime {
             message.contains("nativeSendMessage", ignoreCase = true) ||
             message.contains("Failed to create engine", ignoreCase = true) ||
             message.contains("compiled model", ignoreCase = true)
+    }
+
+    fun isSessionConflict(error: Throwable?): Boolean {
+        val message = error?.message.orEmpty()
+        if (message.isEmpty()) return false
+        return message.contains("A session already exists", ignoreCase = true) ||
+            message.contains("Only one session is supported at a time", ignoreCase = true) ||
+            message.contains("session already in use", ignoreCase = true)
     }
 }

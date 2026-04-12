@@ -16,11 +16,14 @@ import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.AppViewModel
 import io.agents.pokeclaw.ServiceBindingState
 import io.agents.pokeclaw.TaskEvent
+import io.agents.pokeclaw.agent.DirectDeviceDataGuard
+import io.agents.pokeclaw.agent.PipelineRouter
 import io.agents.pokeclaw.agent.TaskPromptEnvelope
 import io.agents.pokeclaw.agent.llm.ModelConfigRepository
 import io.agents.pokeclaw.service.ClawAccessibilityService
 import io.agents.pokeclaw.service.ForegroundService
 import io.agents.pokeclaw.service.AutoReplyManager
+import io.agents.pokeclaw.tool.ToolRegistry
 import io.agents.pokeclaw.ui.settings.SettingsActivity
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
@@ -45,6 +48,7 @@ class TaskFlowController(
     private val chatSessionController: ChatSessionController,
     private val uiState: TaskFlowUiState,
     private val onPersistConversation: () -> Unit,
+    private val onTaskSettled: (() -> Unit)? = null,
 ) {
 
     companion object {
@@ -53,6 +57,7 @@ class TaskFlowController(
 
     private var sendTaskRetryCount = 0
     private var lastMonitorStatusNote: String? = null
+    private val pipelineRouter = PipelineRouter(activity)
 
     fun sendTask(text: String) {
         if (ModelConfigRepository.snapshot().isLocalActive() && isLikelyMonitorRequest(text)) {
@@ -63,13 +68,32 @@ class TaskFlowController(
 
         when (AppCapabilityCoordinator.accessibilityState(activity)) {
             ServiceBindingState.DISABLED -> {
+                val directTool = DirectDeviceDataGuard.deterministicToolCall(text)
+                if (directTool != null) {
+                    XLog.i(TAG, "sendTask: executing non-interactive direct tool without Accessibility")
+                    executeDirectToolTask(text, directTool)
+                    return
+                }
+                if (canRunWithoutAccessibility(text)) {
+                    XLog.i(TAG, "sendTask: allowing non-interactive task without Accessibility")
+                } else {
                 Toast.makeText(activity, "Enable Accessibility Service to run tasks", Toast.LENGTH_LONG).show()
                 addSystem("⚠️ Task mode needs Accessibility Service enabled. Opening Settings...")
                 openSettings()
                 sendTaskRetryCount = 0
                 return
+                }
             }
             ServiceBindingState.CONNECTING -> {
+                val directTool = DirectDeviceDataGuard.deterministicToolCall(text)
+                if (directTool != null) {
+                    XLog.i(TAG, "sendTask: executing non-interactive direct tool while Accessibility connects")
+                    executeDirectToolTask(text, directTool)
+                    return
+                }
+                if (canRunWithoutAccessibility(text)) {
+                    XLog.i(TAG, "sendTask: allowing non-interactive task while Accessibility connects")
+                } else {
                 if (sendTaskRetryCount >= 1) {
                     Toast.makeText(activity, "Accessibility service not connected. Try toggling it off and on.", Toast.LENGTH_LONG).show()
                     addSystem("Accessibility service didn't connect. Try toggling it off and on in Settings.")
@@ -92,6 +116,7 @@ class TaskFlowController(
                     }
                 }
                 return
+                }
             }
             ServiceBindingState.READY -> Unit
         }
@@ -134,6 +159,41 @@ class TaskFlowController(
                     cleanupAfterTask()
                 }
             }
+        }
+    }
+
+    private fun executeDirectToolTask(text: String, toolCall: DirectDeviceDataGuard.DeterministicToolCall) {
+        ensureNotificationPermission()
+        addUser(text)
+        uiState.isAwaitingReply.value = true
+        uiState.isTaskRunning.value = false
+        uiState.messages.add(ChatMessage(ChatMessage.Role.ASSISTANT, "..."))
+
+        executor.submit {
+            try {
+                val result = ToolRegistry.getInstance().executeTool(toolCall.toolName, toolCall.params)
+                activity.runOnUiThread {
+                    val answer = result.data ?: result.error ?: "Done."
+                    replaceTypingIndicator(answer)
+                    cleanupAfterTask()
+                }
+            } catch (e: Exception) {
+                XLog.e(TAG, "executeDirectToolTask failed: ${e.message}", e)
+                activity.runOnUiThread {
+                    replaceTypingIndicator("Error: ${e.message}")
+                    cleanupAfterTask()
+                }
+            }
+        }
+    }
+
+    private fun canRunWithoutAccessibility(text: String): Boolean {
+        if (DirectDeviceDataGuard.matchesNonInteractiveDeviceDataTask(text)) {
+            return true
+        }
+        return when (pipelineRouter.route(text)) {
+            is PipelineRouter.Route.DirectIntent -> true
+            else -> false
         }
     }
 
@@ -262,6 +322,7 @@ class TaskFlowController(
         uiState.isAwaitingReply.value = false
         uiState.isTaskRunning.value = false
         appViewModel.clearTaskCallback()
+        onTaskSettled?.invoke()
         Handler(Looper.getMainLooper()).postDelayed({
             try {
                 chatSessionController.loadModelIfReady()
