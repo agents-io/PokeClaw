@@ -82,6 +82,26 @@ PokeClaw already supports fully on-device automation with Gemma 4 and optional c
 
 **If you hit something interesting, [open an issue](https://github.com/agents-io/PokeClaw/issues).** Real device reports are how this gets better fast.
 
+## Product Direction
+
+PokeClaw is not just a chat app with a few phone-control tricks glued on top.
+
+At its core, it is becoming a **mobile agent harness**:
+
+- a generic tool layer for phone control
+- a task/runtime loop that lets a model choose and chain those tools
+- playbooks, rules, and guards that can be iterated against real device QA
+- a product shell on top so the same harness is usable by normal people, not just developers
+
+That distinction matters. The long-term goal is not to hardcode one-off app flows forever. The goal is to build the strongest practical harness for AI phone agents on Android, then ship product experiences on top of that foundation.
+
+That is also why the project invests so heavily in:
+
+- generic tools before narrow workflows
+- repeated real-device QA instead of one-off demos
+- Cloud vs Local model comparisons on the same task families
+- playbooks and rules only when the model proves it needs extra structure
+
 ## See the UI
 
 👉 **[Try the interactive demo on our landing page](https://agents-io.github.io/PokeClaw/)** — click through every screen without installing anything.

@@ -29,6 +29,36 @@ Rule of thumb:
 - user-visible chat/task behavior -> backend smoke + chatroom bridge
 - shipping / RC claims -> real E2E, not smoke theater
 
+### Success Rate Over Single-Trial Theater
+
+Do not judge stochastic agent behavior from a single run.
+
+Use these rules:
+
+1. **Deterministic / direct-tool / state-truth flows**
+   - Examples: battery, storage, clipboard, model switching, permission truth, monitor start/stop, auto-return shell state
+   - Expected standard: effectively `10/10` on the target device
+   - If one of these flakes, treat it as a real bug until proven environmental
+
+2. **Cloud exploratory multi-step tasks**
+   - Examples: cross-app search, email drafting, app install, read-then-act tasks, `M` section flows, `S` quick tasks, M-session style prompts
+   - Run `10` trials and judge by **success rate**, not one lucky pass or one unlucky fail
+   - Default release threshold:
+     - `8/10` = acceptable
+     - `9/10+` = strong enough to promote in README / release notes
+     - `<8/10` = still unstable; keep as experimental or fix before shipping
+
+3. **Local exploratory tasks**
+   - Use repeated trials too, but evaluate against the intended model tier:
+     - `E4B` = primary Local UX target
+     - `E2B` = fallback tier that only needs to be broadly usable, not feature-parity with E4B
+
+4. **Blocked cases**
+   - Environment blockers do not count as model failures
+   - Record them separately from the success-rate denominator when the root cause is external (permissions, missing contacts, runtime dialogs, missing app, absent sender device)
+
+Never claim "fixed" from a single green run on a stochastic Cloud workflow.
+
 ### Device Setup
 
 ```bash
@@ -317,8 +347,10 @@ A build is only genuinely ship-ready when all of the following are true:
   - Monitor stays in-app and does not force Home
   - Auto-return restores the same conversation after tasks
 - **QA gate**
-  - Local quick-task sweep finishes with no product `FAIL`
-  - Cloud quick-task sweep finishes with no product `FAIL`
+  - Local deterministic/core sweep finishes with no product `FAIL`
+  - Cloud exploratory quick-task and M-session style sweeps are judged by repeated-trial success rate, not one-off luck
+  - any Cloud workflow called out as a headline/demo/release-note capability should meet roughly `9/10` on the target device
+  - any exploratory Cloud workflow below `8/10` should stay experimental or be fixed before release
   - any `BLOCKED` items are clearly environment-caused, not product regressions
 - **Distribution gate**
   - upgrade/install path is understood for the target release
