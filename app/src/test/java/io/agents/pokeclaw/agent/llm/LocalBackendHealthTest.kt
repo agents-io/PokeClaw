@@ -73,6 +73,19 @@ class LocalBackendHealthTest {
     }
 
     @Test
+    fun `conservative cpu applies to fold4 model before gpu is verified`() {
+        assertTrue(
+            LocalBackendHealth.shouldConservativelyForceCpu(
+                manufacturer = "samsung",
+                model = "sm-f936b",
+                hardware = "qcom",
+                hasVerifiedGpuSuccess = false,
+                isCpuSafeModeEnabled = false,
+            )
+        )
+    }
+
+    @Test
     fun `conservative cpu does not apply after gpu is verified`() {
         assertFalse(
             LocalBackendHealth.shouldConservativelyForceCpu(
