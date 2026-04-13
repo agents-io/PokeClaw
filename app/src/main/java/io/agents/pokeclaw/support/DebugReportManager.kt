@@ -9,6 +9,7 @@ import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.BuildConfig
 import io.agents.pokeclaw.agent.llm.LocalBackendHealth
 import io.agents.pokeclaw.agent.llm.ModelConfigRepository
+import io.agents.pokeclaw.service.AutoReplyManager
 import io.agents.pokeclaw.utils.KVUtils
 import java.io.File
 import java.io.FileInputStream
@@ -44,6 +45,8 @@ object DebugReportManager {
         val config = ModelConfigRepository.snapshot()
         val httpDir = File(context.cacheDir, "http_logs")
         val httpLogs = httpDir.listFiles()?.size ?: 0
+        val autoReplyManager = AutoReplyManager.getInstance()
+        val monitorTargets = autoReplyManager.monitoredTargets.joinToString(", ") { it.displayLabel }
         return buildString {
             appendLine("PokeClaw Debug Report")
             appendLine("Generated: ${Date()}")
@@ -72,6 +75,8 @@ object DebugReportManager {
             appendLine("- Accessibility last heartbeat: ${formatEpoch(KVUtils.getAccessibilityLastHeartbeatAt())}")
             appendLine("- Accessibility last interrupted: ${formatEpoch(KVUtils.getAccessibilityLastInterruptedAt())}")
             appendLine("- Accessibility last disconnected: ${formatEpoch(KVUtils.getAccessibilityLastDisconnectedAt())}")
+            appendLine("- Notification listener last connected: ${formatEpoch(KVUtils.getNotificationListenerLastConnectedAt())}")
+            appendLine("- Notification listener last disconnected: ${formatEpoch(KVUtils.getNotificationListenerLastDisconnectedAt())}")
             appendLine()
             appendLine("LLM")
             appendLine("- Active mode: ${config.activeMode}")
@@ -86,6 +91,10 @@ object DebugReportManager {
             appendLine("- Conservative CPU-first suggested: ${if (LocalBackendHealth.isConservativeCpuModeSuggested()) "Yes" else "No"}")
             appendLine("- GPU already verified healthy: ${if (LocalBackendHealth.hasVerifiedGpuSuccess()) "Yes" else "No"}")
             appendLine("- Pending GPU init marker: ${if (LocalBackendHealth.hasPendingGpuInitMarker()) "Present" else "None"}")
+            appendLine()
+            appendLine("Auto-reply")
+            appendLine("- Enabled: ${if (autoReplyManager.isEnabled) "Yes" else "No"}")
+            appendLine("- Targets: ${monitorTargets.ifBlank { "(none)" }}")
             appendLine()
             appendLine("Artifacts")
             appendLine("- HTTP log files present: $httpLogs")
