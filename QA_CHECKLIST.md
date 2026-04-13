@@ -108,9 +108,13 @@ cd /home/nicole/MyGithub/PokeClaw
 
 # Local quick tasks
 ./scripts/e2e-quick-tasks.sh local
+
+# Headline task reliability
+python3 scripts/qa_harness_v2.py --mode cloud --suite cloud-headline --trials 10
 ```
 
-The runner emits `PASS / FAIL / BLOCKED / TIMEOUT` and writes a timestamped log file under `/tmp/`.
+The harness is logcat-driven. It resets app state between trials, waits for backend/accessibility readiness, classifies
+`PASS / FAIL / CANCELLED / BLOCKED / TIMEOUT / INFRA_ERROR`, and writes timestamped raw logs plus `summary.json` under `/tmp/`.
 
 ### Send a Task via ADB (for M tests)
 
