@@ -31,6 +31,7 @@ import java.util.concurrent.ExecutorService
 
 data class TaskFlowUiState(
     val messages: SnapshotStateList<ChatMessage>,
+    val executionEvents: ExecutionEventLog,
     val modelStatus: MutableState<String>,
     val isAwaitingReply: MutableState<Boolean>,
     val isTaskRunning: MutableState<Boolean>,
@@ -62,7 +63,10 @@ class TaskFlowController(
     fun sendTask(text: String) {
         if (ModelConfigRepository.snapshot().isLocalActive() && isLikelyMonitorRequest(text)) {
             addUser(text)
-            addSystem("Local mode starts monitoring from the Background card. Open Background, choose the app/contact, then tap Start Monitoring.")
+            addSystem(
+                "Local mode starts monitoring from the Background card. Open Background, choose the app/contact, then tap Start Monitoring.",
+                source = ExecutionEventSource.MONITOR,
+            )
             return
         }
 
@@ -218,7 +222,10 @@ class TaskFlowController(
         val target = MonitorTargetParser.fromTaskText(text)
         if (target == null) {
             addUser(text)
-            addSystem("Could not figure out who to monitor. Try: \"Monitor Mom on WhatsApp\"")
+            addSystem(
+                "Could not figure out who to monitor. Try: \"Monitor Mom on WhatsApp\"",
+                source = ExecutionEventSource.MONITOR,
+            )
             return
         }
 
@@ -228,7 +235,10 @@ class TaskFlowController(
     fun startMonitor(target: MonitorTargetSpec, typedInput: String? = null) {
         val trimmedLabel = target.label.trim()
         if (trimmedLabel.isEmpty()) {
-            addSystem("Could not figure out who to monitor. Try: \"Monitor Mom on WhatsApp\"")
+            addSystem(
+                "Could not figure out who to monitor. Try: \"Monitor Mom on WhatsApp\"",
+                source = ExecutionEventSource.MONITOR,
+            )
             return
         }
 
@@ -248,7 +258,7 @@ class TaskFlowController(
         val app = target.app
         uiState.isAwaitingReply.value = false
         uiState.isTaskRunning.value = false
-        addSystem("Setting up auto-reply for $contact on $app...")
+        addSystem("Setting up auto-reply for $contact on $app...", source = ExecutionEventSource.MONITOR)
 
         val autoReplyManager = AutoReplyManager.getInstance()
         autoReplyManager.addTarget(contact, app)
@@ -258,13 +268,17 @@ class TaskFlowController(
         Handler(Looper.getMainLooper()).postDelayed({
             uiState.isAwaitingReply.value = false
             uiState.isTaskRunning.value = false
-            addSystem("✓ Auto-reply is now active for ${target.displayLabel}.\nMonitoring in background — you can stop anytime from the bar above.")
+            addSystem(
+                "✓ Auto-reply is now active for ${target.displayLabel}.\nMonitoring in background — you can stop anytime from the bar above.",
+                source = ExecutionEventSource.MONITOR,
+            )
             XLog.i(TAG, "startMonitor: monitor active, staying in PokeClaw")
         }, 1500)
     }
 
     private fun handleTaskEvent(event: TaskEvent) {
         try {
+            uiState.executionEvents.recordTaskEvent(event)
             when (event) {
                 is TaskEvent.Completed -> {
                     replaceTypingIndicator(event.answer, event.modelName)
@@ -288,13 +302,13 @@ class TaskFlowController(
                     uiState.isTaskRunning.value = true
                     if (!event.toolName.contains("Finish", ignoreCase = true)) {
                         removeTypingIndicator()
-                        addSystem("${event.toolName}...")
+                        addSystem("${event.toolName}...", source = ExecutionEventSource.TASK)
                     }
                 }
                 is TaskEvent.ToolResult -> {
                     uiState.isAwaitingReply.value = false
                     uiState.isTaskRunning.value = true
-                    if (!event.success) addSystem("${event.toolName} failed")
+                    if (!event.success) addSystem("${event.toolName} failed", source = ExecutionEventSource.TASK)
                 }
                 is TaskEvent.Response -> {
                     uiState.isAwaitingReply.value = false
@@ -303,7 +317,7 @@ class TaskFlowController(
                 is TaskEvent.Progress -> {
                     uiState.isAwaitingReply.value = false
                     uiState.isTaskRunning.value = true
-                    addSystem(event.description)
+                    addSystem(event.description, source = ExecutionEventSource.TASK)
                 }
                 is TaskEvent.LoopStart -> {
                     uiState.isAwaitingReply.value = false
@@ -362,7 +376,7 @@ class TaskFlowController(
         }
         val note = "✓ Auto-reply active for $contacts.\nMonitoring in background — stop from bar above."
         if (note == lastMonitorStatusNote) return
-        addSystem(note)
+        addSystem(note, source = ExecutionEventSource.MONITOR)
         lastMonitorStatusNote = note
         XLog.i(TAG, "checkAutoReplyConfirmation: monitor active, staying in PokeClaw")
     }
@@ -379,7 +393,16 @@ class TaskFlowController(
         uiState.messages.add(ChatMessage(ChatMessage.Role.USER, text))
     }
 
-    private fun addSystem(text: String) {
+    private fun addSystem(
+        text: String,
+        source: ExecutionEventSource = ExecutionEventSource.SYSTEM,
+        kind: ExecutionEventKind = ExecutionEventKind.STATUS,
+    ) {
+        uiState.executionEvents.record(
+            source = source,
+            kind = kind,
+            message = text,
+        )
         uiState.messages.add(ChatMessage(ChatMessage.Role.SYSTEM, text))
     }
 

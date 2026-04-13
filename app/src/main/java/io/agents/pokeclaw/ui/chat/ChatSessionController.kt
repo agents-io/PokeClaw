@@ -27,6 +27,7 @@ import java.util.concurrent.ExecutorService
 
 data class ChatSessionUiState(
     val messages: SnapshotStateList<ChatMessage>,
+    val executionEvents: ExecutionEventLog,
     val modelStatus: MutableState<String>,
     val isAwaitingReply: MutableState<Boolean>,
     val inputEnabled: MutableState<Boolean>,
@@ -612,6 +613,11 @@ class ChatSessionController(
     }
 
     private fun addSystem(text: String) {
+        uiState.executionEvents.record(
+            source = ExecutionEventSource.MODEL,
+            kind = ExecutionEventKind.STATUS,
+            message = text,
+        )
         val last = uiState.messages.lastOrNull()
         if (last?.role == ChatMessage.Role.SYSTEM && last.content.equals(text, ignoreCase = true)) {
             return

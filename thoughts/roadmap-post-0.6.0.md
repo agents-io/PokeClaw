@@ -10,6 +10,23 @@ Scope is intentionally narrow:
 - build the remote runtime moat in the right order
 - keep vertical product logic and channel explosion out of core
 
+## Status checkpoint (2026-04-13)
+
+- `0.1 QA harness v2`: done
+  - replaced the fixed-sleep bash runner with `scripts/qa_harness_v2.py`
+  - per-trial lifecycle ownership
+  - logcat-based completion detection
+  - explicit `PASS / FAIL / CANCELLED / BLOCKED / TIMEOUT / INFRA_ERROR`
+  - repeated-trial success-rate output
+- `0.3 State/trace cleanup slice 1`: in progress
+  - introducing a runtime-only execution event log
+  - task / monitor / model/system events now have their own structured truth
+  - chatroom behavior stays unchanged for now; it remains a projection layer
+- `0.2 Local/OEM hardening`: active in parallel on the `0.6.2` hardening line
+  - CPU-safe mode / GPU failure memory shipped
+  - accessibility disconnect truthfulness shipped
+- `0.4 GitHub CI automation`: not started yet
+
 ## Product thesis
 
 PokeClaw should be treated as a **mobile-native phone harness with a product shell**, not just a chat app with tools.
@@ -212,10 +229,9 @@ Do not couple these into the core runtime yet:
 
 ## Immediate next step
 
-Start with **Phase 0.1 QA harness v2**.
+Continue **Phase 0.3 State/trace cleanup slice 1**.
 
 Reason:
 
-- every later remote/channel change will need repeatable trials
-- the old bash runner already proved that naive loops plus fixed sleeps are not trustworthy
-- build the measurement tool first, then trust later hardening work
+- remote runtime work still should not be built on top of chatroom/debug coupling
+- `0.1` is already in place, so the next leverage point is separating execution truth from user conversation
