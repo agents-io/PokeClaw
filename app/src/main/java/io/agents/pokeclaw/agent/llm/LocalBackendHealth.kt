@@ -193,6 +193,19 @@ object LocalBackendHealth {
             .joinToString(" / ")
     }
 
+    fun debugDeviceDescriptor(): String = deviceDescriptor()
+
+    fun isConservativeCpuModeSuggested(): Boolean = shouldStartCpuConservatively()
+
+    fun hasPendingGpuInitMarker(): Boolean {
+        return shouldPromotePendingGpuCrash(
+            currentDeviceKey = currentDeviceKey(),
+            pendingDeviceKey = KVUtils.getPendingLocalGpuInitDevice(),
+            pendingAtMs = KVUtils.getPendingLocalGpuInitAt(),
+            nowMs = System.currentTimeMillis(),
+        )
+    }
+
     internal fun shouldConservativelyForceCpu(
         manufacturer: String,
         model: String,
