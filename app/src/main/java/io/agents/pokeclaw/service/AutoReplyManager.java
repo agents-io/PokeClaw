@@ -3,8 +3,11 @@
 
 package io.agents.pokeclaw.service;
 
+import android.app.KeyguardManager;
 import android.app.Notification;
+import android.content.Context;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 
@@ -47,6 +50,7 @@ public class AutoReplyManager {
 
     private enum AutoReplyFailureStage {
         ACCESSIBILITY_UNAVAILABLE,
+        SCREEN_LOCKED,
         CHAT_NAVIGATION_FAILED,
         CONTEXT_EMPTY,
         GENERATION_FAILED,
@@ -298,6 +302,52 @@ public class AutoReplyManager {
         return false;
     }
 
+    private boolean ensureDeviceReadyForReply(ClawAccessibilityService svc, MonitorTarget target, String incomingMessage) {
+        ClawApplication app = ClawApplication.Companion.getInstance();
+        if (app == null) {
+            failAutoReply(target, incomingMessage, AutoReplyFailureStage.SCREEN_LOCKED,
+                "Application context unavailable while preparing auto-reply", null);
+            return false;
+        }
+
+        PowerManager powerManager = (PowerManager) app.getSystemService(Context.POWER_SERVICE);
+        KeyguardManager keyguardManager = (KeyguardManager) app.getSystemService(Context.KEYGUARD_SERVICE);
+        boolean interactive = powerManager == null || powerManager.isInteractive();
+        boolean keyguardLocked = keyguardManager != null && keyguardManager.isKeyguardLocked();
+
+        logAutoReplyStep(target, "device-state", "interactive=" + interactive + ", keyguardLocked=" + keyguardLocked);
+        if (interactive && !keyguardLocked) {
+            return true;
+        }
+
+        logAutoReplyStep(target, "unlock-attempt", "requesting unlock before auto-reply");
+        boolean unlockRequested = svc.unlockScreen();
+        if (!unlockRequested) {
+            failAutoReply(target, incomingMessage, AutoReplyFailureStage.SCREEN_LOCKED,
+                "unlockScreen request was rejected", null);
+            return false;
+        }
+
+        try {
+            Thread.sleep(1500);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            failAutoReply(target, incomingMessage, AutoReplyFailureStage.SCREEN_LOCKED,
+                "Interrupted while waiting for screen unlock", e);
+            return false;
+        }
+
+        boolean interactiveAfter = powerManager == null || powerManager.isInteractive();
+        boolean keyguardLockedAfter = keyguardManager != null && keyguardManager.isKeyguardLocked();
+        logAutoReplyStep(target, "device-state-after-unlock", "interactive=" + interactiveAfter + ", keyguardLocked=" + keyguardLockedAfter);
+        if (!interactiveAfter || keyguardLockedAfter) {
+            failAutoReply(target, incomingMessage, AutoReplyFailureStage.SCREEN_LOCKED,
+                "Device remained locked after unlock attempt", null);
+            return false;
+        }
+        return true;
+    }
+
     private void handleIncomingMessage(String packageName, String title, String text) {
 
         // Check if sender belongs to one of our monitored targets for this app
@@ -355,6 +405,10 @@ public class AutoReplyManager {
                 if (svc == null) {
                     failAutoReply(finalTarget, incomingMessage, AutoReplyFailureStage.ACCESSIBILITY_UNAVAILABLE,
                         "No accessibility service, cannot open chat", null);
+                    return;
+                }
+
+                if (!ensureDeviceReadyForReply(svc, finalTarget, incomingMessage)) {
                     return;
                 }
 
