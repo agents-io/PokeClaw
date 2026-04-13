@@ -37,6 +37,12 @@ class AppViewModel : ViewModel() {
 
     private val channelSetup = ChannelSetup(taskOrchestrator = taskOrchestrator)
 
+    init {
+        taskOrchestrator.taskEventSink = { event ->
+            executionEventStore.recordTaskEvent(event)
+        }
+    }
+
     val taskSessionStore: TaskSessionStore
         get() = taskOrchestrator.taskSessionStore
     val inProgressTaskMessageId: String get() = taskSessionStore.snapshot().messageId

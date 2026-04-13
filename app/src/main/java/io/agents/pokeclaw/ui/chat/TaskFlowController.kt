@@ -281,7 +281,6 @@ class TaskFlowController(
 
     private fun handleTaskEvent(event: TaskEvent) {
         try {
-            uiState.executionEvents.recordTaskEvent(event)
             when (event) {
                 is TaskEvent.Completed -> {
                     replaceTypingIndicator(event.answer, event.modelName)

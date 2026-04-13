@@ -30,6 +30,7 @@ class TaskOrchestrator(
      * Called on the agent executor thread — UI must post to main thread.
      */
     var taskEventCallback: ((TaskEvent) -> Unit)? = null
+    var taskEventSink: ((TaskEvent) -> Unit)? = null
 
     companion object {
         private const val TAG = "TaskOrchestrator"
@@ -54,6 +55,11 @@ class TaskOrchestrator(
         } catch (e: Exception) {
             XLog.e(TAG, "Failed to initialize AgentService", e)
         }
+    }
+
+    private fun emitTaskEvent(event: TaskEvent) {
+        taskEventSink?.invoke(event)
+        taskEventCallback?.invoke(event)
     }
 
     fun updateAgentConfig(): Boolean {
@@ -116,7 +122,7 @@ class TaskOrchestrator(
         if (!isTaskRunning()) {
             if (!tryAcquireTask(messageID, channel, task)) {
                 XLog.w(TAG, "Failed to acquire task lock for: $task")
-                taskEventCallback?.invoke(TaskEvent.Failed("Another task is running"))
+                emitTaskEvent(TaskEvent.Failed("Another task is running"))
                 return
             }
         } else {
@@ -132,7 +138,7 @@ class TaskOrchestrator(
             is PipelineRouter.Route.DirectIntent -> {
                 XLog.i(TAG, "Pipeline Tier 1: DirectIntent — ${route.description}")
                 pipelineRouter.executeIntent(route.intent)
-                taskEventCallback?.invoke(TaskEvent.Completed(route.description))
+                emitTaskEvent(TaskEvent.Completed(route.description))
                 ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
                 releaseTask()
                 ForegroundService.resetToIdle(ClawApplication.instance)
@@ -145,10 +151,10 @@ class TaskOrchestrator(
                 val toolResult = pipelineRouter.executeTool(route.toolName, route.params)
                 if (toolResult.contains("Failed") || toolResult.contains("error") || toolResult.contains("Cannot")) {
                     XLog.w(TAG, "Tier 1 tool failed: $toolResult")
-                    taskEventCallback?.invoke(TaskEvent.Completed("Failed: ${route.description}"))
+                    emitTaskEvent(TaskEvent.Completed("Failed: ${route.description}"))
                     ChannelManager.sendMessage(channel, "✗ ${route.description}: $toolResult", messageID)
                 } else {
-                    taskEventCallback?.invoke(TaskEvent.Completed(route.description))
+                    emitTaskEvent(TaskEvent.Completed(route.description))
                     ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
                 }
                 releaseTask()
@@ -168,12 +174,12 @@ class TaskOrchestrator(
                         FloatingCircleManager.showTaskNotify(task, channel)
                         Thread({
                             val skillResult = skillExecutor.execute(skill, route.params) { step, total, desc ->
-                                taskEventCallback?.invoke(TaskEvent.Progress(step, "Step $step/$total: $desc"))
+                                emitTaskEvent(TaskEvent.Progress(step, "Step $step/$total: $desc"))
                                 ForegroundService.updateTaskStatus(ClawApplication.instance, desc)
                             }
                             if (skillResult.success) {
                                 ChannelManager.sendMessage(channel, skillResult.message, messageID)
-                                taskEventCallback?.invoke(TaskEvent.Completed(skillResult.message))
+                                emitTaskEvent(TaskEvent.Completed(skillResult.message))
                                 releaseTask()
                                 FloatingCircleManager.setSuccessState()
                                 ForegroundService.resetToIdle(ClawApplication.instance)
@@ -182,7 +188,7 @@ class TaskOrchestrator(
                                 val fallbackGoal = skill.fallbackGoal
                                     .let { g -> route.params.entries.fold(g) { acc, (k, v) -> acc.replace("{$k}", v) } }
                                 XLog.i(TAG, "Skill ${skill.id} failed, falling back to agent loop: $fallbackGoal")
-                                taskEventCallback?.invoke(TaskEvent.ToolAction("Retrying with AI agent"))
+                                emitTaskEvent(TaskEvent.ToolAction("Retrying with AI agent"))
                                 startNewTask(channel, fallbackGoal, messageID, isFallback = true)
                             }
                         }, "skill-executor").start()
@@ -205,7 +211,7 @@ class TaskOrchestrator(
                 XLog.e(TAG, "Failed to initialize AgentService", e)
                 releaseTask()
                 ForegroundService.resetToIdle(ClawApplication.instance)
-                taskEventCallback?.invoke(TaskEvent.Failed("AI service not ready"))
+                emitTaskEvent(TaskEvent.Failed("AI service not ready"))
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_service_not_ready), messageID)
                 return
             }
@@ -230,7 +236,7 @@ class TaskOrchestrator(
                 if (round > 1) {
                     FloatingCircleManager.ensureShowing()
                     FloatingCircleManager.setRunningState(round, channel)
-                    taskEventCallback?.invoke(TaskEvent.LoopStart(round))
+                    emitTaskEvent(TaskEvent.LoopStart(round))
                     if (ForegroundService.isRunning()) {
                         ForegroundService.updateTaskStatus(ClawApplication.instance, "Step $round")
                     }
@@ -244,7 +250,7 @@ class TaskOrchestrator(
                     formattedCost = status.formattedCost,
                     tokenState = status.state
                 )
-                taskEventCallback?.invoke(TaskEvent.TokenUpdate(
+                emitTaskEvent(TaskEvent.TokenUpdate(
                     step = status.step,
                     formattedTokens = status.formattedTokens,
                     formattedCost = status.formattedCost,
@@ -255,7 +261,7 @@ class TaskOrchestrator(
             override fun onContent(round: Int, content: String) {
                 if (content.isNotEmpty()) {
                     roundBuffer.append(content)
-                    taskEventCallback?.invoke(TaskEvent.Thinking(content))
+                    emitTaskEvent(TaskEvent.Thinking(content))
                 }
             }
 
@@ -271,7 +277,7 @@ class TaskOrchestrator(
                 }
                 if (toolName.isNotEmpty()) {
                     val displayName = io.agents.pokeclaw.tool.ToolRegistry.getInstance().getDisplayName(toolName)
-                    taskEventCallback?.invoke(TaskEvent.ToolAction(displayName))
+                    emitTaskEvent(TaskEvent.ToolAction(displayName))
                     ForegroundService.updateTaskStatus(ClawApplication.instance, "$displayName...")
                 }
             }
@@ -284,7 +290,7 @@ class TaskOrchestrator(
                 if (!success) XLog.e(TAG, "Tool failed: $toolName $data")
 
                 val displayName = io.agents.pokeclaw.tool.ToolRegistry.getInstance().getDisplayName(toolName)
-                taskEventCallback?.invoke(TaskEvent.ToolResult(displayName, success, data ?: ""))
+                emitTaskEvent(TaskEvent.ToolResult(displayName, success, data ?: ""))
 
                 if (toolId == "finish" && result.data?.isNotEmpty() == true) {
                     flushRoundBuffer()
@@ -304,7 +310,7 @@ class TaskOrchestrator(
                     ClawApplication.instance.getString(R.string.channel_msg_task_cancelled)
                 )
                 if (finalAnswer.trim() in cancelAnswers) {
-                    taskEventCallback?.invoke(TaskEvent.Cancelled)
+                    emitTaskEvent(TaskEvent.Cancelled)
                     ForegroundService.resetToIdle(ClawApplication.instance)
                     flushRoundBuffer()
                     val cancelledSession = releaseTask()
@@ -325,7 +331,7 @@ class TaskOrchestrator(
                 var answer = finalAnswer.ifEmpty { "Done." }
                 answer = answer.removePrefix("Task completed:").removePrefix("Task completed").trim()
                 if (answer.isEmpty()) answer = "Done."
-                taskEventCallback?.invoke(TaskEvent.Completed(answer, modelName))
+                emitTaskEvent(TaskEvent.Completed(answer, modelName))
                 ForegroundService.resetToIdle(ClawApplication.instance)
                 flushRoundBuffer()
                 val completedSession = releaseTask()
@@ -350,7 +356,7 @@ class TaskOrchestrator(
 
             override fun onError(round: Int, error: Exception, totalTokens: Int) {
                 XLog.e(TAG, "onError: ${error.message}, totalTokens=$totalTokens", error)
-                taskEventCallback?.invoke(TaskEvent.Failed(error.message ?: "Unknown error"))
+                emitTaskEvent(TaskEvent.Failed(error.message ?: "Unknown error"))
                 ForegroundService.resetToIdle(ClawApplication.instance)
                 flushRoundBuffer()
                 val failedSession = releaseTask()
@@ -368,7 +374,7 @@ class TaskOrchestrator(
 
             override fun onSystemDialogBlocked(round: Int, totalTokens: Int) {
                 XLog.w(TAG, "onSystemDialogBlocked: round=$round, totalTokens=$totalTokens")
-                taskEventCallback?.invoke(TaskEvent.Blocked)
+                emitTaskEvent(TaskEvent.Blocked)
                 flushRoundBuffer()
                 val blockedSession = releaseTask()
                 val blockedChannel = blockedSession.channel ?: channel
