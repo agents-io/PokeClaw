@@ -127,6 +127,9 @@
 -keep class com.google.ai.edge.litertlm.** { *; }
 -keep interface com.google.ai.edge.litertlm.** { *; }
 -keepnames class com.google.ai.edge.litertlm.** { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
 
 # ============================================================
 # Glide
