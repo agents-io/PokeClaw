@@ -121,6 +121,7 @@ public class ClawAccessibilityService extends AccessibilityService {
         super.onServiceConnected();
         instance = this;
         KVUtils.INSTANCE.noteAccessibilityConnected();
+        KVUtils.INSTANCE.noteAccessibilityHeartbeat();
         XLog.i(TAG, "Accessibility service connected");
         ForegroundService.Companion.syncToBackgroundState(this);
         maybeReturnToAppAfterPermissionFlow();
@@ -128,6 +129,7 @@ public class ClawAccessibilityService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        KVUtils.INSTANCE.noteAccessibilityHeartbeat();
         // Debug: log notification events from messaging apps
         if (event != null && event.getEventType() == AccessibilityEvent.TYPE_NOTIFICATION_STATE_CHANGED) {
             XLog.d(TAG, "Notification event from: " + event.getPackageName());
@@ -142,6 +144,7 @@ public class ClawAccessibilityService extends AccessibilityService {
 
     @Override
     public void onInterrupt() {
+        KVUtils.INSTANCE.noteAccessibilityInterrupted();
         XLog.w(TAG, "Accessibility service interrupted");
         ForegroundService.Companion.syncToBackgroundState(this);
     }

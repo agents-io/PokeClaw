@@ -9,6 +9,7 @@ import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.BuildConfig
 import io.agents.pokeclaw.agent.llm.LocalBackendHealth
 import io.agents.pokeclaw.agent.llm.ModelConfigRepository
+import io.agents.pokeclaw.utils.KVUtils
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -67,6 +68,10 @@ object DebugReportManager {
             appendLine("- Overlay: ${if (capabilities.overlayGranted) "Enabled" else "Disabled"}")
             appendLine("- Battery optimization: ${if (capabilities.batteryOptimizationIgnored) "Unrestricted" else "Restricted"}")
             appendLine("- Foreground service: ${if (capabilities.foregroundServiceRunning) "Running" else "Stopped"}")
+            appendLine("- Accessibility last connected: ${formatEpoch(KVUtils.getAccessibilityLastConnectedAt())}")
+            appendLine("- Accessibility last heartbeat: ${formatEpoch(KVUtils.getAccessibilityLastHeartbeatAt())}")
+            appendLine("- Accessibility last interrupted: ${formatEpoch(KVUtils.getAccessibilityLastInterruptedAt())}")
+            appendLine("- Accessibility last disconnected: ${formatEpoch(KVUtils.getAccessibilityLastDisconnectedAt())}")
             appendLine()
             appendLine("LLM")
             appendLine("- Active mode: ${config.activeMode}")
@@ -128,5 +133,10 @@ object DebugReportManager {
         zip.putNextEntry(ZipEntry(entryName))
         FileInputStream(file).use { input -> input.copyTo(zip) }
         zip.closeEntry()
+    }
+
+    private fun formatEpoch(value: Long): String {
+        if (value <= 0L) return "(none)"
+        return Date(value).toString()
     }
 }

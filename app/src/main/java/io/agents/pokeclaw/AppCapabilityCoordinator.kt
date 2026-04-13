@@ -73,6 +73,7 @@ data class AppCapabilitySnapshot(
 
 object AppCapabilityCoordinator {
     private const val SERVICE_REBIND_GRACE_MS = 15_000L
+    private const val ACCESSIBILITY_INTERRUPT_GRACE_MS = 4_000L
 
     fun snapshot(context: Context): AppCapabilitySnapshot {
         return AppCapabilitySnapshot(
@@ -92,6 +93,8 @@ object AppCapabilityCoordinator {
             running = ClawAccessibilityService.isRunning(),
             pendingRepair = KVUtils.hasPendingAccessibilityReturn(),
             lastConnectedAt = KVUtils.getAccessibilityLastConnectedAt(),
+            lastHeartbeatAt = KVUtils.getAccessibilityLastHeartbeatAt(),
+            lastInterruptedAt = KVUtils.getAccessibilityLastInterruptedAt(),
             lastDisconnectedAt = KVUtils.getAccessibilityLastDisconnectedAt(),
         )
     }
@@ -111,18 +114,36 @@ object AppCapabilityCoordinator {
         running: Boolean,
         pendingRepair: Boolean,
         lastConnectedAt: Long,
+        lastHeartbeatAt: Long = 0L,
+        lastInterruptedAt: Long = 0L,
         lastDisconnectedAt: Long,
     ): ServiceBindingState {
         if (!enabled) return ServiceBindingState.DISABLED
-        if (running) return ServiceBindingState.READY
         if (pendingRepair) return ServiceBindingState.CONNECTING
-        if (lastConnectedAt <= 0L) return ServiceBindingState.CONNECTING
 
         val now = System.currentTimeMillis()
-        if (now - lastConnectedAt <= SERVICE_REBIND_GRACE_MS) {
+        val lastHealthyAt = maxOf(lastConnectedAt, lastHeartbeatAt)
+
+        if (running) {
+            if (lastInterruptedAt > lastHealthyAt) {
+                return if (now - lastInterruptedAt <= ACCESSIBILITY_INTERRUPT_GRACE_MS) {
+                    ServiceBindingState.CONNECTING
+                } else {
+                    ServiceBindingState.DEGRADED
+                }
+            }
+            return ServiceBindingState.READY
+        }
+
+        if (lastHealthyAt <= 0L) return ServiceBindingState.CONNECTING
+
+        if (now - lastHealthyAt <= SERVICE_REBIND_GRACE_MS) {
             return ServiceBindingState.CONNECTING
         }
-        if (lastDisconnectedAt > 0L && lastDisconnectedAt >= lastConnectedAt) {
+        if (lastDisconnectedAt > 0L && lastDisconnectedAt >= lastHealthyAt) {
+            return ServiceBindingState.DEGRADED
+        }
+        if (lastInterruptedAt > 0L && lastInterruptedAt >= lastHealthyAt) {
             return ServiceBindingState.DEGRADED
         }
         return ServiceBindingState.DEGRADED
