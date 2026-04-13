@@ -11,6 +11,18 @@ object LocalBackendHealth {
 
     private const val TAG = "LocalBackendHealth"
     private const val CRASH_MARKER_MAX_AGE_MS = 1000L * 60L * 60L * 24L * 30L
+    private val CONSERVATIVE_CPU_MANUFACTURERS = setOf("xiaomi", "redmi", "poco")
+    private val CONSERVATIVE_CPU_MODELS = listOf(
+        "xiaomi 15",
+        "mi 15",
+        "z flip7",
+        "sm-f766",
+    )
+    private val CONSERVATIVE_CPU_HARDWARE_HINTS = listOf(
+        "mt",
+        "mediatek",
+        "dimensity",
+    )
 
     fun currentDeviceKey(): String {
         val fingerprint = Build.FINGERPRINT?.trim().orEmpty()
@@ -22,9 +34,14 @@ object LocalBackendHealth {
 
     fun shouldForceCpu(preferCpu: Boolean): Boolean {
         recoverPendingGpuCrashIfNeeded()
-        return preferCpu ||
+        val forceCpu = preferCpu ||
             KVUtils.getLocalBackendPreference().equals("CPU", ignoreCase = true) ||
-            isCpuSafeModeEnabled()
+            isCpuSafeModeEnabled() ||
+            shouldStartCpuConservatively()
+        if (forceCpu && shouldStartCpuConservatively()) {
+            XLog.w(TAG, "Using conservative CPU-first mode on ${deviceDescriptor()}")
+        }
+        return forceCpu
     }
 
     fun isCpuSafeModeEnabled(): Boolean {
@@ -33,11 +50,18 @@ object LocalBackendHealth {
 
     fun cpuSafeReason(): String = KVUtils.getLocalCpuSafeReason()
 
+    fun hasVerifiedGpuSuccess(): Boolean {
+        return KVUtils.getLocalGpuVerifiedDevice() == currentDeviceKey() &&
+            KVUtils.getLocalGpuVerifiedAt() > 0L
+    }
+
     fun debugStateSummary(): String {
         val pendingDevice = KVUtils.getPendingLocalGpuInitDevice().ifBlank { "-" }
         val pendingModel = KVUtils.getPendingLocalGpuInitModel().ifBlank { "-" }
         val pendingAt = KVUtils.getPendingLocalGpuInitAt()
         val cpuSafeDevice = KVUtils.getLocalCpuSafeDevice().ifBlank { "-" }
+        val gpuVerifiedDevice = KVUtils.getLocalGpuVerifiedDevice().ifBlank { "-" }
+        val gpuVerifiedAt = KVUtils.getLocalGpuVerifiedAt()
         val backendPreference = KVUtils.getLocalBackendPreference().ifBlank { "-" }
         val reason = cpuSafeReason().ifBlank { "-" }
         return buildString {
@@ -51,6 +75,14 @@ object LocalBackendHealth {
             append(backendPreference)
             append(", reason=")
             append(reason)
+            append(", gpuVerified=")
+            append(hasVerifiedGpuSuccess())
+            append(", gpuVerifiedDevice=")
+            append(gpuVerifiedDevice)
+            append(", gpuVerifiedAt=")
+            append(gpuVerifiedAt)
+            append(", conservativeCpu=")
+            append(shouldStartCpuConservatively())
             append(", pendingDevice=")
             append(pendingDevice)
             append(", pendingModel=")
@@ -71,6 +103,10 @@ object LocalBackendHealth {
         }
     }
 
+    fun debugClearGpuVerified() {
+        KVUtils.clearLocalGpuVerified()
+    }
+
     fun debugMarkPendingGpuInit(modelPath: String) {
         markGpuInitStarted(modelPath)
     }
@@ -84,6 +120,13 @@ object LocalBackendHealth {
         enableCpuSafeMode(reason)
         KVUtils.clearPendingLocalGpuInit()
         XLog.w(TAG, "GPU backend marked unsafe for this device: $reason")
+    }
+
+    fun noteGpuInitSuccess(modelPath: String) {
+        KVUtils.setLocalGpuVerifiedDevice(currentDeviceKey())
+        KVUtils.setLocalGpuVerifiedAt(System.currentTimeMillis())
+        KVUtils.clearPendingLocalGpuInit()
+        XLog.i(TAG, "GPU backend verified healthy for ${modelPath.substringAfterLast('/')}")
     }
 
     fun markGpuInitStarted(modelPath: String) {
@@ -129,6 +172,41 @@ object LocalBackendHealth {
         KVUtils.setLocalCpuSafeDevice(currentDeviceKey())
         KVUtils.setLocalCpuSafeReason(reason)
         KVUtils.setLocalBackendPreference("CPU")
+    }
+
+    private fun shouldStartCpuConservatively(): Boolean {
+        val manufacturer = Build.MANUFACTURER?.trim()?.lowercase().orEmpty()
+        val model = Build.MODEL?.trim()?.lowercase().orEmpty()
+        val hardware = Build.HARDWARE?.trim()?.lowercase().orEmpty()
+        return shouldConservativelyForceCpu(
+            manufacturer = manufacturer,
+            model = model,
+            hardware = hardware,
+            hasVerifiedGpuSuccess = hasVerifiedGpuSuccess(),
+            isCpuSafeModeEnabled = isCpuSafeModeEnabled(),
+        )
+    }
+
+    private fun deviceDescriptor(): String {
+        return listOf(Build.MANUFACTURER, Build.MODEL, Build.HARDWARE)
+            .filter { !it.isNullOrBlank() }
+            .joinToString(" / ")
+    }
+
+    internal fun shouldConservativelyForceCpu(
+        manufacturer: String,
+        model: String,
+        hardware: String,
+        hasVerifiedGpuSuccess: Boolean,
+        isCpuSafeModeEnabled: Boolean,
+    ): Boolean {
+        if (hasVerifiedGpuSuccess) return false
+        if (isCpuSafeModeEnabled) return false
+        if (manufacturer in CONSERVATIVE_CPU_MANUFACTURERS) return true
+        if (CONSERVATIVE_CPU_MODELS.any { model.contains(it) }) return true
+        return CONSERVATIVE_CPU_HARDWARE_HINTS.any { hint ->
+            hardware.contains(hint) || model.contains(hint)
+        }
     }
 
     private fun buildReason(prefix: String, modelPath: String, detail: String?): String {

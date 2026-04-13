@@ -3,8 +3,10 @@
 
 package io.agents.pokeclaw.channel
 
+import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.ClawApplication
 import io.agents.pokeclaw.R
+import io.agents.pokeclaw.ServiceBindingState
 import io.agents.pokeclaw.TaskOrchestrator
 import io.agents.pokeclaw.service.ClawAccessibilityService
 import io.agents.pokeclaw.utils.KVUtils
@@ -27,15 +29,25 @@ class ChannelSetup(
         ChannelManager.setOnMessageReceivedListener(object : ChannelManager.OnMessageReceivedListener {
             override fun onMessageReceived(channel: Channel, message: String, messageID: String) {
                 val app = ClawApplication.instance
-                if (!ClawAccessibilityService.isEnabledInSettings(app)) {
-                    // Not enabled at all — tell user to enable, no point waiting
+                val capabilityState = AppCapabilityCoordinator.accessibilityState(app)
+                if (capabilityState == ServiceBindingState.DISABLED) {
                     ChannelManager.sendMessage(channel, "Accessibility service is not enabled. Please enable PokeClaw in Settings > Accessibility.", messageID)
                     ChannelManager.flushMessages(channel)
                     return
                 }
-                if (!ClawAccessibilityService.awaitRunning(3000)) {
-                    // Enabled but not connected after 3s — may need restart
-                    ChannelManager.sendMessage(channel, app.getString(R.string.channel_msg_no_accessibility), messageID)
+                val waitMs = if (capabilityState == ServiceBindingState.CONNECTING) 20_000L else 5_000L
+                if (!ClawAccessibilityService.awaitRunning(waitMs)) {
+                    val error = when (AppCapabilityCoordinator.accessibilityState(app)) {
+                        ServiceBindingState.DISABLED ->
+                            "Accessibility service is not enabled. Please enable PokeClaw in Settings > Accessibility."
+                        ServiceBindingState.CONNECTING ->
+                            "Accessibility is still reconnecting. Please try again in a few seconds."
+                        ServiceBindingState.DEGRADED ->
+                            "Accessibility disconnected. Please re-open PokeClaw or re-enable Accessibility."
+                        ServiceBindingState.READY ->
+                            app.getString(R.string.channel_msg_no_accessibility)
+                    }
+                    ChannelManager.sendMessage(channel, error, messageID)
                     ChannelManager.flushMessages(channel)
                     return
                 }

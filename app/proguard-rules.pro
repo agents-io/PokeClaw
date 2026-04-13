@@ -118,6 +118,17 @@
 -keep class com.tencent.mmkv.** { *; }
 
 # ============================================================
+# LiteRT-LM
+# JNI bridge reflects back into the Java/Kotlin wrapper classes.
+# If R8 obfuscates Engine / Conversation / Message / Contents, native method
+# lookups like nativeCreateConversation can fail with "mid == null".
+# Keep the whole wrapper package stable in release builds.
+# ============================================================
+-keep class com.google.ai.edge.litertlm.** { *; }
+-keep interface com.google.ai.edge.litertlm.** { *; }
+-keepnames class com.google.ai.edge.litertlm.** { *; }
+
+# ============================================================
 # Glide
 # ============================================================
 -keep public class * implements com.bumptech.glide.module.GlideModule

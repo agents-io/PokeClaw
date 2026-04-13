@@ -45,4 +45,43 @@ class LocalBackendHealthTest {
             )
         )
     }
+
+    @Test
+    fun `conservative cpu applies to xiaomi before gpu is verified`() {
+        assertTrue(
+            LocalBackendHealth.shouldConservativelyForceCpu(
+                manufacturer = "xiaomi",
+                model = "xiaomi 15",
+                hardware = "kalama",
+                hasVerifiedGpuSuccess = false,
+                isCpuSafeModeEnabled = false,
+            )
+        )
+    }
+
+    @Test
+    fun `conservative cpu applies to mediatek style hardware before gpu is verified`() {
+        assertTrue(
+            LocalBackendHealth.shouldConservativelyForceCpu(
+                manufacturer = "vivo",
+                model = "vivo y27",
+                hardware = "mt6989",
+                hasVerifiedGpuSuccess = false,
+                isCpuSafeModeEnabled = false,
+            )
+        )
+    }
+
+    @Test
+    fun `conservative cpu does not apply after gpu is verified`() {
+        assertFalse(
+            LocalBackendHealth.shouldConservativelyForceCpu(
+                manufacturer = "xiaomi",
+                model = "xiaomi 15",
+                hardware = "kalama",
+                hasVerifiedGpuSuccess = true,
+                isCpuSafeModeEnabled = false,
+            )
+        )
+    }
 }

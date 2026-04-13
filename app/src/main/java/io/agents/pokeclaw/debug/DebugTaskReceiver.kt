@@ -11,10 +11,13 @@ import io.agents.pokeclaw.agent.llm.LocalBackendHealth
 import io.agents.pokeclaw.agent.llm.ModelConfigRepository
 import io.agents.pokeclaw.service.AutoReplyManager
 import io.agents.pokeclaw.support.DebugReportManager
-import io.agents.pokeclaw.appViewModel
 import io.agents.pokeclaw.tool.ToolRegistry
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
+import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import org.json.JSONObject
 
 /**
@@ -43,6 +46,10 @@ class DebugTaskReceiver : BroadcastReceiver() {
         val supportAction = intent.getStringExtra("support_action")?.trim().orEmpty()
         val simulateMessage = intent.getStringExtra("simulate_message")?.trim().orEmpty()
         val task = intent.getStringExtra("task") ?: "open my camera"
+        breadcrumb(
+            context,
+            "received tool=$directTool backend_action=$backendAction support_action=$supportAction simulate_contact=${intent.getStringExtra("simulate_contact").orEmpty()} simulate_message=$simulateMessage task=$task"
+        )
         if (backendAction.isNotEmpty()) {
             handleLocalBackendDebug(intent, backendAction)
             return
@@ -137,14 +144,18 @@ class DebugTaskReceiver : BroadcastReceiver() {
                 }
 
             XLog.i("DebugTaskReceiver", "Executing debug tool: $toolName params=$params")
+            breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "executeTool start tool=$toolName params=$params")
             val result = ToolRegistry.getInstance().executeTool(toolName, params)
             if (result.isSuccess) {
                 XLog.i("DebugTaskReceiver", "Debug tool success: $toolName -> ${result.data}")
+                breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "executeTool success tool=$toolName data=${result.data}")
             } else {
                 XLog.w("DebugTaskReceiver", "Debug tool failed: $toolName -> ${result.error}")
+                breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "executeTool fail tool=$toolName error=${result.error}")
             }
         } catch (e: Exception) {
             XLog.e("DebugTaskReceiver", "Failed to execute debug tool", e)
+            breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "executeTool exception tool=$toolName error=${e.message}")
         }
     }
 
@@ -160,6 +171,10 @@ class DebugTaskReceiver : BroadcastReceiver() {
             XLog.i(
                 "DebugTaskReceiver",
                 "Simulating incoming message: contact=$contact app=$app ensureTargetEnabled=$ensureTargetEnabled message='$simulateMessage'"
+            )
+            breadcrumb(
+                io.agents.pokeclaw.ClawApplication.instance,
+                "simulateIncomingMessage contact=$contact app=$app ensureTargetEnabled=$ensureTargetEnabled message=$simulateMessage"
             )
             AutoReplyManager.getInstance().debugSimulateIncomingMessage(
                 app,
@@ -177,25 +192,30 @@ class DebugTaskReceiver : BroadcastReceiver() {
             when (action.lowercase()) {
                 "status" -> {
                     XLog.i("DebugTaskReceiver", "Local backend status: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend status ${LocalBackendHealth.debugStateSummary()}")
                 }
                 "force_cpu_safe" -> {
                     val reason = intent.getStringExtra("backend_reason")?.trim().orEmpty().ifEmpty { "debug" }
                     LocalBackendHealth.debugForceCpuSafe(reason)
                     XLog.i("DebugTaskReceiver", "Forced CPU-safe mode: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend force_cpu_safe reason=$reason ${LocalBackendHealth.debugStateSummary()}")
                 }
                 "clear_cpu_safe" -> {
                     LocalBackendHealth.debugClearCpuSafeMode()
                     XLog.i("DebugTaskReceiver", "Cleared CPU-safe mode: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend clear_cpu_safe ${LocalBackendHealth.debugStateSummary()}")
                 }
                 "mark_pending_gpu_init" -> {
                     val modelPath = intent.getStringExtra("backend_model_path")?.trim().orEmpty()
                         .ifEmpty { "/debug/model.litertlm" }
                     LocalBackendHealth.debugMarkPendingGpuInit(modelPath)
                     XLog.i("DebugTaskReceiver", "Marked pending GPU init: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend mark_pending_gpu_init model=$modelPath ${LocalBackendHealth.debugStateSummary()}")
                 }
                 "clear_pending_gpu_init" -> {
                     LocalBackendHealth.debugClearPendingGpuInit()
                     XLog.i("DebugTaskReceiver", "Cleared pending GPU init: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend clear_pending_gpu_init ${LocalBackendHealth.debugStateSummary()}")
                 }
                 "recover_pending_gpu_crash" -> {
                     val recovered = LocalBackendHealth.recoverPendingGpuCrashIfNeeded()
@@ -203,13 +223,16 @@ class DebugTaskReceiver : BroadcastReceiver() {
                         "DebugTaskReceiver",
                         "Recover pending GPU crash recovered=$recovered: ${LocalBackendHealth.debugStateSummary()}"
                     )
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend recover_pending_gpu_crash recovered=$recovered ${LocalBackendHealth.debugStateSummary()}")
                 }
                 else -> {
                     XLog.w("DebugTaskReceiver", "Unknown backend_action=$action")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend unknown action=$action")
                 }
             }
         } catch (e: Exception) {
             XLog.e("DebugTaskReceiver", "Failed backend_action=$action", e)
+            breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend exception action=$action error=${e.message}")
         }
     }
 
@@ -222,13 +245,16 @@ class DebugTaskReceiver : BroadcastReceiver() {
                         "DebugTaskReceiver",
                         "Built debug report: ${output.absolutePath} (${output.length()} bytes)"
                     )
+                    breadcrumb(context, "support build_debug_report path=${output.absolutePath} bytes=${output.length()}")
                 }
                 else -> {
                     XLog.w("DebugTaskReceiver", "Unknown support_action=$action")
+                    breadcrumb(context, "support unknown action=$action")
                 }
             }
         } catch (e: Exception) {
             XLog.e("DebugTaskReceiver", "Failed support_action=$action", e)
+            breadcrumb(context, "support exception action=$action error=${e.message}")
         }
     }
 
@@ -248,5 +274,15 @@ class DebugTaskReceiver : BroadcastReceiver() {
             if (!value.isNullOrBlank()) return value.trim()
         }
         return null
+    }
+
+    private fun breadcrumb(context: Context?, message: String) {
+        if (context == null) return
+        runCatching {
+            val dir = File(context.cacheDir, "debug_reports").apply { mkdirs() }
+            val file = File(dir, "debug-receiver.log")
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS", Locale.US).format(Date())
+            file.appendText("[$timestamp] $message\n")
+        }
     }
 }

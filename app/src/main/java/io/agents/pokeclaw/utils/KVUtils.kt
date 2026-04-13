@@ -258,6 +258,8 @@ object KVUtils {
     private const val KEY_LOCAL_BACKEND_PREFERENCE = "KEY_LOCAL_BACKEND_PREFERENCE"
     private const val KEY_LOCAL_CPU_SAFE_DEVICE = "KEY_LOCAL_CPU_SAFE_DEVICE"
     private const val KEY_LOCAL_CPU_SAFE_REASON = "KEY_LOCAL_CPU_SAFE_REASON"
+    private const val KEY_LOCAL_GPU_VERIFIED_DEVICE = "KEY_LOCAL_GPU_VERIFIED_DEVICE"
+    private const val KEY_LOCAL_GPU_VERIFIED_AT = "KEY_LOCAL_GPU_VERIFIED_AT"
     private const val KEY_PENDING_LOCAL_GPU_INIT_DEVICE = "KEY_PENDING_LOCAL_GPU_INIT_DEVICE"
     private const val KEY_PENDING_LOCAL_GPU_INIT_MODEL = "KEY_PENDING_LOCAL_GPU_INIT_MODEL"
     private const val KEY_PENDING_LOCAL_GPU_INIT_AT = "KEY_PENDING_LOCAL_GPU_INIT_AT"
@@ -284,8 +286,15 @@ object KVUtils {
     fun setLocalCpuSafeDevice(value: String) = putString(KEY_LOCAL_CPU_SAFE_DEVICE, value)
     fun getLocalCpuSafeReason(): String = getString(KEY_LOCAL_CPU_SAFE_REASON, "")
     fun setLocalCpuSafeReason(value: String) = putString(KEY_LOCAL_CPU_SAFE_REASON, value)
+    fun getLocalGpuVerifiedDevice(): String = getString(KEY_LOCAL_GPU_VERIFIED_DEVICE, "")
+    fun setLocalGpuVerifiedDevice(value: String) = putString(KEY_LOCAL_GPU_VERIFIED_DEVICE, value)
+    fun getLocalGpuVerifiedAt(): Long = getLong(KEY_LOCAL_GPU_VERIFIED_AT, 0L)
+    fun setLocalGpuVerifiedAt(value: Long) = putLong(KEY_LOCAL_GPU_VERIFIED_AT, value)
     fun clearLocalCpuSafeMode() {
         remove(KEY_LOCAL_CPU_SAFE_DEVICE, KEY_LOCAL_CPU_SAFE_REASON)
+    }
+    fun clearLocalGpuVerified() {
+        remove(KEY_LOCAL_GPU_VERIFIED_DEVICE, KEY_LOCAL_GPU_VERIFIED_AT)
     }
     fun getPendingLocalGpuInitDevice(): String = getString(KEY_PENDING_LOCAL_GPU_INIT_DEVICE, "")
     fun setPendingLocalGpuInitDevice(value: String) = putString(KEY_PENDING_LOCAL_GPU_INIT_DEVICE, value)
