@@ -42,7 +42,6 @@ class ComposeChatActivity : ComponentActivity() {
 
     // Compose state — observed by ChatScreen
     private val _messages = mutableStateListOf<ChatMessage>()
-    private val _executionEvents = mutableStateListOf<ExecutionEvent>()
     private val _modelStatus = mutableStateOf("No model loaded")
     private val _isLocalModelActive = mutableStateOf(ModelConfigRepository.isLocalActive())
     private val _needsPermission = mutableStateOf(false)
@@ -57,7 +56,6 @@ class ComposeChatActivity : ComponentActivity() {
     private val _sessionTokens = mutableStateOf(0)
     private val _sessionCost = mutableStateOf(0.0)
     private var deferLocalChatBootstrapForAutoTask = false
-    private val executionEventLog by lazy { ExecutionEventLog(_executionEvents) }
 
     private val chatSessionController by lazy {
         ChatSessionController(
@@ -65,7 +63,7 @@ class ComposeChatActivity : ComponentActivity() {
             executor = executor,
             uiState = ChatSessionUiState(
                 messages = _messages,
-                executionEvents = executionEventLog,
+                executionEvents = appViewModel.executionEventStore,
                 modelStatus = _modelStatus,
                 isAwaitingReply = _isAwaitingReply,
                 inputEnabled = _inputEnabled,
@@ -88,7 +86,7 @@ class ComposeChatActivity : ComponentActivity() {
             chatSessionController = chatSessionController,
             uiState = TaskFlowUiState(
                 messages = _messages,
-                executionEvents = executionEventLog,
+                executionEvents = appViewModel.executionEventStore,
                 modelStatus = _modelStatus,
                 isAwaitingReply = _isAwaitingReply,
                 isTaskRunning = _isTaskRunning,
@@ -334,7 +332,7 @@ class ComposeChatActivity : ComponentActivity() {
         val session = conversationStore.startNewConversation(_messages, currentConversationModelName())
         syncSidebar(session.conversations)
         _messages.clear()
-        executionEventLog.clear()
+        appViewModel.executionEventStore.clear()
         _sessionTokens.value = 0
         _sessionCost.value = 0.0
         _isAwaitingReply.value = false
@@ -347,7 +345,7 @@ class ComposeChatActivity : ComponentActivity() {
         syncSidebar(session.conversations)
         _messages.clear()
         _messages.addAll(session.messages)
-        executionEventLog.clear()
+        appViewModel.executionEventStore.clear()
         _isAwaitingReply.value = false
         _isTaskRunning.value = false
         chatSessionController.restoreConversationRuntime(session.conversationId, session.messages)

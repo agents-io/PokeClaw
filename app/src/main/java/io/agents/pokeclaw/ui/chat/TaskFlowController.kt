@@ -14,6 +14,9 @@ import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.snapshots.SnapshotStateList
 import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.AppViewModel
+import io.agents.pokeclaw.ExecutionEventKind
+import io.agents.pokeclaw.ExecutionEventSource
+import io.agents.pokeclaw.ExecutionEventStore
 import io.agents.pokeclaw.ServiceBindingState
 import io.agents.pokeclaw.TaskEvent
 import io.agents.pokeclaw.agent.DirectDeviceDataGuard
@@ -31,7 +34,7 @@ import java.util.concurrent.ExecutorService
 
 data class TaskFlowUiState(
     val messages: SnapshotStateList<ChatMessage>,
-    val executionEvents: ExecutionEventLog,
+    val executionEvents: ExecutionEventStore,
     val modelStatus: MutableState<String>,
     val isAwaitingReply: MutableState<Boolean>,
     val isTaskRunning: MutableState<Boolean>,

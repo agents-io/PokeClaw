@@ -10,6 +10,9 @@ import androidx.compose.runtime.snapshots.SnapshotStateList
 import dev.langchain4j.data.message.AiMessage
 import dev.langchain4j.data.message.SystemMessage
 import dev.langchain4j.data.message.UserMessage
+import io.agents.pokeclaw.ExecutionEventKind
+import io.agents.pokeclaw.ExecutionEventSource
+import io.agents.pokeclaw.ExecutionEventStore
 import io.agents.pokeclaw.agent.ModelPricing
 import io.agents.pokeclaw.agent.llm.LlmClient
 import io.agents.pokeclaw.agent.llm.LlmSessionManager
@@ -27,7 +30,7 @@ import java.util.concurrent.ExecutorService
 
 data class ChatSessionUiState(
     val messages: SnapshotStateList<ChatMessage>,
-    val executionEvents: ExecutionEventLog,
+    val executionEvents: ExecutionEventStore,
     val modelStatus: MutableState<String>,
     val isAwaitingReply: MutableState<Boolean>,
     val inputEnabled: MutableState<Boolean>,

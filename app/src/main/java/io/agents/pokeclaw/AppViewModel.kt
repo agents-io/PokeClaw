@@ -33,6 +33,7 @@ class AppViewModel : ViewModel() {
         agentConfigProvider = { getAgentConfig() },
         onTaskFinished = { /* refresh */ }
     )
+    val executionEventStore = ExecutionEventStore()
 
     private val channelSetup = ChannelSetup(taskOrchestrator = taskOrchestrator)
 

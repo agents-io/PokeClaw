@@ -1,10 +1,10 @@
 // Copyright 2026 PokeClaw (agents.io). All rights reserved.
 // Licensed under the Apache License, Version 2.0.
 
-package io.agents.pokeclaw.ui.chat
+package io.agents.pokeclaw
 
-import androidx.compose.runtime.snapshots.SnapshotStateList
-import io.agents.pokeclaw.TaskEvent
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 
 enum class ExecutionEventSource {
     TASK,
@@ -33,21 +33,22 @@ data class ExecutionEvent(
 )
 
 /**
- * Runtime-only execution event log.
+ * Runtime-only execution event store.
  *
- * This is intentionally separate from chat markdown persistence. Slice 1 keeps
- * chatroom rendering unchanged while giving task/system/monitor activity its
- * own structured truth source.
+ * This sits outside Compose/chat persistence so task/monitor/model/system
+ * activity can grow into a first-class runtime trace without relying on the
+ * chatroom as the only source of truth.
  */
-class ExecutionEventLog(
-    private val events: SnapshotStateList<ExecutionEvent>,
+class ExecutionEventStore(
     private val maxEntries: Int = 300,
 ) {
+    private val _events = MutableStateFlow<List<ExecutionEvent>>(emptyList())
+    val events: StateFlow<List<ExecutionEvent>> = _events
 
-    fun snapshot(): List<ExecutionEvent> = events.toList()
+    fun snapshot(): List<ExecutionEvent> = _events.value
 
     fun clear() {
-        events.clear()
+        _events.value = emptyList()
     }
 
     fun record(
@@ -85,7 +86,8 @@ class ExecutionEventLog(
     }
 
     private fun append(event: ExecutionEvent) {
-        val last = events.lastOrNull()
+        val current = _events.value
+        val last = current.lastOrNull()
         if (last != null &&
             last.source == event.source &&
             last.kind == event.kind &&
@@ -93,10 +95,12 @@ class ExecutionEventLog(
         ) {
             return
         }
-        events.add(event)
-        val overflow = events.size - maxEntries
-        if (overflow > 0) {
-            repeat(overflow) { events.removeAt(0) }
-        }
+
+        val updated = buildList {
+            addAll(current)
+            add(event)
+        }.takeLast(maxEntries)
+
+        _events.value = updated
     }
 }
