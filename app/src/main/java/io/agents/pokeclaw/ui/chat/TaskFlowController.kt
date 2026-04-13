@@ -399,13 +399,20 @@ class TaskFlowController(
         text: String,
         source: ExecutionEventSource = ExecutionEventSource.SYSTEM,
         kind: ExecutionEventKind = ExecutionEventKind.STATUS,
+        persistInHistory: Boolean = false,
     ) {
         uiState.executionEvents.record(
             source = source,
             kind = kind,
             message = text,
         )
-        uiState.messages.add(ChatMessage(ChatMessage.Role.SYSTEM, text))
+        uiState.messages.add(
+            ChatMessage(
+                role = ChatMessage.Role.SYSTEM,
+                content = text,
+                persistInHistory = persistInHistory,
+            )
+        )
     }
 
     private fun openSettings() {

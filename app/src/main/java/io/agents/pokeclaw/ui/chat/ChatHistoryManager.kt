@@ -54,12 +54,13 @@ object ChatHistoryManager {
      * Save a conversation to markdown file.
      */
     fun save(context: Context, conversationId: String, messages: List<ChatMessage>, model: String) {
-        if (messages.isEmpty()) return
+        val persistedMessages = messages.filter { it.persistInHistory }
+        if (persistedMessages.isEmpty()) return
 
         // Generate title from first user message
-        val firstUserMsg = messages.firstOrNull { it.role == ChatMessage.Role.USER }
+        val firstUserMsg = persistedMessages.firstOrNull { it.role == ChatMessage.Role.USER }
         val title = firstUserMsg?.content?.take(50)?.replace(Regex("[^a-zA-Z0-9\\s]"), "")?.trim()?.replace("\\s+".toRegex(), "-")?.lowercase() ?: "untitled"
-        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(messages.first().timestamp))
+        val dateStr = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date(persistedMessages.first().timestamp))
         val fileName = "$dateStr-$title.md"
 
         val file = File(getChatDir(context), fileName)
@@ -69,13 +70,13 @@ object ChatHistoryManager {
         sb.appendLine("---")
         sb.appendLine("id: $conversationId")
         sb.appendLine("title: ${firstUserMsg?.content?.take(80) ?: "Untitled"}")
-        sb.appendLine("created: ${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date(messages.first().timestamp))}")
+        sb.appendLine("created: ${SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date(persistedMessages.first().timestamp))}")
         sb.appendLine("model: $model")
         sb.appendLine("---")
         sb.appendLine()
 
         // Messages
-        messages.forEach { msg ->
+        persistedMessages.forEach { msg ->
             when (msg.role) {
                 ChatMessage.Role.USER -> {
                     sb.appendLine("## User")
@@ -118,10 +119,10 @@ object ChatHistoryManager {
             ChatDatabase(context).indexConversation(
                 id = conversationId,
                 title = firstUserMsg?.content?.take(80) ?: "Untitled",
-                created = messages.first().timestamp,
+                created = persistedMessages.first().timestamp,
                 model = model,
                 filePath = file.absolutePath,
-                messages = messages
+                messages = persistedMessages
             )
         } catch (_: Exception) { /* index failure is non-fatal */ }
     }
