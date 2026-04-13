@@ -11,6 +11,7 @@ object LocalBackendHealth {
 
     private const val TAG = "LocalBackendHealth"
     private const val CRASH_MARKER_MAX_AGE_MS = 1000L * 60L * 60L * 24L * 30L
+    private const val VERIFIED_GPU_CPU_SAFE_RETRY_COOLDOWN_MS = 1000L * 60L * 60L * 24L
     private val CONSERVATIVE_CPU_MANUFACTURERS = setOf("xiaomi", "redmi", "poco")
     private val CONSERVATIVE_CPU_MODELS = listOf(
         "xiaomi 15",
@@ -36,6 +37,7 @@ object LocalBackendHealth {
 
     fun shouldForceCpu(preferCpu: Boolean): Boolean {
         recoverPendingGpuCrashIfNeeded()
+        maybeRearmVerifiedGpu()
         val forceCpu = preferCpu ||
             KVUtils.getLocalBackendPreference().equals("CPU", ignoreCase = true) ||
             isCpuSafeModeEnabled() ||
@@ -66,6 +68,7 @@ object LocalBackendHealth {
         val gpuVerifiedAt = KVUtils.getLocalGpuVerifiedAt()
         val backendPreference = KVUtils.getLocalBackendPreference().ifBlank { "-" }
         val reason = cpuSafeReason().ifBlank { "-" }
+        val cpuSafeAt = KVUtils.getLocalCpuSafeAt()
         return buildString {
             append("device=")
             append(currentDeviceKey())
@@ -77,6 +80,8 @@ object LocalBackendHealth {
             append(backendPreference)
             append(", reason=")
             append(reason)
+            append(", cpuSafeAt=")
+            append(cpuSafeAt)
             append(", gpuVerified=")
             append(hasVerifiedGpuSuccess())
             append(", gpuVerifiedDevice=")
@@ -171,9 +176,33 @@ object LocalBackendHealth {
     }
 
     private fun enableCpuSafeMode(reason: String) {
+        val now = System.currentTimeMillis()
         KVUtils.setLocalCpuSafeDevice(currentDeviceKey())
         KVUtils.setLocalCpuSafeReason(reason)
+        KVUtils.setLocalCpuSafeAt(now)
         KVUtils.setLocalBackendPreference("CPU")
+    }
+
+    private fun maybeRearmVerifiedGpu(nowMs: Long = System.currentTimeMillis()) {
+        if (!shouldRearmVerifiedGpu(
+                isCpuSafeModeEnabled = isCpuSafeModeEnabled(),
+                hasVerifiedGpuSuccess = hasVerifiedGpuSuccess(),
+                hasPendingGpuInitMarker = hasPendingGpuInitMarker(),
+                cpuSafeReason = cpuSafeReason(),
+                cpuSafeAtMs = KVUtils.getLocalCpuSafeAt(),
+                nowMs = nowMs,
+            )) {
+            return
+        }
+
+        XLog.w(
+            TAG,
+            "Re-arming verified GPU backend after stale CPU-safe quarantine on ${deviceDescriptor()}",
+        )
+        KVUtils.clearLocalCpuSafeMode()
+        if (KVUtils.getLocalBackendPreference().equals("CPU", ignoreCase = true)) {
+            KVUtils.setLocalBackendPreference("")
+        }
     }
 
     private fun shouldStartCpuConservatively(): Boolean {
@@ -229,5 +258,22 @@ object LocalBackendHealth {
         return listOf(prefix, modelName, detail?.take(120))
             .filter { !it.isNullOrBlank() }
             .joinToString(": ")
+    }
+
+    internal fun shouldRearmVerifiedGpu(
+        isCpuSafeModeEnabled: Boolean,
+        hasVerifiedGpuSuccess: Boolean,
+        hasPendingGpuInitMarker: Boolean,
+        cpuSafeReason: String,
+        cpuSafeAtMs: Long,
+        nowMs: Long,
+        cooldownMs: Long = VERIFIED_GPU_CPU_SAFE_RETRY_COOLDOWN_MS,
+    ): Boolean {
+        if (!isCpuSafeModeEnabled) return false
+        if (!hasVerifiedGpuSuccess) return false
+        if (hasPendingGpuInitMarker) return false
+        if (!cpuSafeReason.startsWith("gpu_init_crash")) return false
+        if (cpuSafeAtMs <= 0L) return false
+        return nowMs - cpuSafeAtMs >= cooldownMs
     }
 }

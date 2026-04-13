@@ -97,4 +97,52 @@ class LocalBackendHealthTest {
             )
         )
     }
+
+    @Test
+    fun `rearms verified gpu after stale cpu safe quarantine`() {
+        val now = 200_000_000L
+        assertTrue(
+            LocalBackendHealth.shouldRearmVerifiedGpu(
+                isCpuSafeModeEnabled = true,
+                hasVerifiedGpuSuccess = true,
+                hasPendingGpuInitMarker = false,
+                cpuSafeReason = "gpu_init_crash: gemma-4-E4B-it.litertlm: previous GPU engine init died before cleanup",
+                cpuSafeAtMs = now - 90_000_000L,
+                nowMs = now,
+                cooldownMs = 1_000L,
+            )
+        )
+    }
+
+    @Test
+    fun `does not rearm verified gpu during fresh cpu safe quarantine`() {
+        val now = 2_000_000L
+        assertFalse(
+            LocalBackendHealth.shouldRearmVerifiedGpu(
+                isCpuSafeModeEnabled = true,
+                hasVerifiedGpuSuccess = true,
+                hasPendingGpuInitMarker = false,
+                cpuSafeReason = "gpu_init_crash: gemma-4-E4B-it.litertlm: previous GPU engine init died before cleanup",
+                cpuSafeAtMs = now - 500L,
+                nowMs = now,
+                cooldownMs = 1_000L,
+            )
+        )
+    }
+
+    @Test
+    fun `does not rearm verified gpu for non crash cpu safe reason`() {
+        val now = 200_000_000L
+        assertFalse(
+            LocalBackendHealth.shouldRearmVerifiedGpu(
+                isCpuSafeModeEnabled = true,
+                hasVerifiedGpuSuccess = true,
+                hasPendingGpuInitMarker = false,
+                cpuSafeReason = "gpu_failure: gemma-4-E4B-it.litertlm: OpenCL init failed",
+                cpuSafeAtMs = now - 90_000_000L,
+                nowMs = now,
+                cooldownMs = 1_000L,
+            )
+        )
+    }
 }

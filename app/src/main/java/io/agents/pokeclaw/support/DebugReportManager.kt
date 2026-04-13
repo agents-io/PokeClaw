@@ -47,6 +47,16 @@ object DebugReportManager {
         val httpLogs = httpDir.listFiles()?.size ?: 0
         val autoReplyManager = AutoReplyManager.getInstance()
         val monitorTargets = autoReplyManager.monitoredTargets.joinToString(", ") { it.displayLabel }
+        val cpuSafeAt = KVUtils.getLocalCpuSafeAt()
+        val gpuVerifiedAt = KVUtils.getLocalGpuVerifiedAt()
+        val gpuRearmEligible = LocalBackendHealth.shouldRearmVerifiedGpu(
+            isCpuSafeModeEnabled = LocalBackendHealth.isCpuSafeModeEnabled(),
+            hasVerifiedGpuSuccess = LocalBackendHealth.hasVerifiedGpuSuccess(),
+            hasPendingGpuInitMarker = LocalBackendHealth.hasPendingGpuInitMarker(),
+            cpuSafeReason = LocalBackendHealth.cpuSafeReason(),
+            cpuSafeAtMs = cpuSafeAt,
+            nowMs = System.currentTimeMillis(),
+        )
         return buildString {
             appendLine("PokeClaw Debug Report")
             appendLine("Generated: ${Date()}")
@@ -88,8 +98,11 @@ object DebugReportManager {
             appendLine("- Local backend device descriptor: ${LocalBackendHealth.debugDeviceDescriptor()}")
             appendLine("- CPU-safe mode: ${if (LocalBackendHealth.isCpuSafeModeEnabled()) "Enabled" else "Disabled"}")
             appendLine("- CPU-safe reason: ${LocalBackendHealth.cpuSafeReason().ifBlank { "(none)" }}")
+            appendLine("- CPU-safe set at: ${formatEpoch(cpuSafeAt)}")
             appendLine("- Conservative CPU-first suggested: ${if (LocalBackendHealth.isConservativeCpuModeSuggested()) "Yes" else "No"}")
             appendLine("- GPU already verified healthy: ${if (LocalBackendHealth.hasVerifiedGpuSuccess()) "Yes" else "No"}")
+            appendLine("- GPU verified at: ${formatEpoch(gpuVerifiedAt)}")
+            appendLine("- GPU re-arm eligible now: ${if (gpuRearmEligible) "Yes" else "No"}")
             appendLine("- Pending GPU init marker: ${if (LocalBackendHealth.hasPendingGpuInitMarker()) "Present" else "None"}")
             appendLine()
             appendLine("Auto-reply")
