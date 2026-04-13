@@ -26,7 +26,7 @@ class ForegroundService : Service() {
 
     companion object {
         private const val TAG = "ForegroundService"
-        private const val MONITOR_HEALTH_POLL_MS = 10_000L
+        private const val MONITOR_HEALTH_POLL_MS = 5_000L
         const val CHANNEL_ID = "PokeClaw_foreground_channel"
         const val NOTIFICATION_ID = 1001
         private const val EXTRA_TITLE = "extra_title"

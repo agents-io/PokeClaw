@@ -170,6 +170,8 @@ object KVUtils {
     private const val KEY_PENDING_NOTIFICATION_ACCESS_RETURN = "KEY_PENDING_NOTIFICATION_ACCESS_RETURN"
     private const val KEY_PENDING_NOTIFICATION_ACCESS_RETURN_AT = "KEY_PENDING_NOTIFICATION_ACCESS_RETURN_AT"
     private const val KEY_ACCESSIBILITY_LAST_CONNECTED_AT = "KEY_ACCESSIBILITY_LAST_CONNECTED_AT"
+    private const val KEY_ACCESSIBILITY_LAST_HEARTBEAT_AT = "KEY_ACCESSIBILITY_LAST_HEARTBEAT_AT"
+    private const val KEY_ACCESSIBILITY_LAST_INTERRUPTED_AT = "KEY_ACCESSIBILITY_LAST_INTERRUPTED_AT"
     private const val KEY_ACCESSIBILITY_LAST_DISCONNECTED_AT = "KEY_ACCESSIBILITY_LAST_DISCONNECTED_AT"
     private const val KEY_NOTIFICATION_LISTENER_LAST_CONNECTED_AT = "KEY_NOTIFICATION_LISTENER_LAST_CONNECTED_AT"
     private const val KEY_NOTIFICATION_LISTENER_LAST_DISCONNECTED_AT = "KEY_NOTIFICATION_LISTENER_LAST_DISCONNECTED_AT"
@@ -228,11 +230,23 @@ object KVUtils {
         putLong(KEY_ACCESSIBILITY_LAST_CONNECTED_AT, System.currentTimeMillis())
     }
 
+    fun noteAccessibilityHeartbeat() {
+        putLong(KEY_ACCESSIBILITY_LAST_HEARTBEAT_AT, System.currentTimeMillis())
+    }
+
+    fun noteAccessibilityInterrupted() {
+        putLong(KEY_ACCESSIBILITY_LAST_INTERRUPTED_AT, System.currentTimeMillis())
+    }
+
     fun noteAccessibilityDisconnected() {
         putLong(KEY_ACCESSIBILITY_LAST_DISCONNECTED_AT, System.currentTimeMillis())
     }
 
     fun getAccessibilityLastConnectedAt(): Long = getLong(KEY_ACCESSIBILITY_LAST_CONNECTED_AT, 0L)
+
+    fun getAccessibilityLastHeartbeatAt(): Long = getLong(KEY_ACCESSIBILITY_LAST_HEARTBEAT_AT, 0L)
+
+    fun getAccessibilityLastInterruptedAt(): Long = getLong(KEY_ACCESSIBILITY_LAST_INTERRUPTED_AT, 0L)
 
     fun getAccessibilityLastDisconnectedAt(): Long = getLong(KEY_ACCESSIBILITY_LAST_DISCONNECTED_AT, 0L)
 
