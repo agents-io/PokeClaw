@@ -46,6 +46,7 @@ class TaskFlowController(
     private val executor: ExecutorService,
     private val appViewModel: AppViewModel,
     private val chatSessionController: ChatSessionController,
+    private val currentConversationId: () -> String,
     private val uiState: TaskFlowUiState,
     private val onPersistConversation: () -> Unit,
     private val onTaskSettled: (() -> Unit)? = null,
@@ -60,6 +61,11 @@ class TaskFlowController(
     private val pipelineRouter = PipelineRouter(activity)
 
     fun sendTask(text: String) {
+        if (appViewModel.isTaskRunning()) {
+            addSystem("Another task is still running. Stop it first.")
+            return
+        }
+
         if (ModelConfigRepository.snapshot().isLocalActive() && isLikelyMonitorRequest(text)) {
             addUser(text)
             addSystem("Local mode starts monitoring from the Background card. Open Background, choose the app/contact, then tap Start Monitoring.")
@@ -158,11 +164,6 @@ class TaskFlowController(
         val taskId = "task_${System.currentTimeMillis()}"
 
         executor.submit {
-            try {
-                appViewModel.stopTask()
-                Thread.sleep(200)
-            } catch (_: Exception) {
-            }
             chatSessionController.prepareForTaskStart()
 
             activity.runOnUiThread {
@@ -342,7 +343,10 @@ class TaskFlowController(
         onTaskSettled?.invoke()
         Handler(Looper.getMainLooper()).postDelayed({
             try {
-                chatSessionController.loadModelIfReady()
+                chatSessionController.loadModelIfReady(
+                    conversationId = currentConversationId(),
+                    visibleMessages = uiState.messages.toList(),
+                )
             } catch (e: Exception) {
                 XLog.e(TAG, "cleanupAfterTask: loadModel error", e)
             }

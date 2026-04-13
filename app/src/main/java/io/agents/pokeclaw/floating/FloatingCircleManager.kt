@@ -196,6 +196,7 @@ object FloatingCircleManager {
     fun setIdleState() {
         ThreadUtils.runOnUiThread {
             setState(State.IDLE)
+            hide()
         }
     }
 

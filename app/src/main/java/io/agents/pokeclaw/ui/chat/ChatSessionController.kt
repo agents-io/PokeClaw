@@ -332,7 +332,11 @@ class ChatSessionController(
                         onPersistConversation()
                     }
                 } else {
-                    val response = conversation!!.sendMessage(text)
+                    val currentConversation = conversation
+                    if (currentConversation == null || !isModelReady) {
+                        throw IllegalStateException("Local model is still loading. Try again in a moment.")
+                    }
+                    val response = currentConversation.sendMessage(text)
                     val responseText = response?.toString() ?: "(no response)"
                     val inputTokensEst = text.length / 4 + 1
                     val outputTokensEst = responseText.length / 4 + 1

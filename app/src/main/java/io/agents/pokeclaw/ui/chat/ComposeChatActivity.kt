@@ -83,6 +83,7 @@ class ComposeChatActivity : ComponentActivity() {
             executor = executor,
             appViewModel = appViewModel,
             chatSessionController = chatSessionController,
+            currentConversationId = { conversationStore.currentConversationId },
             uiState = TaskFlowUiState(
                 messages = _messages,
                 modelStatus = _modelStatus,

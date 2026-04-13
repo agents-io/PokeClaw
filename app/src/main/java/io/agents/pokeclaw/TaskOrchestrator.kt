@@ -123,6 +123,14 @@ class TaskOrchestrator(
             val current = taskSessionStore.snapshot()
             if (current.messageId == messageID && current.channel == channel) {
                 taskSessionStore.updateTaskText(task)
+            } else {
+                XLog.w(
+                    TAG,
+                    "Rejecting new task while another task is still active: current=${current.messageId}/${current.channel} new=$messageID/$channel"
+                )
+                taskEventCallback?.invoke(TaskEvent.Failed("Another task is still running. Stop it first."))
+                ChannelManager.sendMessage(channel, "Another task is still running. Stop it first.", messageID)
+                return
             }
         }
 

@@ -53,14 +53,6 @@ class ClawApplication : BaseApp() {
                 if (hasConfig) {
                     appViewModelInstance.initAgent()
                     appViewModelInstance.afterInit()
-                } else {
-                    android.util.Log.e("POKECLAW_INIT", "no LLM config, showing floating circle anyway")
-                }
-                // Always show floating circle regardless of LLM config
-                if (android.provider.Settings.canDrawOverlays(instance)) {
-                    android.os.Handler(android.os.Looper.getMainLooper()).post {
-                        appViewModelInstance.showFloatingCircle()
-                    }
                 }
             } catch (e: Exception) {
                 android.util.Log.e("POKECLAW_INIT", "app-async-init CRASHED: ${e.message}", e)

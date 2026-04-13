@@ -102,11 +102,6 @@ class AppViewModel : ViewModel() {
         KeepAliveJobService.cancel(ClawApplication.instance)
         ForegroundService.syncToBackgroundState(ClawApplication.instance)
         ConfigServerManager.autoStartIfNeeded(ClawApplication.instance)
-        if (android.provider.Settings.canDrawOverlays(ClawApplication.instance)) {
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                appViewModelInstance.showFloatingCircle()
-            }
-        }
         channelSetup.setup()
     }
 
