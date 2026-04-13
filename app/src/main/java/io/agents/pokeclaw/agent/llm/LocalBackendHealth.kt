@@ -15,6 +15,8 @@ object LocalBackendHealth {
     private val CONSERVATIVE_CPU_MODELS = listOf(
         "xiaomi 15",
         "mi 15",
+        "galaxy z fold4",
+        "sm-f936",
         "z flip7",
         "sm-f766",
     )
