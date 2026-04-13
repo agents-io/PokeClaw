@@ -113,7 +113,9 @@ public class ClawAccessibilityService extends AccessibilityService {
     public void onServiceConnected() {
         super.onServiceConnected();
         instance = this;
+        KVUtils.INSTANCE.noteAccessibilityConnected();
         XLog.i(TAG, "Accessibility service connected");
+        ForegroundService.Companion.syncToBackgroundState(this);
         maybeReturnToAppAfterPermissionFlow();
     }
 
@@ -134,13 +136,16 @@ public class ClawAccessibilityService extends AccessibilityService {
     @Override
     public void onInterrupt() {
         XLog.w(TAG, "Accessibility service interrupted");
+        ForegroundService.Companion.syncToBackgroundState(this);
     }
 
     @Override
     public void onDestroy() {
         super.onDestroy();
         instance = null;
+        KVUtils.INSTANCE.noteAccessibilityDisconnected();
         XLog.i(TAG, "Accessibility service destroyed");
+        ForegroundService.Companion.syncToBackgroundState(this);
     }
 
     /**

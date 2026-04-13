@@ -4,12 +4,16 @@
 package io.agents.pokeclaw.ui.settings
 
 import android.Manifest
+import android.content.ActivityNotFoundException
+import android.content.Intent
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.FileProvider
+import androidx.core.net.toUri
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -20,15 +24,17 @@ import io.agents.pokeclaw.widget.AlertDialog
 import io.agents.pokeclaw.widget.CommonToolbar
 import io.agents.pokeclaw.widget.MenuGroup
 import io.agents.pokeclaw.widget.MenuItem
-import kotlinx.coroutines.launch
-import android.content.Intent
 import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.AppRequirement
 import io.agents.pokeclaw.appViewModel
-import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.server.ConfigServerManager
 import io.agents.pokeclaw.service.ForegroundService
-import androidx.core.net.toUri
+import io.agents.pokeclaw.support.DebugReportManager
+import io.agents.pokeclaw.utils.KVUtils
+import io.agents.pokeclaw.utils.XLog
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /**
  * Settings screen
@@ -368,6 +374,15 @@ class SettingsActivity : BaseActivity() {
         }
 
         aboutGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_menu_upload,
+            title = "Share Debug Report",
+            onClick = { shareDebugReport() },
+            showDivider = true
+        ).apply {
+            setTrailingText("ZIP logs + state")
+        }
+
+        aboutGroup.addMenuItem(
             leadingIcon = android.R.drawable.ic_menu_share,
             title = "GitHub",
             onClick = {
@@ -387,6 +402,38 @@ class SettingsActivity : BaseActivity() {
             showDivider = false
         ).apply {
             setTrailingText("ithiria894")
+        }
+    }
+
+    private fun shareDebugReport() {
+        lifecycleScope.launch {
+            Toast.makeText(this@SettingsActivity, "Preparing debug report…", Toast.LENGTH_SHORT).show()
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    DebugReportManager.buildReport(this@SettingsActivity)
+                }
+            }.onSuccess { report ->
+                val uri = FileProvider.getUriForFile(
+                    this@SettingsActivity,
+                    "${packageName}.fileprovider",
+                    report
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_SUBJECT, "PokeClaw debug report ${io.agents.pokeclaw.BuildConfig.VERSION_NAME}")
+                    putExtra(Intent.EXTRA_TEXT, "Attach this debug report when reporting a PokeClaw issue.")
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                try {
+                    startActivity(Intent.createChooser(intent, "Share debug report"))
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(this@SettingsActivity, "No app available to share the report", Toast.LENGTH_LONG).show()
+                }
+            }.onFailure { error ->
+                XLog.e("SettingsActivity", "Failed to build debug report", error)
+                Toast.makeText(this@SettingsActivity, "Failed to build debug report", Toast.LENGTH_LONG).show()
+            }
         }
     }
 

@@ -50,7 +50,9 @@ public class ClawNotificationListener extends NotificationListenerService {
     public void onListenerConnected() {
         super.onListenerConnected();
         instance = this;
+        KVUtils.INSTANCE.noteNotificationListenerConnected();
         XLog.i(TAG, "Notification listener connected");
+        ForegroundService.Companion.syncToBackgroundState(this);
         maybeReturnToAppAfterPermissionFlow();
     }
 
@@ -58,7 +60,9 @@ public class ClawNotificationListener extends NotificationListenerService {
     public void onListenerDisconnected() {
         super.onListenerDisconnected();
         instance = null;
+        KVUtils.INSTANCE.noteNotificationListenerDisconnected();
         XLog.i(TAG, "Notification listener disconnected");
+        ForegroundService.Companion.syncToBackgroundState(this);
     }
 
     @Override

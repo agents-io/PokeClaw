@@ -23,6 +23,7 @@ enum class ServiceBindingState {
     DISABLED,
     CONNECTING,
     READY,
+    DEGRADED,
 }
 
 enum class AppRequirement(val label: String) {
@@ -54,6 +55,7 @@ data class AppCapabilitySnapshot(
         get() = when (accessibilityState) {
             ServiceBindingState.READY -> "Enabled"
             ServiceBindingState.CONNECTING -> "Connecting"
+            ServiceBindingState.DEGRADED -> "Disconnected"
             ServiceBindingState.DISABLED -> "Disabled"
         }
 
@@ -61,6 +63,7 @@ data class AppCapabilitySnapshot(
         get() = when (notificationAccessState) {
             ServiceBindingState.READY -> "Connected"
             ServiceBindingState.CONNECTING -> "Connecting"
+            ServiceBindingState.DEGRADED -> "Disconnected"
             ServiceBindingState.DISABLED -> "Disabled"
         }
 
@@ -69,6 +72,7 @@ data class AppCapabilitySnapshot(
 }
 
 object AppCapabilityCoordinator {
+    private const val SERVICE_REBIND_GRACE_MS = 15_000L
 
     fun snapshot(context: Context): AppCapabilitySnapshot {
         return AppCapabilitySnapshot(
@@ -83,21 +87,45 @@ object AppCapabilityCoordinator {
     }
 
     fun accessibilityState(context: Context): ServiceBindingState {
-        val enabled = ClawAccessibilityService.isEnabledInSettings(context)
-        return when {
-            !enabled -> ServiceBindingState.DISABLED
-            ClawAccessibilityService.isRunning() -> ServiceBindingState.READY
-            else -> ServiceBindingState.CONNECTING
-        }
+        return bindingState(
+            enabled = ClawAccessibilityService.isEnabledInSettings(context),
+            running = ClawAccessibilityService.isRunning(),
+            pendingRepair = KVUtils.hasPendingAccessibilityReturn(),
+            lastConnectedAt = KVUtils.getAccessibilityLastConnectedAt(),
+            lastDisconnectedAt = KVUtils.getAccessibilityLastDisconnectedAt(),
+        )
     }
 
     fun notificationAccessState(context: Context): ServiceBindingState {
-        val enabled = ClawNotificationListener.isEnabledInSettings(context)
-        return when {
-            !enabled -> ServiceBindingState.DISABLED
-            ClawNotificationListener.isConnected() -> ServiceBindingState.READY
-            else -> ServiceBindingState.CONNECTING
+        return bindingState(
+            enabled = ClawNotificationListener.isEnabledInSettings(context),
+            running = ClawNotificationListener.isConnected(),
+            pendingRepair = KVUtils.hasPendingNotificationAccessReturn(),
+            lastConnectedAt = KVUtils.getNotificationListenerLastConnectedAt(),
+            lastDisconnectedAt = KVUtils.getNotificationListenerLastDisconnectedAt(),
+        )
+    }
+
+    private fun bindingState(
+        enabled: Boolean,
+        running: Boolean,
+        pendingRepair: Boolean,
+        lastConnectedAt: Long,
+        lastDisconnectedAt: Long,
+    ): ServiceBindingState {
+        if (!enabled) return ServiceBindingState.DISABLED
+        if (running) return ServiceBindingState.READY
+        if (pendingRepair) return ServiceBindingState.CONNECTING
+        if (lastConnectedAt <= 0L) return ServiceBindingState.CONNECTING
+
+        val now = System.currentTimeMillis()
+        if (now - lastConnectedAt <= SERVICE_REBIND_GRACE_MS) {
+            return ServiceBindingState.CONNECTING
         }
+        if (lastDisconnectedAt > 0L && lastDisconnectedAt >= lastConnectedAt) {
+            return ServiceBindingState.DEGRADED
+        }
+        return ServiceBindingState.DEGRADED
     }
 
     fun missingMonitorRequirements(context: Context): List<AppRequirement> {

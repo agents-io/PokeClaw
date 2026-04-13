@@ -118,6 +118,23 @@ class TaskFlowController(
                 return
                 }
             }
+            ServiceBindingState.DEGRADED -> {
+                val directTool = DirectDeviceDataGuard.deterministicToolCall(text)
+                if (directTool != null) {
+                    XLog.i(TAG, "sendTask: executing non-interactive direct tool while Accessibility is degraded")
+                    executeDirectToolTask(text, directTool)
+                    return
+                }
+                if (canRunWithoutAccessibility(text)) {
+                    XLog.i(TAG, "sendTask: allowing non-interactive task while Accessibility is degraded")
+                } else {
+                    Toast.makeText(activity, "Accessibility service disconnected. Open Settings and toggle it back on.", Toast.LENGTH_LONG).show()
+                    addSystem("Accessibility service disconnected. Open Settings and toggle it off then on.")
+                    openSettings()
+                    sendTaskRetryCount = 0
+                    return
+                }
+            }
             ServiceBindingState.READY -> Unit
         }
         sendTaskRetryCount = 0

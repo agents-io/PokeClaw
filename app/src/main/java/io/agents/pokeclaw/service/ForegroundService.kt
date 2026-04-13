@@ -12,7 +12,9 @@ import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import androidx.core.content.ContextCompat
+import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.R
+import io.agents.pokeclaw.ServiceBindingState
 import io.agents.pokeclaw.utils.XLog
 
 /**
@@ -29,6 +31,7 @@ class ForegroundService : Service() {
         private const val DEFAULT_TASK_TITLE = "PokeClaw · Task in progress"
         private const val DEFAULT_TASK_TEXT = "Running task..."
         private const val DEFAULT_MONITOR_TITLE = "PokeClaw · Monitoring"
+        private const val DEGRADED_MONITOR_TITLE = "PokeClaw · Monitoring paused"
 
         @Volatile
         private var _isRunning = false
@@ -58,6 +61,29 @@ class ForegroundService : Service() {
             if (!manager.isEnabled || manager.monitoredContacts.isEmpty()) {
                 stop(context)
                 return false
+            }
+            val capabilities = AppCapabilityCoordinator.snapshot(context)
+            if (capabilities.notificationAccessState != ServiceBindingState.READY) {
+                return showNotification(
+                    context,
+                    DEGRADED_MONITOR_TITLE,
+                    if (capabilities.notificationAccessState == ServiceBindingState.CONNECTING) {
+                        "Notification Access reconnecting…"
+                    } else {
+                        "Notification Access disconnected"
+                    }
+                )
+            }
+            if (capabilities.accessibilityState != ServiceBindingState.READY) {
+                return showNotification(
+                    context,
+                    DEGRADED_MONITOR_TITLE,
+                    if (capabilities.accessibilityState == ServiceBindingState.CONNECTING) {
+                        "Accessibility reconnecting…"
+                    } else {
+                        "Accessibility disconnected"
+                    }
+                )
             }
             val contacts = manager.monitoredContacts.toList()
             val text = when (contacts.size) {
