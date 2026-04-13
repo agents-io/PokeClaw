@@ -615,7 +615,7 @@ class ChatSessionController(
         uiState.messages.add(ChatMessage(ChatMessage.Role.USER, text))
     }
 
-    private fun addSystem(text: String) {
+    private fun addSystem(text: String, persistInHistory: Boolean = false) {
         uiState.executionEvents.record(
             source = ExecutionEventSource.MODEL,
             kind = ExecutionEventKind.STATUS,
@@ -625,7 +625,13 @@ class ChatSessionController(
         if (last?.role == ChatMessage.Role.SYSTEM && last.content.equals(text, ignoreCase = true)) {
             return
         }
-        uiState.messages.add(ChatMessage(ChatMessage.Role.SYSTEM, text))
+        uiState.messages.add(
+            ChatMessage(
+                role = ChatMessage.Role.SYSTEM,
+                content = text,
+                persistInHistory = persistInHistory,
+            )
+        )
     }
 
     private fun updateLocalModelStatus(modelPath: String?) {
