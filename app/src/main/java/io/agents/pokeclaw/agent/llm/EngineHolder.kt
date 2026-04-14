@@ -42,14 +42,18 @@ object EngineHolder {
     @JvmOverloads
     fun getOrCreate(modelPath: String, cacheDir: String, backend: Backend = Backend.CPU()): Engine {
         val existing = engine
-        if (existing != null && currentModelPath == modelPath) {
+        val requestedBackendLabel = backendLabel(backend)
+        if (existing != null && currentModelPath == modelPath && currentBackendLabel == requestedBackendLabel) {
             XLog.d(TAG, "getOrCreate: reusing engine for $modelPath (${currentBackendLabel ?: "unknown"})")
             return existing
         }
 
         // Different model or first call — close old engine first
         if (existing != null) {
-            XLog.i(TAG, "getOrCreate: model changed ($currentModelPath -> $modelPath), closing old engine")
+            XLog.i(
+                TAG,
+                "getOrCreate: runtime changed (model=$currentModelPath/${currentBackendLabel ?: "?"} -> $modelPath/$requestedBackendLabel), closing old engine"
+            )
             try {
                 existing.close()
             } catch (e: Exception) {
@@ -59,7 +63,7 @@ object EngineHolder {
             currentModelPath = null
         }
 
-        XLog.i(TAG, "getOrCreate: creating new engine for $modelPath with ${backend.javaClass.simpleName}")
+        XLog.i(TAG, "getOrCreate: creating new engine for $modelPath with $requestedBackendLabel")
         return try {
             val engineConfig = EngineConfig(
                 modelPath = modelPath,
@@ -77,7 +81,7 @@ object EngineHolder {
             }
             engine = newEngine
             currentModelPath = modelPath
-            currentBackendLabel = backendLabel(backend)
+            currentBackendLabel = requestedBackendLabel
             XLog.i(TAG, "getOrCreate: engine ready for $modelPath (${currentBackendLabel})")
             newEngine
         } catch (e: Exception) {

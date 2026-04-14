@@ -278,6 +278,7 @@ object KVUtils {
     private const val KEY_PENDING_LOCAL_GPU_INIT_DEVICE = "KEY_PENDING_LOCAL_GPU_INIT_DEVICE"
     private const val KEY_PENDING_LOCAL_GPU_INIT_MODEL = "KEY_PENDING_LOCAL_GPU_INIT_MODEL"
     private const val KEY_PENDING_LOCAL_GPU_INIT_AT = "KEY_PENDING_LOCAL_GPU_INIT_AT"
+    private const val KEY_PENDING_LOCAL_GPU_INIT_PID = "KEY_PENDING_LOCAL_GPU_INIT_PID"
 
     fun getLlmApiKey(): String = getString(KEY_LLM_API_KEY, "")
     fun setLlmApiKey(value: String) = putString(KEY_LLM_API_KEY, value)
@@ -319,11 +320,14 @@ object KVUtils {
     fun setPendingLocalGpuInitModel(value: String) = putString(KEY_PENDING_LOCAL_GPU_INIT_MODEL, value)
     fun getPendingLocalGpuInitAt(): Long = getLong(KEY_PENDING_LOCAL_GPU_INIT_AT, 0L)
     fun setPendingLocalGpuInitAt(value: Long) = putLong(KEY_PENDING_LOCAL_GPU_INIT_AT, value)
+    fun getPendingLocalGpuInitPid(): Int = getInt(KEY_PENDING_LOCAL_GPU_INIT_PID, 0)
+    fun setPendingLocalGpuInitPid(value: Int) = putInt(KEY_PENDING_LOCAL_GPU_INIT_PID, value)
     fun clearPendingLocalGpuInit() {
         remove(
             KEY_PENDING_LOCAL_GPU_INIT_DEVICE,
             KEY_PENDING_LOCAL_GPU_INIT_MODEL,
             KEY_PENDING_LOCAL_GPU_INIT_AT,
+            KEY_PENDING_LOCAL_GPU_INIT_PID,
         )
     }
 
