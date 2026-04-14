@@ -162,24 +162,16 @@ Every number below comes from repeated trials on a physical Pixel 8 Pro running 
 
 All tasks use zero hardcoded app logic. The model reads the screen, picks tools, and figures out the flow on its own. Multi-language works out of the box, including Cantonese, Mandarin, and misspelled English.
 
-### Local (Gemma 4 E4B, fully on-device) — core tasks
+### Local (Gemma 4 E2B, fully on-device) — verified on CPU and GPU
 
-| Task | Result | Completion time | What happens |
-|---|---:|---:|---|
-| How much battery left? | ✅ | ~3 min | Returns level + charging state + temperature |
-| What WiFi am I on? | ✅ | ~2 min | Returns SSID and connection info |
-| How much storage? | ✅ | ~3.5 min | Returns used/free/total with percentages |
-| Read my notifications | ✅ | ~5 min | Reads live notifications, summarizes them |
-| Clipboard explain | ✅ | ~3 min | Reads real clipboard contents and explains |
-| What apps do I have? | ✅ | ~2 min | Lists installed apps |
-| Is bluetooth on? | ✅ | ~2 min | Returns bluetooth state |
-| What Android version? | ✅ | ~2 min | Returns version info |
-| How hot is my phone? | ✅ | ~3 min | Returns battery temperature |
-| Call Mom | ✅ | ~2 rounds | Dials contact directly |
-| Send hi to Mom on WhatsApp | ✅ | ~2 rounds | Opens WhatsApp, finds contact, types, sends (playbook-assisted) |
-| Turn on dark mode | ✅ | 8 rounds | Navigates to display settings, toggles |
+| Task family | Result | CPU avg (Pixel 8 Pro) | GPU avg (Pixel 8 Pro) | Notes |
+|---|---:|---:|---:|---|
+| Clipboard explain | ✅ | 2m 43s | 2m 11s | Real clipboard read |
+| Notifications summary | ✅ | 2m 49s | 2m 53s | Reads live notifications and summarizes |
+| Battery advice | ✅ | 2m 12s | 2m 53s | Returns level + charging state |
+| Storage + apps cleanup advice | ✅ | 2m 33s | 3m 06s | Harness used to mislabel this as blocked because the answer mentioned the Contacts app |
 
-Local mode runs entirely on the phone CPU. On a Pixel 8 Pro, expect 2-5 minutes for tasks that need the model to think and use tools. Simpler tasks (open app, system keys) are instant. Local is slower than Cloud but private, free, and works offline.
+For the current `local-core` quick-task bundle on a Pixel 8 Pro, Gemma 4 E2B passed `4/4` on both CPU and GPU. Cold-start average time was `2m 34s` on CPU versus `2m 46s` on GPU, so GPU is now **verified and usable** on this device, but it is **not yet a cold-start speed win** for this short task bundle. The value of the recent hardening work is stability and real backend verification, not inflated benchmark theater.
 
 
 

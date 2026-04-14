@@ -4,6 +4,7 @@
 package io.agents.pokeclaw.agent.llm
 
 import android.os.Build
+import android.os.Process
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
 
@@ -63,6 +64,7 @@ object LocalBackendHealth {
         val pendingDevice = KVUtils.getPendingLocalGpuInitDevice().ifBlank { "-" }
         val pendingModel = KVUtils.getPendingLocalGpuInitModel().ifBlank { "-" }
         val pendingAt = KVUtils.getPendingLocalGpuInitAt()
+        val pendingPid = KVUtils.getPendingLocalGpuInitPid()
         val cpuSafeDevice = KVUtils.getLocalCpuSafeDevice().ifBlank { "-" }
         val gpuVerifiedDevice = KVUtils.getLocalGpuVerifiedDevice().ifBlank { "-" }
         val gpuVerifiedAt = KVUtils.getLocalGpuVerifiedAt()
@@ -96,6 +98,8 @@ object LocalBackendHealth {
             append(pendingModel)
             append(", pendingAt=")
             append(pendingAt)
+            append(", pendingPid=")
+            append(pendingPid)
         }
     }
 
@@ -140,6 +144,7 @@ object LocalBackendHealth {
         KVUtils.setPendingLocalGpuInitDevice(currentDeviceKey())
         KVUtils.setPendingLocalGpuInitModel(modelPath)
         KVUtils.setPendingLocalGpuInitAt(System.currentTimeMillis())
+        KVUtils.setPendingLocalGpuInitPid(Process.myPid())
         XLog.i(TAG, "Marked GPU init pending for ${modelPath.substringAfterLast('/')}")
     }
 
@@ -150,7 +155,8 @@ object LocalBackendHealth {
     fun recoverPendingGpuCrashIfNeeded(): Boolean {
         val pendingDevice = KVUtils.getPendingLocalGpuInitDevice()
         val pendingAt = KVUtils.getPendingLocalGpuInitAt()
-        if (!shouldPromotePendingGpuCrash(currentDeviceKey(), pendingDevice, pendingAt, System.currentTimeMillis())) {
+        val pendingPid = KVUtils.getPendingLocalGpuInitPid()
+        if (!shouldPromotePendingGpuCrash(currentDeviceKey(), pendingDevice, pendingAt, pendingPid, System.currentTimeMillis())) {
             return false
         }
 
@@ -166,12 +172,14 @@ object LocalBackendHealth {
         currentDeviceKey: String,
         pendingDeviceKey: String?,
         pendingAtMs: Long,
+        pendingPid: Int,
         nowMs: Long,
         maxAgeMs: Long = CRASH_MARKER_MAX_AGE_MS,
     ): Boolean {
         if (pendingDeviceKey.isNullOrBlank()) return false
         if (pendingDeviceKey != currentDeviceKey) return false
         if (pendingAtMs <= 0L) return false
+        if (pendingPid > 0 && pendingPid == Process.myPid()) return false
         return nowMs - pendingAtMs <= maxAgeMs
     }
 
@@ -233,6 +241,7 @@ object LocalBackendHealth {
             currentDeviceKey = currentDeviceKey(),
             pendingDeviceKey = KVUtils.getPendingLocalGpuInitDevice(),
             pendingAtMs = KVUtils.getPendingLocalGpuInitAt(),
+            pendingPid = KVUtils.getPendingLocalGpuInitPid(),
             nowMs = System.currentTimeMillis(),
         )
     }
