@@ -44,6 +44,12 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
 
     private var gpuFailed = false
 
+    private fun noteGpuInferenceSuccessIfNeeded() {
+        if (EngineHolder.getBackendLabel(config.baseUrl) == "GPU") {
+            LocalBackendHealth.noteGpuInferenceSuccess(config.baseUrl)
+        }
+    }
+
     private fun ensureEngine() {
         val modelPath = config.baseUrl
         val context = ClawApplication.instance
@@ -182,6 +188,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                     XLog.d(TAG, "chat: sendMessage user (${msg.singleText().take(80)}...) sendCount=$sendCount")
                     try {
                         lastResponse = conv.sendMessage(msg.singleText())
+                        noteGpuInferenceSuccessIfNeeded()
                     } catch (e: Exception) {
                         // LiteRT-LM SDK may fail to parse tool calls with standard quotes.
                         // Extract raw model output from error message and parse ourselves.
@@ -192,6 +199,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                             val rawOutput = errorMsg.substringAfter("from response: ").substringBefore("code block:")
                                 .ifEmpty { errorMsg.substringAfter("from response: ") }
                             lastResponse = rawOutput.trim()
+                            noteGpuInferenceSuccessIfNeeded()
                         } else {
                             throw e
                         }
@@ -207,6 +215,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                     XLog.d(TAG, "chat: sendMessage toolResult (${toolResultText.take(80)}...) sendCount=$sendCount")
                     try {
                         lastResponse = conv.sendMessage(toolResultText)
+                        noteGpuInferenceSuccessIfNeeded()
                     } catch (e: Exception) {
                         val errorMsg = e.message ?: ""
                         if (errorMsg.contains("Failed to parse tool calls") && errorMsg.contains("tool_call")) {
@@ -214,6 +223,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                             val rawOutput = errorMsg.substringAfter("from response: ").substringBefore("code block:")
                                 .ifEmpty { errorMsg.substringAfter("from response: ") }
                             lastResponse = rawOutput.trim()
+                            noteGpuInferenceSuccessIfNeeded()
                         } else {
                             throw e
                         }

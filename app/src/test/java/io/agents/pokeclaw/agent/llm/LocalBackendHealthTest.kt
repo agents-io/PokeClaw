@@ -14,6 +14,7 @@ class LocalBackendHealthTest {
                 currentDeviceKey = "device-a",
                 pendingDeviceKey = "device-a",
                 pendingAtMs = now - 5_000L,
+                pendingPid = 0,
                 nowMs = now,
             )
         )
@@ -27,6 +28,7 @@ class LocalBackendHealthTest {
                 currentDeviceKey = "device-a",
                 pendingDeviceKey = "device-b",
                 pendingAtMs = now - 5_000L,
+                pendingPid = 0,
                 nowMs = now,
             )
         )
@@ -40,6 +42,7 @@ class LocalBackendHealthTest {
                 currentDeviceKey = "device-a",
                 pendingDeviceKey = "device-a",
                 pendingAtMs = now - 100_000L,
+                pendingPid = 0,
                 nowMs = now,
                 maxAgeMs = 10_000L,
             )
@@ -53,6 +56,7 @@ class LocalBackendHealthTest {
                 manufacturer = "xiaomi",
                 model = "xiaomi 15",
                 hardware = "kalama",
+                device = "houji",
                 hasVerifiedGpuSuccess = false,
                 isCpuSafeModeEnabled = false,
             )
@@ -66,6 +70,7 @@ class LocalBackendHealthTest {
                 manufacturer = "vivo",
                 model = "vivo y27",
                 hardware = "mt6989",
+                device = "mtk-device",
                 hasVerifiedGpuSuccess = false,
                 isCpuSafeModeEnabled = false,
             )
@@ -79,6 +84,7 @@ class LocalBackendHealthTest {
                 manufacturer = "samsung",
                 model = "sm-f936b",
                 hardware = "qcom",
+                device = "q4q",
                 hasVerifiedGpuSuccess = false,
                 isCpuSafeModeEnabled = false,
             )
@@ -92,7 +98,22 @@ class LocalBackendHealthTest {
                 manufacturer = "xiaomi",
                 model = "xiaomi 15",
                 hardware = "kalama",
+                device = "houji",
                 hasVerifiedGpuSuccess = true,
+                isCpuSafeModeEnabled = false,
+            )
+        )
+    }
+
+    @Test
+    fun `conservative cpu applies to pixel tensor before gpu is verified`() {
+        assertTrue(
+            LocalBackendHealth.shouldConservativelyForceCpu(
+                manufacturer = "google",
+                model = "pixel 8 pro",
+                hardware = "husky",
+                device = "husky",
+                hasVerifiedGpuSuccess = false,
                 isCpuSafeModeEnabled = false,
             )
         )

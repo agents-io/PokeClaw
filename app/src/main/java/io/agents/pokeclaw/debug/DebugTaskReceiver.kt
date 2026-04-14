@@ -205,6 +205,11 @@ class DebugTaskReceiver : BroadcastReceiver() {
                     XLog.i("DebugTaskReceiver", "Cleared CPU-safe mode: ${LocalBackendHealth.debugStateSummary()}")
                     breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend clear_cpu_safe ${LocalBackendHealth.debugStateSummary()}")
                 }
+                "clear_gpu_verified" -> {
+                    LocalBackendHealth.debugClearGpuVerified()
+                    XLog.i("DebugTaskReceiver", "Cleared GPU verified state: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend clear_gpu_verified ${LocalBackendHealth.debugStateSummary()}")
+                }
                 "mark_pending_gpu_init" -> {
                     val modelPath = intent.getStringExtra("backend_model_path")?.trim().orEmpty()
                         .ifEmpty { "/debug/model.litertlm" }

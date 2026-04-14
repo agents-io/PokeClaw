@@ -21,11 +21,14 @@ object LocalBackendHealth {
         "sm-f936",
         "z flip7",
         "sm-f766",
+        "pixel",
     )
     private val CONSERVATIVE_CPU_HARDWARE_HINTS = listOf(
         "mt",
         "mediatek",
         "dimensity",
+        "tensor",
+        "zuma",
     )
 
     fun currentDeviceKey(): String {
@@ -133,11 +136,16 @@ object LocalBackendHealth {
         XLog.w(TAG, "GPU backend marked unsafe for this device: $reason")
     }
 
-    fun noteGpuInitSuccess(modelPath: String) {
+    fun noteGpuEngineInitSuccess(modelPath: String) {
+        KVUtils.clearPendingLocalGpuInit()
+        XLog.i(TAG, "GPU engine initialized for ${modelPath.substringAfterLast('/')}")
+    }
+
+    fun noteGpuInferenceSuccess(modelPath: String) {
         KVUtils.setLocalGpuVerifiedDevice(currentDeviceKey())
         KVUtils.setLocalGpuVerifiedAt(System.currentTimeMillis())
         KVUtils.clearPendingLocalGpuInit()
-        XLog.i(TAG, "GPU backend verified healthy for ${modelPath.substringAfterLast('/')}")
+        XLog.i(TAG, "GPU inference verified healthy for ${modelPath.substringAfterLast('/')}")
     }
 
     fun markGpuInitStarted(modelPath: String) {
@@ -217,10 +225,12 @@ object LocalBackendHealth {
         val manufacturer = Build.MANUFACTURER?.trim()?.lowercase().orEmpty()
         val model = Build.MODEL?.trim()?.lowercase().orEmpty()
         val hardware = Build.HARDWARE?.trim()?.lowercase().orEmpty()
+        val device = Build.DEVICE?.trim()?.lowercase().orEmpty()
         return shouldConservativelyForceCpu(
             manufacturer = manufacturer,
             model = model,
             hardware = hardware,
+            device = device,
             hasVerifiedGpuSuccess = hasVerifiedGpuSuccess(),
             isCpuSafeModeEnabled = isCpuSafeModeEnabled(),
         )
@@ -250,15 +260,20 @@ object LocalBackendHealth {
         manufacturer: String,
         model: String,
         hardware: String,
+        device: String,
         hasVerifiedGpuSuccess: Boolean,
         isCpuSafeModeEnabled: Boolean,
     ): Boolean {
+        // Today our LiteRT-LM path is not inference-stable on Pixel/Tensor:
+        // engine init may pass, but the first sendMessage still falls back with
+        // missing OpenCL. Ignore stale "verified GPU" markers on these devices.
+        if (manufacturer == "google" && model.contains("pixel")) return true
         if (hasVerifiedGpuSuccess) return false
         if (isCpuSafeModeEnabled) return false
         if (manufacturer in CONSERVATIVE_CPU_MANUFACTURERS) return true
         if (CONSERVATIVE_CPU_MODELS.any { model.contains(it) }) return true
         return CONSERVATIVE_CPU_HARDWARE_HINTS.any { hint ->
-            hardware.contains(hint) || model.contains(hint)
+            hardware.contains(hint) || model.contains(hint) || device.contains(hint)
         }
     }
 

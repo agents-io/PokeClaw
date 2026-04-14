@@ -153,6 +153,9 @@ object LocalModelRuntime {
 
         return try {
             val response = lease.conversation.sendMessage(prompt, emptyMap())
+            if (lease.backendLabel == "GPU") {
+                LocalBackendHealth.noteGpuInferenceSuccess(modelPath)
+            }
             LocalSingleShotResult(
                 text = response.contents?.toString()?.trim(),
                 backendLabel = lease.backendLabel,
