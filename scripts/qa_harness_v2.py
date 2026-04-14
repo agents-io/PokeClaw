@@ -307,7 +307,6 @@ def classify_blocked(text: str) -> bool:
         "cannot resolve",
         "can't resolve",
         "could not resolve",
-        "contact",
         "notification access",
         "accessibility service is not running",
         "accessibility service is not enabled",
@@ -449,10 +448,9 @@ def run_trial(
     cloud_model: str,
 ) -> TrialResult:
     force_stop_app()
-    start_app()
-    wait_for_pid(DEFAULT_START_TIMEOUT_SECS)
     wait_for_accessibility_ready(DEFAULT_START_TIMEOUT_SECS)
     configure_backend(mode, repo_root, cloud_model)
+    wait_for_pid(DEFAULT_START_TIMEOUT_SECS)
     logcat_clear()
     explicit_broadcast("--es", "task", task)
 
