@@ -10,7 +10,6 @@
   <a href="https://github.com/agents-io/PokeClaw/stargazers"><img src="https://img.shields.io/github/stars/agents-io/PokeClaw?style=social" alt="Stars" /></a>
   <a href="https://github.com/agents-io/PokeClaw/network/members"><img src="https://img.shields.io/github/forks/agents-io/PokeClaw?style=social" alt="Forks" /></a>
   <img src="https://img.shields.io/badge/Android-9%2B-3DDC84?logo=android&logoColor=white" alt="Android 9+" />
-  <img src="https://img.shields.io/badge/license-Apache%202.0-blue" alt="License" />
   <a href="https://github.com/agents-io/PokeClaw/releases/latest"><img src="https://img.shields.io/github/v/release/agents-io/PokeClaw" alt="Latest Release" /></a>
 </p>
 
@@ -57,13 +56,7 @@ https://github.com/user-attachments/assets/5c2966c5-04e6-4b22-8d66-11915ae62096
 https://github.com/user-attachments/assets/89999dd8-a1be-49ad-9419-60c2b38f6374
 
 
-> **Why is the "hi" demo slow?** That clip was recorded on a CPU-only Android device with no usable GPU or NPU path. Running Gemma 4 E2B on pure CPU takes about 45 seconds to warm up. On stronger phones it is much faster:
-> - **Google Tensor G3/G4** (Pixel 8, Pixel 9)
-> - **Snapdragon 8 Gen 2/3** (Galaxy S24, OnePlus 12)
-> - **Dimensity 9200/9300** (recent MediaTek flagships)
-> - **Snapdragon 7+ Gen 2+** (mid-range with GPU)
->
-> On these devices, warmup drops to seconds. Same model, better hardware.
+> **Why is the "hi" demo slow?** That clip was recorded on a CPU path. Running Gemma 4 E2B on pure CPU takes about 45 seconds to warm up. Hardware acceleration on Android is still device-dependent right now. Some Snapdragon/Adreno phones can run a verified GPU path, while Pixel/Tensor and other devices may still fall back to CPU on the current LiteRT-LM stack.
 
 
 
@@ -160,7 +153,7 @@ Every number below comes from repeated trials on a physical Pixel 8 Pro running 
 | Draft an email saying I'll be late | ✅ **10/10** | 8 | Repeated trials: 100% pass rate |
 | Copy latest email subject and Google it | ✅ **8/10** | 15 | Gmail to Chrome cross-app flow, 80% pass rate |
 
-All tasks use zero hardcoded app logic. The model reads the screen, picks tools, and figures out the flow on its own. Multi-language works out of the box, including Cantonese, Mandarin, and misspelled English.
+These trials were run through the normal task loop on a real phone, not hand-driven demos. Multi-language input works out of the box, including Cantonese, Mandarin, and misspelled English.
 
 ### Local (Gemma 4 E4B, fully on-device) — core tasks
 
@@ -179,7 +172,7 @@ All tasks use zero hardcoded app logic. The model reads the screen, picks tools,
 | Send hi to Mom on WhatsApp | ✅ | ~2 rounds | Opens WhatsApp, finds contact, types, sends (playbook-assisted) |
 | Turn on dark mode | ✅ | 8 rounds | Navigates to display settings, toggles |
 
-Local mode runs entirely on the phone CPU. On a Pixel 8 Pro, expect 2-5 minutes for tasks that need the model to think and use tools. Simpler tasks (open app, system keys) are instant. Local is slower than Cloud but private, free, and works offline.
+On devices without a verified GPU path, Local mode runs on CPU. On a Pixel 8 Pro, expect 2-5 minutes for tasks that need the model to think and use tools. Simpler tasks (open app, system keys) are instant. Local is slower than Cloud but private, free, and works offline.
 
 
 
@@ -204,7 +197,7 @@ The LLM has access to these tools and picks them autonomously:
 | `take_screenshot` | Capture screen |
 | `finish` | Signal task completion |
 
-These tools are generic — they work with any app, any contact, any language. The LLM picks the right tool and fills in the parameters from your request.
+These tools are meant to stay generic. The LLM picks the right tool and fills in the parameters from your request, while the app hardens the brittle parts that tend to break on real OEM devices.
 
 ## Tools + Skills
 
@@ -241,10 +234,10 @@ As on-device models get smarter, more of this can become free-form. Right now, s
 | **Architecture** | arm64 | arm64 |
 | **RAM** | 8 GB | 12 GB+ |
 | **Storage** | 3 GB free (model download) | 5 GB+ |
-| **GPU** | Not required (CPU works) | Tensor G3/G4, Snapdragon 8 Gen 2+, Dimensity 9200+ |
+| **GPU** | Not required (CPU works) | Verified-device only |
 | **Root** | Not required | Not required |
 
-> ⚠️ 8 GB gets you in the door. 12 GB+ is the sweet spot for the built-in Gemma 4 local models, especially if you want smoother multitasking and faster model bring-up.
+> ⚠️ 8 GB gets you in the door. 12 GB+ is the sweet spot for the built-in Gemma 4 local models, especially if you want smoother multitasking and faster model bring-up. Treat CPU as the baseline. GPU acceleration is a bonus path when it is actually verified on your hardware.
 
 ## Quick start
 
@@ -307,6 +300,25 @@ PokeClaw is moving fast, and the roadmap is being shaped directly by real device
 Every star helps more people find the project. Every issue helps shape the next release.
 
 ## Changelog
+
+### v0.6.4 (2026-04-13)
+- **GPU/backend truth is stricter.** PokeClaw no longer treats "engine initialized" as proof that GPU inference actually works. A device is only treated as GPU-verified after a real inference succeeds.
+- **Tensor/Pixel local startup is more honest.** Pixel/Tensor devices now take a safer CPU-first path on the current LiteRT-LM stack instead of pretending the GPU path is healthy and failing later during inference.
+- **Local startup recovery is safer on more devices.** CPU-safe mode, GPU re-arm timing, and backend debug state were tightened so old crash markers do not leave devices stuck in the wrong mode forever.
+
+### v0.6.3 (2026-04-13)
+- **Task/session cleanup is tighter.** Follow-up fixes landed for conversation resets, stale overlay cleanup, and overlapping task rejection after local-task runs.
+- **Accessibility disconnects surface faster.** Monitor and background states now fail fast instead of looking healthy after Accessibility has already dropped.
+- **Debug reporting got better.** Settings → About → Share Debug Report now includes more backend, listener, and monitor state for real-device bug reports.
+
+### v0.6.2 (2026-04-13)
+- **State hardening pass.** Execution trace work started moving runtime noise out of the chat conversation model so task/debug/system events stop polluting persisted chats.
+- **QA harness was rebuilt.** Repeated-trial QA now uses real completion detection and result classification instead of fixed sleeps and optimistic bash loops.
+
+### v0.6.1 (2026-04-13)
+- **Local crash hardening.** Premium phones that used to crash on local model startup now recover more safely instead of repeatedly retrying the same bad backend path.
+- **Auto-reply now fails closed.** If the context-aware reply path breaks, PokeClaw stops instead of sending the same fake canned reply to every message.
+- **WhatsApp contact lookup and text input are stronger.** Contact search no longer gives up after one scroll, and text-entry paths were tightened for real app UIs.
 
 ### v0.6.0 (2026-04-11)
 - **Mainline release hardening.** Cloud and Local chat/task flows were tightened before release instead of shipping more speculative features on top.
