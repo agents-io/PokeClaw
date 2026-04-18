@@ -300,6 +300,13 @@ Every star helps more people find the project. Every issue helps shape the next 
 
 ## Changelog
 
+### v0.6.6 (2026-04-17)
+- **Stable release for the post-`0.6.4` bugfix line.** This ships the fixes that were only sitting in the `0.6.5` debug prerelease, so users no longer need to test a debug cut to get them.
+- **Launcher icon handling is fixed on themed / OEM launchers.** PokeClaw now ships a proper adaptive icon set, including round and monochrome resources, which fixes the mismatched icon treatment reported on Xiaomi launchers.
+- **Local backend health is more truthful.** GPU paths are only treated as healthy after real runtime verification, and stale CPU-safe quarantines can re-arm a previously verified GPU path instead of leaving the device stuck on CPU forever.
+- **Debug reports carry more state for triage.** Monitor and notification-listener connection state now show up in the report, which makes the unresolved device-specific local-runtime bugs easier to diagnose.
+- **Legacy test coverage is back in sync.** `LocalBackendHealthTest` now matches the current crash-marker API again, so the release branch passes its backend-health unit tests instead of failing on stale constructor calls.
+
 ### v0.6.0 (2026-04-11)
 - **Mainline release hardening.** Cloud and Local chat/task flows were tightened before release instead of shipping more speculative features on top.
 - **Cloud task routing is less fragile.** Ordinary chat prompts like `say hi` no longer misroute into send-message behavior, while Cloud task flows still retain their multi-step capability.
