@@ -102,7 +102,7 @@ public class UpdateChecker {
     private static void showUpdateDialog(Activity activity, String version, String url, boolean debugBuild) {
         try {
             StringBuilder message = new StringBuilder()
-                    .append("PokeClaw v")
+                    .append("Saathi v")
                     .append(version)
                     .append(" is available. You are running an older version.\n\n")
                     .append("Would you like to download the update?");

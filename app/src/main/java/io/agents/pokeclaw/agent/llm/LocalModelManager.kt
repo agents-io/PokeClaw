@@ -74,8 +74,8 @@ object LocalModelManager {
         ModelInfo(
             id = "gemma4-e2b",
             displayName = "Gemma 4 E2B — 2.6GB",
-            url = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it.litertlm",
-            fileName = "gemma-4-E2B-it.litertlm",
+            url = "https://huggingface.co/litert-community/gemma-4-E2B-it-litert-lm/resolve/main/gemma-4-E2B-it_qualcomm_qcs8275.litertlm",
+            fileName = "gemma-4-E2B-it_qualcomm_qcs8275.litertlm",
             sizeBytes = 2_580_000_000L,
             minRamGb = 8
         ),
@@ -261,6 +261,8 @@ object LocalModelManager {
                 "gemma4_2b",
                 "gemma-4-2b",
                 "gemma 4 2b",
+                "qualcomm_qcs8275",
+                "qcs8275",
             )
             "gemma4-e4b" -> listOf(
                 "gemma4-e4b",

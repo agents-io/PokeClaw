@@ -1,6 +1,12 @@
 pluginManagement {
     repositories {
-        maven(url = "https://maven.aliyun.com/repository/public")
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+            content {
+                // Tell Gradle NOT to look for Qualcomm packages on Aliyun
+                excludeGroupByRegex("com\\.qualcomm.*")
+            }
+        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -10,22 +16,29 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
-        maven(url = "https://jitpack.io")
+        maven { url = uri("https://jitpack.io") }
     }
 }
+
 plugins {
     id("org.gradle.toolchains.foojay-resolver-convention") version "1.0.0"
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
-        maven(url = "https://maven.aliyun.com/repository/public")
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+            content {
+                // Tell Gradle NOT to look for Qualcomm packages on Aliyun
+                excludeGroupByRegex("com\\.qualcomm.*")
+            }
+        }
         google()
         mavenCentral()
-        maven(url = "https://jitpack.io")
+        maven { url = uri("https://jitpack.io") }
     }
 }
 
 rootProject.name = "PokeClaw"
 include(":app")
- 

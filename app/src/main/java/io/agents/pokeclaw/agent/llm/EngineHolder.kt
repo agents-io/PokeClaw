@@ -3,10 +3,10 @@
 
 package io.agents.pokeclaw.agent.llm
 
-import io.agents.pokeclaw.utils.XLog
 import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Engine
 import com.google.ai.edge.litertlm.EngineConfig
+import io.agents.pokeclaw.utils.XLog
 
 /**
  * Process-wide singleton that keeps a single LiteRT-LM Engine alive across
@@ -27,23 +27,18 @@ object EngineHolder {
     private var currentModelPath: String? = null
     private var currentBackendLabel: String? = null
 
-    private fun backendLabel(backend: Backend): String =
-        if (backend is Backend.CPU) "CPU" else if (backend is Backend.GPU) "GPU" else backend.javaClass.simpleName
-
     /**
      * Return the existing Engine if the model path matches, otherwise close the
      * old one and create a fresh Engine for the new model.
      *
-     * @param modelPath  absolute path to the .task model file
+     * @param modelPath  absolute path to the .litertlm model file
      * @param cacheDir   app's cacheDir.path — passed in so this object stays
      *                   context-free and easier to unit-test
      */
     @Synchronized
-    @JvmOverloads
-    fun getOrCreate(modelPath: String, cacheDir: String, backend: Backend = Backend.CPU()): Engine {
+    fun getOrCreate(modelPath: String, cacheDir: String): Engine {
         val existing = engine
-        val requestedBackendLabel = backendLabel(backend)
-        if (existing != null && currentModelPath == modelPath && currentBackendLabel == requestedBackendLabel) {
+        if (existing != null && currentModelPath == modelPath && currentBackendLabel != null) {
             XLog.d(TAG, "getOrCreate: reusing engine for $modelPath (${currentBackendLabel ?: "unknown"})")
             return existing
         }
@@ -52,7 +47,7 @@ object EngineHolder {
         if (existing != null) {
             XLog.i(
                 TAG,
-                "getOrCreate: runtime changed (model=$currentModelPath/${currentBackendLabel ?: "?"} -> $modelPath/$requestedBackendLabel), closing old engine"
+                "getOrCreate: runtime changed (model=$currentModelPath/${currentBackendLabel ?: "?"} -> $modelPath), closing old engine"
             )
             try {
                 existing.close()
@@ -63,35 +58,35 @@ object EngineHolder {
             currentModelPath = null
         }
 
-        XLog.i(TAG, "getOrCreate: creating new engine for $modelPath with $requestedBackendLabel")
-        return try {
+        XLog.i(TAG, "getOrCreate: creating new engine for $modelPath (GPU backend)")
+
+        // === GPU Backend (Primary) ===
+        try {
             val engineConfig = EngineConfig(
                 modelPath = modelPath,
-                backend = backend,
-                maxNumTokens = 8192,
+                backend = Backend.GPU(),
+                maxNumTokens = 8172,
                 cacheDir = cacheDir
             )
-            if (backend is Backend.GPU) {
-                LocalBackendHealth.markGpuInitStarted(modelPath)
-            }
-            val newEngine = Engine(engineConfig).also { it.initialize() }
-            if (backend is Backend.GPU) {
-                LocalBackendHealth.markGpuInitFinished()
-                LocalBackendHealth.noteGpuInitSuccess(modelPath)
+            val newEngine = Engine(engineConfig)
+            try {
+                newEngine.initialize()
+            } catch (e: Exception) {
+                XLog.e(TAG, "getOrCreate: GPU init failed for $modelPath", e)
+                try {
+                    newEngine.close()
+                } catch (_: Exception) {
+                }
+                throw e
             }
             engine = newEngine
             currentModelPath = modelPath
-            currentBackendLabel = requestedBackendLabel
-            XLog.i(TAG, "getOrCreate: engine ready for $modelPath (${currentBackendLabel})")
-            newEngine
-        } catch (e: Exception) {
-            if (backend is Backend.GPU) {
-                LocalBackendHealth.noteRecoverableGpuFailure(modelPath, e)
-            } else {
-                LocalBackendHealth.markGpuInitFinished()
-            }
-            XLog.e(TAG, "getOrCreate: failed to create engine for $modelPath", e)
-            throw e
+            currentBackendLabel = "GPU"
+            XLog.i(TAG, "getOrCreate: engine ready for $modelPath with GPU backend")
+            return newEngine
+        } catch (gpuError: Exception) {
+            XLog.e(TAG, "getOrCreate: GPU backend init failed for $modelPath", gpuError)
+            throw gpuError
         }
     }
 
@@ -114,9 +109,6 @@ object EngineHolder {
         XLog.i(TAG, "close: done")
     }
 
-    /** Returns true if an engine is live for the given model path. */
-    @Synchronized
-    fun isReady(modelPath: String): Boolean = engine != null && currentModelPath == modelPath
 
     /** Returns the actual backend label of the current shared engine, if any. */
     @Synchronized

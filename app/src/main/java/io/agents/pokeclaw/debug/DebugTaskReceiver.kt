@@ -217,6 +217,16 @@ class DebugTaskReceiver : BroadcastReceiver() {
                     XLog.i("DebugTaskReceiver", "Cleared pending GPU init: ${LocalBackendHealth.debugStateSummary()}")
                     breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend clear_pending_gpu_init ${LocalBackendHealth.debugStateSummary()}")
                 }
+                "force_gpu_retry" -> {
+                    LocalBackendHealth.debugForceGpuRetry()
+                    XLog.i("DebugTaskReceiver", "Forced GPU retry: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend force_gpu_retry ${LocalBackendHealth.debugStateSummary()}")
+                }
+                "force_npu_retry" -> {
+                    LocalBackendHealth.debugForceNpuRetry()
+                    XLog.i("DebugTaskReceiver", "Forced NPU retry: ${LocalBackendHealth.debugStateSummary()}")
+                    breadcrumb(io.agents.pokeclaw.ClawApplication.instance, "backend force_npu_retry ${LocalBackendHealth.debugStateSummary()}")
+                }
                 "recover_pending_gpu_crash" -> {
                     val recovered = LocalBackendHealth.recoverPendingGpuCrashIfNeeded()
                     XLog.i(

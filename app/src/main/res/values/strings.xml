@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">PokeClaw</string>
+    <string name="app_name">Saathi</string>
 
     <!-- Common -->
     <string name="common_confirm">OK</string>
@@ -24,19 +24,19 @@
     <string name="guide_skip">Skip</string>
     <string name="guide_start">Get Started</string>
     <string name="guide_title_accessibility">Accessibility Service</string>
-    <string name="guide_desc_accessibility">Lets PokeClaw read the screen and tap buttons for you. Tap to enable.</string>
+    <string name="guide_desc_accessibility">Lets Saathi read the screen and tap buttons for you. Tap to enable.</string>
     <string name="guide_title_notification">Task Notifications</string>
-    <string name="guide_desc_notification">Lets PokeClaw show progress while a task or monitor is active. Tap to enable.</string>
+    <string name="guide_desc_notification">Lets Saathi show progress while a task or monitor is active. Tap to enable.</string>
     <string name="guide_title_overlay">System Overlay</string>
     <string name="guide_desc_overlay">Shows a floating status panel while tasks run. Tap to enable.</string>
     <string name="guide_title_battery">Battery Whitelist</string>
-    <string name="guide_desc_battery">Prevents the system from killing PokeClaw. Tap to allow.</string>
+    <string name="guide_desc_battery">Prevents the system from killing Saathi. Tap to allow.</string>
     <string name="guide_title_storage">File Access</string>
-    <string name="guide_desc_storage">Lets PokeClaw read and write files on your device. Tap to enable.</string>
+    <string name="guide_desc_storage">Lets Saathi read and write files on your device. Tap to enable.</string>
 
     <!-- Home -->
     <string name="home_need_notification_permission">Notification permission is required</string>
-    <string name="home_enable_accessibility">Please enable PokeClaw Accessibility Service</string>
+    <string name="home_enable_accessibility">Please enable Saathi Accessibility Service</string>
     <string name="home_accessibility_enabled">Accessibility service enabled</string>
     <string name="home_notification_enabled">Task notifications enabled</string>
     <string name="home_overlay_enabled">Overlay permission enabled</string>
@@ -124,9 +124,9 @@
     <string name="floating_task_received">Received: \"%s\"</string>
 
     <!-- Foreground Service Notification -->
-    <string name="notification_channel_name">PokeClaw Status</string>
-    <string name="notification_channel_description">Shows PokeClaw running status and stats</string>
-    <string name="notification_content_title">PokeClaw · Task in progress</string>
+    <string name="notification_channel_name">Saathi Status</string>
+    <string name="notification_channel_description">Shows Saathi running status and stats</string>
+    <string name="notification_content_title">Saathi · Task in progress</string>
     <string name="notification_content_text">Running task...</string>
 
     <!-- Channel Messages -->

@@ -10,9 +10,11 @@ Priority: `P0` = blocks users, fix now. `P1` = next up. `P2` = when we get to it
 
 - [ ] **P0** Release publishing: install stable signing secrets on `agents-io/PokeClaw` so tag-based GitHub releases can ship a signed `release` APK instead of failing closed
 - [ ] **P1** Historical upgrade gap: users on the older public debug signing path still need a one-time uninstall + reinstall because the original public signing key is already lost
+- [ ] **P1** Autonomous `send_message` reliability: when the agent launches WhatsApp from background, OEM chain-launch intercepts / wrong-entry screens can trap `prepareForContactLookup` in reopen/back recovery and fail before contact tap; unify launch handling and harden lookup state transitions
 - [ ] **P2** K3-a: Auto-return fires on every service connect, not just user-initiated permission enable
 - [ ] **P2** B2-a: No auto-return to PokeClaw after task completes in another app (e.g., stuck in YouTube)
 - [ ] **P1** Investigate MediaTek/Samsung local-engine bring-up failures that still report OpenCL/LiteRT engine creation errors on some devices even after GPU→CPU fallback
+- [ ] **P1** Investigate Snapdragon 8s Gen 3 local-runtime performance: Gemma 4 E2B task rounds are taking ~50-60s and often run on CPU path instead of expected LiteRT GPU acceleration; verify backend selection, delegate health state, and model/engine compatibility
 - [ ] **P2** Settings screen: active model row breaks layout when the model name is long; keep the label/value aligned and truncate or wrap cleanly without shoving the left label into a narrow column
 
 ## Features

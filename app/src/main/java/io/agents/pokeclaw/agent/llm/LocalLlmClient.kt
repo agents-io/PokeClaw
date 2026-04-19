@@ -41,8 +41,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
     private var engine: Engine? = null
     private var conversation: com.google.ai.edge.litertlm.Conversation? = null
     private var processedMessageCount = 0
-
-    private var gpuFailed = false
+    private var activeBackendLabel: String = "unknown"
 
     private fun ensureEngine() {
         val modelPath = config.baseUrl
@@ -51,40 +50,18 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
             val shared = LocalModelRuntime.acquireSharedEngine(
                 context = context,
                 modelPath = modelPath,
-                preferCpu = gpuFailed,
+                preferCpu = false,
             ).engine
             if (engine !== shared) {
                 XLog.i(TAG, "ensureEngine: obtained shared engine for $modelPath")
                 engine = shared
             }
+            activeBackendLabel = LocalModelRuntime.currentBackendLabel(modelPath) ?: "unknown"
+            XLog.d(TAG, "ensureEngine: backend=$activeBackendLabel")
         } catch (e: Exception) {
-            if (gpuFailed || !LocalModelRuntime.isGpuBackendFailure(e)) {
-                XLog.e(TAG, "ensureEngine: failed to get engine from shared runtime", e)
-                throw e
-            }
-
-            XLog.w(TAG, "ensureEngine: GPU engine init failed, retrying on CPU: ${e.message}")
-            gpuFailed = true
-            val cpuShared = LocalModelRuntime.forceCpuEngine(context, modelPath).engine
-            if (engine !== cpuShared) {
-                XLog.i(TAG, "ensureEngine: obtained shared CPU engine for $modelPath")
-                engine = cpuShared
-            }
+            XLog.e(TAG, "ensureEngine: failed to get engine from shared runtime", e)
+            throw e
         }
-    }
-
-    /**
-     * Force engine to recreate with CPU backend. Called when GPU inference fails
-     * (e.g. OpenCL library not found).
-     */
-    private fun fallbackToCpu() {
-        XLog.w(TAG, "fallbackToCpu: GPU inference failed, switching to CPU")
-        gpuFailed = true
-        try { conversation?.close() } catch (_: Exception) {}
-        conversation = null
-        processedMessageCount = 0
-        sendCount = 0
-        engine = LocalModelRuntime.forceCpuEngine(ClawApplication.instance, config.baseUrl).engine
     }
 
     /**
@@ -99,13 +76,13 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
         val nativeTools = toolSpecs.mapNotNull { spec ->
             try {
                 val paramsJson = try { GSON.toJson(spec.parameters()) } catch (_: Exception) { "{}" }
-                com.google.ai.edge.litertlm.tool(object : com.google.ai.edge.litertlm.OpenApiTool {
+                tool(object : OpenApiTool {
                     override fun getToolDescriptionJsonString(): String = GSON.toJson(mapOf(
                         "name" to spec.name(),
                         "description" to (spec.description() ?: ""),
                         "parameters" to try { GSON.fromJson(paramsJson, Any::class.java) } catch (_: Exception) { emptyMap<String, Any>() }
                     ))
-                    override fun execute(params: String): String = "{}" // Execution handled by DefaultAgentService
+                    override fun execute(paramsJsonString: String): String = "{}" // Execution handled by DefaultAgentService
                 })
             } catch (e: Exception) {
                 XLog.w(TAG, "Failed to wrap tool: ${spec.name()}", e)
@@ -130,10 +107,12 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
             context = ClawApplication.instance,
             modelPath = config.baseUrl,
             conversationConfig = convConfig,
-            preferCpu = gpuFailed,
+            preferCpu = false,
         )
         engine = lease.engine
         conversation = lease.conversation
+        activeBackendLabel = lease.backendLabel
+        XLog.i(TAG, "createConversation: backend=$activeBackendLabel model=${config.baseUrl}")
         processedMessageCount = 0
     }
 
@@ -143,14 +122,8 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
         return try {
             chatInternal(messages, toolSpecs)
         } catch (e: Exception) {
-            // GPU inference failure (OpenCL not found) — fallback to CPU and retry once
-            if (!gpuFailed && LocalModelRuntime.isGpuBackendFailure(e)) {
-                XLog.w(TAG, "chat: GPU inference failed, retrying with CPU: ${e.message}")
-                fallbackToCpu()
-                chatInternal(messages, toolSpecs)
-            } else {
-                throw e
-            }
+            XLog.e(TAG, "chat: local model execution failed", e)
+            throw e
         }
     }
 
@@ -179,6 +152,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                 is SystemMessage -> { /* handled in createConversation */ }
                 is UserMessage -> {
                     val conv = conversation ?: throw RuntimeException("LiteRT-LM conversation not initialized — engine may have failed to load the model")
+                    XLog.i(TAG, "chat: roundSend type=user backend=$activeBackendLabel sendCount=$sendCount")
                     XLog.d(TAG, "chat: sendMessage user (${msg.singleText().take(80)}...) sendCount=$sendCount")
                     try {
                         lastResponse = conv.sendMessage(msg.singleText())
@@ -204,6 +178,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                     val truncatedResult = msg.text().take(400)
                     val toolResultText = "[Tool ${msg.toolName()} result]: $truncatedResult"
                     val conv = conversation ?: throw RuntimeException("LiteRT-LM conversation not initialized — engine may have failed to load the model")
+                    XLog.i(TAG, "chat: roundSend type=tool_result backend=$activeBackendLabel sendCount=$sendCount tool=${msg.toolName()}")
                     XLog.d(TAG, "chat: sendMessage toolResult (${toolResultText.take(80)}...) sendCount=$sendCount")
                     try {
                         lastResponse = conv.sendMessage(toolResultText)

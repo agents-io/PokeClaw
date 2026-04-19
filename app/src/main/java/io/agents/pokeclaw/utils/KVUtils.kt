@@ -5,6 +5,7 @@ package io.agents.pokeclaw.utils
 
 import android.content.Context
 import com.tencent.mmkv.MMKV
+import io.agents.pokeclaw.utils.XLog
 
 /**
  * MMKV key-value storage utility
@@ -43,6 +44,24 @@ object KVUtils {
     fun init(context: Context) {
         MMKV.initialize(context)
         mmkv = MMKV.defaultMMKV()
+        migrateOldModelPaths()
+    }
+
+    /**
+     * Migrate old model filenames to new Qualcomm-optimized versions.
+     * This handles cases where a user had an older model filename saved
+     * but the device has been updated with the new model file.
+     */
+    private fun migrateOldModelPaths() {
+        val currentPath = getString(KEY_LOCAL_MODEL_PATH, "")
+        if (currentPath.isEmpty()) return
+
+        // Migration: gemma-4-E2B-it.litertlm → gemma-4-E2B-it_qualcomm_qcs8275.litertlm
+        if (currentPath.contains("gemma-4-E2B-it.litertlm")) {
+            val newPath = currentPath.replace("gemma-4-E2B-it.litertlm", "gemma-4-E2B-it_qualcomm_qcs8275.litertlm")
+            putString(KEY_LOCAL_MODEL_PATH, newPath)
+            XLog.i("KVUtils", "Migrated model path: $currentPath → $newPath")
+        }
     }
 
     // ==================== String ====================

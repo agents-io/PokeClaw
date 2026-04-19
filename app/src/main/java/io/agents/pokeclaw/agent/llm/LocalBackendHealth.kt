@@ -39,8 +39,16 @@ object LocalBackendHealth {
     fun shouldForceCpu(preferCpu: Boolean): Boolean {
         recoverPendingGpuCrashIfNeeded()
         maybeRearmVerifiedGpu()
+        val backendPreference = KVUtils.getLocalBackendPreference()
+        if (backendPreference.equals("GPU", ignoreCase = true) ||
+            backendPreference.equals("NPU", ignoreCase = true)
+        ) {
+            XLog.i(TAG, "Accelerator backend override requested ($backendPreference); skipping CPU-safe heuristics")
+            return false
+        }
+
         val forceCpu = preferCpu ||
-            KVUtils.getLocalBackendPreference().equals("CPU", ignoreCase = true) ||
+            backendPreference.equals("CPU", ignoreCase = true) ||
             isCpuSafeModeEnabled() ||
             shouldStartCpuConservatively()
         if (forceCpu && shouldStartCpuConservatively()) {
@@ -116,6 +124,20 @@ object LocalBackendHealth {
 
     fun debugClearGpuVerified() {
         KVUtils.clearLocalGpuVerified()
+    }
+
+    fun debugForceGpuRetry() {
+        KVUtils.clearLocalCpuSafeMode()
+        KVUtils.clearPendingLocalGpuInit()
+        KVUtils.setLocalBackendPreference("GPU")
+        XLog.i(TAG, "Forced GPU retry mode enabled for ${deviceDescriptor()}")
+    }
+
+    fun debugForceNpuRetry() {
+        KVUtils.clearLocalCpuSafeMode()
+        KVUtils.clearPendingLocalGpuInit()
+        KVUtils.setLocalBackendPreference("NPU")
+        XLog.i(TAG, "Forced NPU retry mode enabled for ${deviceDescriptor()}")
     }
 
     fun debugMarkPendingGpuInit(modelPath: String) {
@@ -255,8 +277,14 @@ object LocalBackendHealth {
     ): Boolean {
         if (hasVerifiedGpuSuccess) return false
         if (isCpuSafeModeEnabled) return false
-        if (manufacturer in CONSERVATIVE_CPU_MANUFACTURERS) return true
         if (CONSERVATIVE_CPU_MODELS.any { model.contains(it) }) return true
+        // Do not pin all Xiaomi/Redmi/POCO devices to CPU.
+        // Only enable conservative mode on those manufacturers when hardware hints
+        // indicate known fragile MediaTek/Dimensity stacks.
+        val hasConservativeHardware = CONSERVATIVE_CPU_HARDWARE_HINTS.any { hint ->
+            hardware.contains(hint) || model.contains(hint)
+        }
+        if (manufacturer in CONSERVATIVE_CPU_MANUFACTURERS && hasConservativeHardware) return true
         return CONSERVATIVE_CPU_HARDWARE_HINTS.any { hint ->
             hardware.contains(hint) || model.contains(hint)
         }

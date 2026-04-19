@@ -58,7 +58,7 @@ object DebugReportManager {
             nowMs = System.currentTimeMillis(),
         )
         return buildString {
-            appendLine("PokeClaw Debug Report")
+            appendLine("Saathi Debug Report")
             appendLine("Generated: ${Date()}")
             appendLine()
             appendLine("App")

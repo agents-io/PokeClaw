@@ -94,7 +94,7 @@ adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw \
   --es task 'config:' --es api_key '$OPENAI_API_KEY' --es model_name 'gpt-4.1'"
 
 # Local LLM
-MODEL_PATH="/storage/emulated/0/Android/data/io.agents.pokeclaw/files/models/gemma-4-E2B-it.litertlm"
+MODEL_PATH="/storage/emulated/0/Android/data/io.agents.pokeclaw/files/models/gemma-4-E2B-it_qualcomm_qcs8275.litertlm"
 adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw \
   --es task 'config:' --es provider 'LOCAL' --es base_url '$MODEL_PATH' --es model_name 'gemma4-e2b'"
 ```
@@ -277,6 +277,7 @@ Key OEM differences:
 
 - CPU inference: ~50-60s per round on Pixel 8 Pro
 - GPU may fail ("OpenCL not found") → auto-fallback to CPU
+- AndroidManifest should include optional LiteRT GPU native libraries (`libvndksupport.so`, `libOpenCL.so`) so GPU delegate loading is not blocked by missing declarations
 - LiteRT-LM SDK may crash on tool call parsing → our fallback extracts from error message
 - Force stop loses accessibility service → re-enable after restart
 - Model engine takes ~10s to load on first call
@@ -452,6 +453,9 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 - [ ] **B4-b. Name or phone number send target**: send to a saved contact by name, then by phone-number formatting (`+country`, local digits, or spaced/hyphenated form) → same person is resolved without requiring an exact WhatsApp display name match
 - [ ] **B4-c. Multilingual text actions stay functional**: on a device/app using non-English labels, structure-first actions (for example standard positive dialog buttons and standard send affordances) still work without requiring English-only UI text
 - [ ] **B5. Failed app**: "send hi to Girlfriend on Signal" → Signal not installed → LLM reports can't open app
+- [ ] **B6. Autonomous launch recovery (WhatsApp)**: start from Home (NOT already in a chat) → run "send hi to Girlfriend on WhatsApp" → chain-launch/allow dialog (if present) is handled, contact lookup reaches list without reopen/back oscillation, message is sent
+- [ ] **B6-b. Overlay close does not tap camera/search icons**: when WhatsApp top bar has camera/search and no real close dialog is present → overlay-dismiss logic must NOT tap those icons; flow should continue to list/search readiness checks without opening camera
+- [ ] **B6-c. In-app recovery before global back**: if WhatsApp is active but list not ready, recovery should first try exposing search UI and re-check readiness before using `GLOBAL_ACTION_BACK`; logs should show search-ui recovery when available
 
 ## C. Cloud LLM — Monitor Workflow
 
@@ -474,6 +478,9 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 ## D. Local LLM — Chat
 
 - [ ] **D1. Pure chat**: switch to Local LLM → "hello" → on-device reply in bot bubble
+- [ ] **D1-f. NPU backend selection + fail-fast**: set local backend preference to `NPU` (via debug action) → run a local task/chat turn → logs show attempted NPU init (`backend=NPU`) and either successful NPU run OR explicit error `NPU Initialization Failed - Check QNN dependencies`; there must be no silent GPU/CPU fallback
+- [ ] **D1-f-b. QNN native library extraction**: install the debug APK after enabling legacy JNI packaging and `arm64-v8a` only → verify the APK extracts `libQnnHtp.so`-style libraries into `nativeLibraryDir` on device → launch local model → NPU init reaches the explicit QNN path instead of failing due to compressed native libs
+- [ ] **D1-f-c. Tiered NPU→GPU fallback**: attempt local model chat/task on device with NPU support → logcat shows `Tier 1: NPU → Tier 2: GPU` attempted → successful model response via either NPU or GPU based on driver availability → `backendLabel` in EngineHolder reflects actual tier (`NPU` or `GPU`)
 - [ ] **D2. Chat tab has no task ability**: type "open YouTube" in Chat tab → LLM responds conversationally (doesn't try to control phone)
 
 ## E. Local LLM — Task Mode (v9: unified chat screen)
@@ -576,6 +583,7 @@ Design principle: User perspective. INFO tasks → report actual data. ACTION ta
 - [ ] **M32. Install app**: "install Telegram from Play Store" → Play Store → search → Install
 - [ ] **M33. Copy-paste cross-app**: "copy tracking number from gmail and search it on amazon" → Gmail → copy → Amazon → paste
 - [ ] **M34. Photo to message**: "take a photo and send it to Mom on WhatsApp" → camera → capture → WhatsApp → send
+- [ ] **M34-b. WhatsApp composer settle delay**: open WhatsApp via `send_message` with a long body → logcat shows a brief settle pause before `ACTION_SET_TEXT` → long text is entered without layout hang-ups → message sends successfully
 
 ### Pure Chat (NO phone control)
 - [ ] **M35. Joke**: "tell me a joke" → text response, NO tools called
@@ -844,6 +852,30 @@ Layer 1 broadcast bypasses UI routing. Only Layer 3 catches routing bugs.
 
 Format: `[date] [status] [test-id] description`
 
+### 2026-04-19 — send_message autonomous launch hardening
+
+[2026-04-19] [ISSUE]   B6    User-reported autonomous send path fails more often than in-chat send; likely launch-intercept + recovery oscillation before contact lookup
+[2026-04-19] [FIXED]   B6    `SendMessageTool` now uses `OpenAppTool` chain-launch intercept handling; `prepareForContactLookup` now bounds reopen attempts and prioritizes overlay dismiss before back
+[2026-04-19] [SKIP]    B6    Device E2E not run in this workspace session (no attached ADB runtime)
+[2026-04-19] [ISSUE]   B6-b  On-device logcat shows false overlay-dismiss taps in WhatsApp top bar; camera icon gets tapped repeatedly, and `prepareForContactLookup` never reaches ready=true
+[2026-04-19] [FIXED]   B6-b  Tightened close-candidate scoring: overlay-dismiss now requires explicit close/dismiss semantic signal (id/text/desc), preventing geometry-only top-bar icon taps
+[2026-04-19] [SKIP]    B6-b  Post-fix device E2E pending (need fresh run after installing latest debug APK)
+[2026-04-19] [FIXED]   B6-c  `prepareForContactLookup` now attempts in-app search-action exposure before `GLOBAL_ACTION_BACK`, reducing back/reopen oscillation when WhatsApp is already foreground
+[2026-04-19] [FIXED]   D1-a   Local runtime observability: `LocalLlmClient` now logs backend label (`GPU`/`CPU`) during engine acquisition, conversation creation, and each local send round
+[2026-04-19] [SKIP]    B6-c/D1-a  Post-fix device E2E pending (run after user executes updated APK with fresh logcat capture)
+[2026-04-20] [FIXED]   D1-b  Local backend policy now avoids broad Xiaomi/Redmi/POCO CPU pinning; conservative CPU-first applies only to known fragile model/hardware signals (for example MediaTek/Dimensity hints)
+[2026-04-20] [FIXED]   D1-c  Added debug backend action `force_gpu_retry` to clear CPU-safe/pending markers and set explicit GPU preference for one-shot verification runs
+[2026-04-20] [SKIP]    D1-b/D1-c  On-device verification pending: run backend status + force_gpu_retry + local task and confirm `backend=GPU` logs
+[2026-04-20] [FIXED]   D1-d  LiteRT-LM guide alignment: Android manifest now declares optional GPU native libs (`libvndksupport.so`, `libOpenCL.so`)
+[2026-04-20] [FIXED]   D1-e  LiteRT OpenApiTool override updated to new Kotlin API parameter name `execute(paramsJsonString: String)` (legacy `params` name removed)
+[2026-04-20] [SKIP]    D1-d/D1-e  Device validation pending: verify backend logs and tool-calling behavior unchanged after API-signature/manifest updates
+[2026-04-20] [FIXED]   D1-f  Local runtime backend resolver now forces `Backend.NPU(nativeLibraryDir=context.applicationInfo.nativeLibraryDir)` and throws `IllegalStateException("NPU Initialization Failed - Check QNN dependencies")` instead of silently falling back to GPU/CPU
+[2026-04-20] [FIXED]   D1-g  Removed accelerator CPU fallback paths in local client and chat controller so NPU failures now surface immediately
+[2026-04-20] [FIXED]   M34-b  Added a brief settle delay before WhatsApp composer text injection to reduce layout races on longer messages
+[2026-04-20] [FIXED]   D1-f-c  EngineHolder now implements tiered initialization: Tier 1 (NPU) → Tier 2 (GPU) with proper exception handling and resource cleanup; NPU failure logs a warning and immediately attempts GPU fallback to keep agent functional on devices without QNN drivers
+[2026-04-20] [FIXED]   D1-h  Updated LocalModelManager to point to Qualcomm-optimized model filename (`gemma-4-E2B-it_qualcomm_qcs8275.litertlm`) and added recognition aliases for QCS8275 hardware
+[2026-04-20] [SKIP]    D1-f/D1-f-b/D1-f-c/D1-g/M34-b  On-device verification pending: run `backend_action=force_npu_retry`, then a local task/chat, and confirm either NPU success or GPU fallback with no CPU path; verify extracted QNN libs in `nativeLibraryDir`; run `send_message` with a long WhatsApp body and confirm the settle delay appears in logcat before text injection
+
 ### 2026-04-08 — Initial QA run
 
 ```
@@ -971,184 +1003,21 @@ Format: `[date] [status] [test-id] description`
 | M8-a | ~~Gmail compose loops~~ | Fixed 2026-04-10: explicit email-compose tasks now use a generic compose guard, so task mode no longer short-circuits into draft text or loops; it opens an email app, fills the draft fields, and finishes only after in-app compose work has started | Fixed |
 | M12-a | YouTube Music system dialog | Login/premium dialog blocks music playback task | Low |
 
-### 2026-04-09 — v9 UI Redesign QA
+### Debug Changelog for v0.6.0 (April 12, 2026)
 
-**Changes tested:** ChatScreen.kt v9 redesign — Local/Cloud toggle in toolbar, empty state, Quick Tasks panel, Chat/Task toggle, Monitor dialog, send routing.
+[2026-04-12] [FIX] **Model filename migration** — Added automatic migration in `KVUtils.migrateOldModelPaths()` to convert any stored references from old `gemma-4-E2B-it.litertlm` to new `gemma-4-E2B-it_qualcomm_qcs8275.litertlm` during app init. This handles devices where the file was manually replaced but SharedPreferences still had the old path saved. Blocks "Model file not found" crash on users upgrading from older builds that only knew about the old E2B filename.
+
+**Changes:**
+- `KVUtils.kt` → added `migrateOldModelPaths()` called from `init()`, logs migration via `XLog.i()`
+- `QA_CHECKLIST.md` → updated Local LLM config example to use new Qualcomm filename
+- `LocalModelManager.kt` → already has correct filename (verified E2B-it_qualcomm_qcs8275)
+
+### 2026-04-20 — Branding rename (PokeClaw -> Saathi)
 
 ```
-[2026-04-09] [PASS]    G1    Cloud empty state: icon + "Cloud AI" + hint + 3 prompts + no toggle + correct placeholder
-[2026-04-09] [PASS]    G2    Local empty state: icon + "Local AI" + bold hint + 3 local prompts + toggle visible
-[2026-04-09] [PASS]    G5    Tab switch updates empty state immediately (subtitle, hint, prompts all change)
-[2026-04-09] [PASS]    Q1-1  Cloud→Local tab switch: model switches to Gemma 4 E2B, Chat/Task toggle appears
-[2026-04-09] [PASS]    Q1-2  Local→Cloud tab switch: model switches to gpt-4o-mini, toggle hides
-[2026-04-09] [PASS]    Q2-1  Cloud chat "hello" → "Hello! How can I help you today?" (1 round, 5K tokens)
-[2026-04-09] [PASS]    Q2-2  Cloud task "battery" → "100%, charging, 33.5°C" (2 rounds, get_device_info)
-[2026-04-09] [PASS]    Q4-1  Quick Task tap fills input "How much battery left?" + auto-switches to Task mode
-[2026-04-09] [PASS]    P1-1  Local/Cloud buttons in toolbar, same line as PokeClaw
-[2026-04-09] [PASS]    P1-3  No background container on buttons
-[2026-04-09] [PASS]    P2-5  Cloud mode: no Chat/Task toggle, placeholder "Chat or give a task..."
-[2026-04-09] [PASS]    P3-1  Quick Tasks panel with ▲ chevrons
-[2026-04-09] [PASS]    P3-4  5 quick task items visible by default
-[2026-04-09] [PASS]    P3-9  BACKGROUND section + Monitor card
-[2026-04-09] [PASS]    P3-10 Monitor card → centered dialog with Contact/App/Tone form
-[2026-04-09] [PASS]    P5-1  No TaskSkillsPanel in content area (removed)
-[2026-04-09] [PASS]    Q3-1  Local chat via UI — GPU→CPU fallback triggered, Gemma 4 responded "Hello! How can I help you today?" (11 tokens)
-[2026-04-09] [PASS]    Q5-1  GPU→CPU fallback in sendChat() WORKS — OpenCL fail → engine reset → CPU retry → success
-[2026-04-09] [PASS]    Q5-3  Tab switch mid-conversation — Cloud→Local→Cloud with sends, no crash, correct routing each time
-[2026-04-09] [FIXED]   Q5-1  sendChat() GPU→CPU fallback — added catch block that detects OpenCL/nativeSendMessage error, reloads engine with CPU, retries
-[2026-04-09] [FIXED]   Q5-1b Conversation creation "after 5 retries" — added engine reset on attempt 3 to clear stale task agent conversations
-[2026-04-09] [FIXED]   Q5-2  API key was "test" — reconfigured with real key
-[2026-04-09] [FIXED]   Tab LaunchedEffect override — removed LaunchedEffect sync so tab is user-controlled
-[2026-04-09] [FIXED]   Cloud model memory — saves LAST_CLOUD_MODEL to KVUtils before switching to Local, restores when switching back
-[2026-04-09] [FIXED]   Token counter — only shows for Cloud mode, hidden for Local (on-device = free)
-[2026-04-09] [PASS]    Chat bubble verified — Q3-1 Local Chat: user msg y=417, AI response y=525, model tag "gpt-4.1" visible
-[2026-04-09] [PASS]    R1 notifications triage — 150s, get_notifications → LLM summarized important items
-[2026-04-09] [PASS]    R2 battery advice — 135s, get_device_info(battery) → "do not need to charge"
-[2026-04-09] [PASS]    R3 clipboard explain — 135s, clipboard(get) → LLM described content (restaurant list)
-[2026-04-09] [PASS]    R4 storage analysis — 165s, storage + apps → LLM cross-referenced
-[2026-04-09] [PASS]    R5 notification summary — 150s, get_notifications → grouped by app + urgency
-[2026-04-09] [PASS]    R6 charge advice — 105s, get_device_info(battery) → "100% charging, no need"
-[2026-04-09] [FIXED]   Cloud send accessibility UX — Toast shown first ("Enable Accessibility Service to run tasks"), then navigates to PokeClaw Settings (not Android Settings). User sees all permissions.
-[2026-04-09] [PASS]    Chat bubble E2E — Cloud: user "hello" y=357, AI "Hello! How can I help you today?" y=465, model tag "gpt-4.1" y=538
-[2026-04-09] [PASS]    P2-3  Task mode: placeholder "Describe a phone task..." after tap 🤖 Task
-[2026-04-09] [PASS]    P2-4  Chat mode: placeholder "Chat with local AI..." after tap 💬 Chat
-[2026-04-09] [PASS]    P2-7  Mode switch preserves messages: Chat→Task→Chat, "test123" still visible
-[2026-04-09] [PASS]    P3-3  Quick Tasks collapse/expand: tap handle → collapsed, tap again → expanded
-[2026-04-09] [PASS]    J2    Empty input send: tap send with empty field → nothing sent
-[2026-04-09] [PASS]    Q4-2  Cloud Quick Task E2E: 🦞 Reddit → tap → fills input → send → agent navigated Reddit + searched pokeclaw
-[2026-04-09] [FIXED]   L1-v9 Session restore — onCreate reads CURRENT_CONVERSATION_ID from KVUtils, reloads saved messages. replaceTypingIndicator now calls saveChat() to persist task results immediately. Verified: "Restored 7 messages from conversation chat_1775787808468"
-[2026-04-10] [NOTE]    On this Pixel 8 Pro / Android 16, reinstall cleared Accessibility (`enabled_accessibility_services=null`). Re-enabling via `adb shell settings put secure enabled_accessibility_services io.agents.pokeclaw/io.agents.pokeclaw.service.ClawAccessibilityService` + `accessibility_enabled 1` restored the bound service for QA.
-[2026-04-09] [PASS]    Full E2E WhatsApp: UI type "send hi to Girlfriend on WhatsApp" → agent opened WhatsApp → send_message called → finish("Sent 'hi' to Girlfriend on WhatsApp.") → auto-return 15s → result visible in chatroom
-[2026-04-09] [PASS]    Auto-return verified: agent navigated to WhatsApp, completed task, returned to PokeClaw, user msg + AI result both visible in same session
-[2026-04-09] [PASS]    C1/L3/L4  Monitor start via in-app monitor flow stays in PokeClaw; top bar shows "Monitoring: Rlfriend", no Home press
-[2026-04-09] [PASS]    C3    Tap top monitoring bar → expands to show contact + Stop → tap Stop → AutoReplyManager logs "Auto-reply DISABLED for contacts: []"
-[2026-04-09] [PASS]    K6-a  App Settings → Accessibility Service row opens Android Accessibility page for PokeClaw
-[2026-04-09] [ISSUE]   K2-a  App Settings permission status stale — Accessibility row still shows "Disabled" even when system Accessibility page shows "Use PokeClaw" ON
-[2026-04-09] [ISSUE]   K3-b  Accessibility enable auto-return incomplete — app calls START on SettingsActivity after enable, but system Accessibility SubSettings stays foreground; user is not auto-returned
-[2026-04-10] [FIXED]   K2-a  Accessibility status row now reads system enabled-services state, so app Settings shows the truthful `Enabled`/`Disabled` value
-[2026-04-10] [PASS]    K2-a  App Settings → Accessibility Service row shows `Enabled` immediately after system Accessibility toggle is ON
-[2026-04-10] [FIXED]   K3-b  Pending accessibility auto-return is now armed only when the service is disabled, preventing false triggers while Accessibility is already ON
-[2026-04-10] [PASS]    K3    Disabled Accessibility → tap app Settings row → Android Accessibility → PokeClaw detail → toggle `Use PokeClaw` ON → app auto-returns to PokeClaw Settings and row shows `Enabled`
-[2026-04-10] [FIXED]   Q6-7  Task agent config now syncs on model switch and before startTask, so Cloud tab tasks no longer reuse stale Local agent config
-[2026-04-10] [PASS]    Q2-2/Q6-7  Cloud task "how much battery left" → Agent config updated to `gpt-4.1` → `get_device_info(category=battery)` runs → answer returned in chat with model tag `gpt-4.1-2025-04-14`
-[2026-04-10] [FIXED]   L1-v9  Cloud send-message auto-return now preserves the existing conversation instead of dropping the user into a fresh session
-[2026-04-10] [PASS]    B1/L1/Q7-7  Cloud task "send yo to girlfriend on WhatsApp" → `send_message` opens WhatsApp and succeeds → auto-return keeps user in `ComposeChatActivity` → same conversation still shows prior messages plus new user bubble + result bubble `Sent 'yo' to girlfriend on WhatsApp.`
-[2026-04-10] [FIXED]   A11Y-r1  Accessibility-dependent tools no longer fail immediately during transient service rebinds; they now wait for the enabled service to reconnect before hard-failing
-[2026-04-10] [PASS]    H2/H2-b/H2-c  Models screen keyboard safety: API key, Custom Base URL, and Custom Model Name all stay fully visible when IME opens; focused field scrolls into view
-[2026-04-10] [FIXED]   P1-4/Q1-r1  Chat toolbar tab state now re-syncs to the actual active model after Settings/model changes, preventing Cloud placeholder/quick-tasks from drifting out of sync with a Local model status (and vice versa)
-[2026-04-10] [PASS]    P1-4/P2-1/P2-4/Q1-1/Q6-2  Tap `Local` → model status switches to `● Gemma 4 E2B — 2.6GB · CPU`, local reasoning-first quick tasks render, Chat/Task toggle appears, placeholder becomes `Chat with local AI...`
-[2026-04-10] [PASS]    P1-4/P2-5/Q1-2/Q6-3  Tap `Cloud` → model status switches back to `● gpt-4.1 · Cloud`, cloud-only quick tasks return, Chat/Task toggle hides, placeholder becomes `Chat or give a task...`
-[2026-04-09] [BLOCKED] L5/L5-b  Incoming WhatsApp notification auto-reply while staying in app requires a second sender device / live external message source
-[2026-04-09] [FIXED]   F2-v9 Stop button slow — added Future.cancel(true) to interrupt agent thread + abort HTTP call immediately (was: flag-only, waited for LLM round to finish)
-[2026-04-09] [ISSUE]   F2-v9 Stop → return to same session — after stopping task, should return to the SAME chat session, not open new one
-[2026-04-09] [ISSUE]   L1-v9 Auto-return should preserve session — after task completes in other app and auto-returns to PokeClaw, should show the same conversation with the result, not a fresh session
-[2026-04-10] [PASS]    Q7-2/Q7-3/Q7-4/Q7-6  Cloud quick task "Search YouTube for funny cat fails" → YouTube opens → tap left floating bubble → `Stop task requested from floating pill` logged → task cancelled → auto-return restores same `ComposeChatActivity` session → send button resets to arrow
-[2026-04-10] [PASS]    Q7-5  After floating-stop, second Cloud task "how much battery left" runs normally → no `already running` error → answer returned in same session
-[2026-04-10] [ISSUE]   Q7-local  Local task stop could trigger a native crash / stale-session race: stop during LiteRT `sendMessage()` → chat UI reloads early → `session already exists` and occasional `SIGSEGV`
-[2026-04-10] [FIXED]   Q7-local  Local stop now avoids interrupting LiteRT mid-round; terminal cleanup waits for the task-side client to close, and `TaskOrchestrator` only releases the task after the cancel completion callback arrives
-[2026-04-10] [PASS]    Q7-1b/Q7-3/Q7-4  Local task "how much battery left" → tap Stop → 1s later UI still shows `Task running...` + `Stop` while safe unwind is in progress → app remains on `ComposeChatActivity` → logs show `Task cancelled` → send button resets to arrow
-[2026-04-10] [PASS]    Phase2-r1  TaskSessionStore smoke on Pixel 8 Pro → local quick-task card still fills task input correctly → sending enters `Task running...` + `Stop` with honest `Model busy` chat status → stop request is logged by `TaskOrchestrator` and UI returns to idle placeholder on the same `ComposeChatActivity` shell
-[2026-04-10] [PASS]    Q7-5-local  After local stop, a second local task starts and completes normally — no `already running`, no `session already exists`, no crash
-[2026-04-10] [FIXED]   Dbg-u1  Debug builds now run the same once-per-day GitHub release check as release builds, so accidental debug installs still see upgrade prompts
-[2026-04-10] [BLOCKED] Dbg-u1  Live prompt verification still needs a throwaway device/build that is older than the just-installed `0.5.0`; current handset has already been upgraded, so this turn only covers code inspection + build/install verification, not a fresh old-debug prompt capture
-[2026-04-10] [PASS]    Dbg-u2  Public GitHub `v0.4.1` asset (`PokeClaw_v0.4.0_20260408_140502.apk`) on test device → cold launch after `v0.5.0` release published → `Update Available` modal appears with `PokeClaw v0.5.0 is available. You are running an older version.`
-[2026-04-10] [ISSUE]   Dbg-u3  Public GitHub `v0.4.1` asset cannot be updated in place to public `v0.5.0` asset: `adb install -r ... PokeClaw_v0.5.0_20260410_161430.apk` returns `INSTALL_FAILED_UPDATE_INCOMPATIBLE`; users on the older public debug signing path need a one-time uninstall + reinstall
-[2026-04-10] [FIXED]   Rel-s1  Release signing config now accepts the same `KEYSTORE_*` inputs from environment variables or `local.properties`, so local signed builds and GitHub Actions both follow the same stable-signing path
-[2026-04-10] [NOTE]    Rel-s2  `v0.5.1` is the first version prepared for a stable release key path; the old public `0.4.x` → public `0.5.0` signing mismatch is already shipped and cannot be retro-fixed without the lost original key
-[2026-04-10] [BLOCKED] Rel-s3  Public GitHub Release publication for `v0.5.1` still depends on installing the stable signing secrets into `agents-io/PokeClaw` Actions settings; code path is ready, repo permission path is not
-[2026-04-10] [PASS]    Rel-s4  Local stable-signing verification: generated a dedicated release keystore, `./gradlew :app:validateSigningRelease` passed, and a fresh `./gradlew --no-daemon :app:assembleRelease -x lintVitalRelease -x lintVitalAnalyzeRelease -x lintVitalReportRelease` produced `app/build/outputs/apk/release/PokeClaw_v0.5.1_20260410_111303.apk`
-[2026-04-10] [PASS]    Rel-s5  Local signed release artifact verification: `apksigner verify --print-certs` reports signer `CN=Nicole, OU=PokeClaw, O=agents.io, L=Vancouver, ST=British Columbia, C=CA` with SHA-256 `e000d1d6555b8fab20c03a5d9ddeba83944f26eecf0b978ac7affc2eebd43186`; local `SHA256SUMS.txt` records APK digest `fb7c6a6f4e2536f24bfb8f9ac6e8f7628aec11bf5e1a29b96fc18bb238fcde65`
-[2026-04-10] [PASS]    Rel-s6  Stable-signed `0.5.1` release APK fresh-installed successfully onto the Pixel test device after removing the old debug build; launcher resolves and app starts normally
-[2026-04-10] [PASS]    Rel-s7  Stable-key in-place upgrade path verified locally: with the same release keystore, a higher-version signed build (`POKECLAW_VERSION_CODE=15`, `POKECLAW_VERSION_NAME=0.5.1-upgrade-test`) installed over the stable-signed `0.5.1` baseline via `adb install -r` and Android accepted the upgrade with no signature mismatch
-[2026-04-10] [FIXED]   M1-a  Explicit in-app search tasks now use a generic guard/prompt hint: the agent cannot finish before it really types the query with `input_text`, and blocked finishes feed back a fresh screen-based node hint instead of an app-specific scripted route
-[2026-04-10] [PASS]    M8/M1-a  Cloud task `search youtube for lofi beats` → `open_app` → `input_text(node_id=...)` succeeds → `system_key(enter)` → `get_screen_info` → `finish`; completes in 6 rounds / 46.7K tokens, no budget stop, auto-return restores `ComposeChatActivity`
-[2026-04-10] [PASS]    M8-alt/M1-a  Alternate phrasing `search for lofi beats on youtube` follows the same generic path (`open_app` → `input_text(node_id=...)` → `system_key` → `get_screen_info` → `finish`) and also completes in 6 rounds / 47.5K tokens
-[2026-04-10] [PASS]    M1-control  Non-search control task `how much battery left` remains unaffected by the search guard: `get_device_info(category=battery)` → `finish`; completes in 2 rounds / 10.4K tokens with no `InAppSearchGuard` activity
-[2026-04-10] [FIXED]   M8-a  Explicit email-compose tasks now use a generic `EmailComposeGuard`: the agent can no longer satisfy task-mode email requests with text-only draft output before attempting any in-app compose actions
-[2026-04-10] [PASS]    M8/S8  Cloud task `Write an email saying I will be late today` → `get_installed_apps(mail)` → `open_app(com.google.android.gm)` → `tap_node` compose → `input_text` subject `Running late today` → `input_text` body → `get_screen_info` → `finish`; completes in 8 rounds / 52.2K tokens, auto-returns to `ComposeChatActivity`, and correctly leaves recipient blank because none was provided
-[2026-04-10] [PASS]    M8-control  Control task `how much battery left` remains unaffected by `EmailComposeGuard`: `get_device_info(category=battery)` → `finish`; completes in 2 rounds / 10.4K tokens with no compose-specific interference
-[2026-04-10] [PASS]    LQ1-LQ5  Local reasoning quick-task sweep on Pixel 8 Pro: notifications triage, clipboard explain, storage analysis, notification summary, and battery advice all completed on-device via LiteRT CPU fallback with correct tool routing and no crashes/loops
-[2026-04-10] [PASS]    LQ7-LQ10/LQ12/LQ13  Local deterministic quick-task sweep: installed apps, phone temperature, bluetooth state, battery, storage, and Android version all returned correct device data through `get_installed_apps` / `get_device_info`, with no stale-session or routing regressions
-[2026-04-10] [PASS]    LQ6/LQ11  Contact-specific local quick tasks still route the correct tools (`send_message`, `make_call`) and fail gracefully when `Mom` does not exist on this device; treat literal send/call success as env-blocked coverage, not a product failure
-[2026-04-10] [PASS]    P3-7/P3-8/Q4-1  Local UI quick-task E2E: tap visible `Check my battery and tell me if I need to charge` card → input prefilled → Local task send routes through `provider=LOCAL / gemma4-e2b` → `get_device_info(category=battery)` → response bubble `The battery is at 100% and is charging. You do not need to charge.` appears with local model tag `Gemma 4 E2B — 2.6GB`; input resets to task placeholder `Describe a phone task...`
-[2026-04-10] [FIXED]   QA-r1  `scripts/e2e-quick-tasks.sh` now classifies `onSystemDialogBlocked`, text-only completions with no tool calls, `Task cancelled`, and `Task stopped: budget limit reached ...` correctly; it no longer misreports the YouTube permission dialog as a generic timeout
-[2026-04-10] [FIXED]   Bgt-1  Existing installs could stay pinned to the legacy 100K / $0.50 task budget even after code defaults increased. `TaskBudget` now migrates untouched legacy defaults to 250K / $1.00 once, while preserving user-custom budgets; Settings budget UI now exposes `250K` explicitly and snaps to the nearest current value
-[2026-04-10] [PASS]    S2/M32  Cloud task `Install Telegram from Play Store` → Play Store path completed without budget stop; on this device the agent correctly recognized Telegram was already installed and finished in 10s
-[2026-04-10] [PASS]    S3/M20  Cloud task `Check whats trending on Twitter and tell me` → `open_app(com.twitter.android)` → inspect current feed/trending content → summarize visible topics; completed in 30s with no task-budget stop
-[2026-04-10] [BLOCKED] S1/M1-b  Cloud task `Search YouTube for funny cat fails` is currently blocked by Android's foreground permission controller (`GrantPermissionsActivity`) over YouTube; PokeClaw surfaces this as `system dialog blocked foreground automation` instead of looping or timing out
-[2026-04-10] [PASS]    S5/M33  Cloud task `Copy the latest email subject and Google it` → `get_notifications` → `clipboard(set)` → `open_app(com.android.chrome)` → search in Chrome → screenshot/search-results visible → `finish`; after legacy-budget migration this completed in 15 rounds / 110.2K tokens instead of hard-stopping at the old 100K ceiling
-[2026-04-10] [PASS]    S7/M51  Committed-state rerun `Open Reddit and search for pokeclaw` → `open_app(com.reddit.frontpage)` → `input_text(pokeclaw)` → results visible → `finish`; completed in 12 rounds / 91.9K tokens on the latest hardening branch
-[2026-04-10] [PASS]    Cloud quick-task sweep (effective final) on branch `hardening/behavior-safe-2026-04-09` @ `a0a88ab`: `18 PASS / 0 FAIL / 2 BLOCKED / 0 TIMEOUT / 20 TOTAL`. Blocked items are environment-driven (`S1` YouTube permission dialog, `Call Mom` missing contact). Base sweep log: `/tmp/pokeclaw-cloud-quick-tasks-20260410-full.log`; `S5` was rerun after the budget migration and passed at 110.2K tokens
-[2026-04-10] [PASS]    Phase1-r1  Architecture refactor smoke — relaunch via `SplashActivity` with Cloud config active lands on `ComposeChatActivity` showing `● gpt-4.1 · Cloud` and the unified Cloud placeholder, confirming chat runtime rehydrate still works after `ChatSessionController` extraction
-[2026-04-10] [PASS]    Phase1-r2  Architecture refactor smoke — copied the existing Edge Gallery Gemma model into PokeClaw's sandbox, switched provider to `LOCAL`, relaunched, and confirmed `ComposeChatActivity` rehydrated into Local mode with `Chat with local AI...` plus top status `● gemma4_2b_v09_obfus_fix_all_modalities_thinking · GPU`
-[2026-04-10] [PASS]    Q3-1/Q5-1/Q5-1b/Phase1-r3  Local chat after `ChatSessionController` extraction: UI send produced a real assistant reply (`Hello! How can I help you today?`), GPU inference transparently fell back to CPU, and both the top status pill and assistant model tag updated to `CPU` instead of stale `GPU`
-[2026-04-10] [PASS]    Phase3-r1  Fresh reinstall + app Settings smoke: after `adb install -r`, Android cleared `enabled_accessibility_services`; app Settings now truthfully shows `Accessibility Service = Disabled` instead of stale `Enabled`
-[2026-04-10] [PASS]    Phase3-r2  Rebinding truth smoke: after restoring `enabled_accessibility_services` / `accessibility_enabled` via `adb shell settings put secure ...`, app Settings showed `Accessibility Service = Connecting` while the service was still rebinding, instead of collapsing enabled+unbound into `Disabled`
-[2026-04-10] [PASS]    Phase3-r3  Permission truth smoke: with no PokeClaw listener in `enabled_notification_listeners`, app Settings shows `Notification Access = Disabled`
-[2026-04-10] [FIXED]   K4-r1  Notification-listener foreground return is now gated by a pending permission-flow flag, so listener reconnects no longer blindly foreground app Settings unless the user actually came from the in-app permission flow
-[2026-04-10] [PASS]    Phase4-r1/H4-b  After local-runtime consolidation, cold launch still lands on `ComposeChatActivity` with truthful local status `● gemma4_2b_v09_obfus_fix_all_modalities_thinking · CPU`
-[2026-04-10] [PASS]    Phase4-r2/Q3-1/Q5-1/Q5-1b  Local UI send smoke after runtime consolidation: typed `say pong`, tapped the live send-button bounds, and received assistant reply `Pong! 🏓`; both top status and assistant bubble tag remained `gemma4_2b_v09_obfus_fix_all_modalities_thinking (CPU)`
-[2026-04-10] [PASS]    P7-1/P7-2  Chat bubble metadata smoke: after relaunching `ComposeChatActivity`, user bubbles render a subtle time footer (`5:57 p.m.`) and assistant bubbles render `gemma4_2b_v09_obfus_fix_all_modalities_thinking (CPU) · 5:57 p.m.` under the reply bubble
-[2026-04-10] [PASS]    P7-3/Q7-7  Saved chat history now persists per-message timestamps in markdown via hidden `<!-- pokeclaw:timestamp=... -->` comments, so reloaded conversations keep stable bubble times instead of resetting to the current clock
-[2026-04-10] [PASS]    Phase1b-r1/Q7-7  After `ConversationStore` extraction, cold relaunch still restored `chat_1775851530681` with 9 saved messages; logcat showed `Restored 9 messages from conversation chat_1775851530681`, and the foreground UI still showed the existing `ay pong` / `Hello! How can I help you today?` conversation instead of a blank new chat
-[2026-04-10] [PASS]    Phase2b-r1  After `TaskFlowController` extraction, debug task broadcasts still reached the chat shell (`TaskTriggerReceiver: Received task via broadcast: battery`, `ComposeChatActivity: Auto-task from intent: battery`) and preserved in-app permission guidance by pushing `SettingsActivity` when Accessibility was unavailable
-[2026-04-10] [FIXED]   Android15-coldstart  Cold launch no longer crashes if app-start `ForegroundService` is disallowed; `ForegroundService.start()` now returns `false` and logs a warning instead of throwing `ForegroundServiceStartNotAllowedException` from `ClawApplication.onCreate()`
-[2026-04-10] [PASS]    Phase2c-r1  After `ActiveTaskShellController` extraction, the Compose top bar still rendered `Monitoring: Mom`; expanded state showed `Mom` + `Stop`, and tapping `Stop` disabled auto-reply and removed the monitor
-[2026-04-10] [PASS]    Phase2c-r2  Debug `autoreply on mom` no longer bypasses app behavior: `TaskTriggerReceiver` rewrites it to `monitor mom on WhatsApp`, and on this device the flow foregrounded in-app `SettingsActivity` with no direct `Added contact` log and no ghost `Monitoring:` bar in the dumped UI
-[2026-04-10] [NOTE]    TgMon-r1  Telegram monitor QA now requires an external sender path (second account or bot token + existing bot chat); without that sender, Telegram incoming-message monitor cases must be marked `BLOCKED`
-[2026-04-10] [PASS]    Phase4-r3  Monitor target parser unit bundle passed: `monitor Mom on Telegram`, default WhatsApp when app is omitted, `watch Alex on sms` -> `Messages`, and `monitor Caroline` does not get misparsed as `LINE`
-[2026-04-10] [PASS]    Phase4-r4  Live device dialog smoke: Monitor dialog now shows the supported app list (`WhatsApp`, `Telegram`, `Messages`, `LINE`, `WeChat`) and retained `Telegram` as the selected app in the live screenshot instead of collapsing back to WhatsApp
-[2026-04-10] [PASS]    Phase5-r1  Local runtime consolidation compile gate: `LocalModelRuntime` now owns shared `openConversation(...)` and `runSingleShot(...)`, and `ChatSessionController`, `LocalLlmClient`, `LlmSessionManager.singleShotLocal()`, and `AutoReplyManager.generateReplyLocal()` all compile against the same runtime boundary (`compileDebugKotlin`, `compileDebugJavaWithJavac`, `assembleDebug`)
-[2026-04-10] [BLOCKED] Phase5-r2  Targeted device smoke for the new shared local runtime boundary is blocked by ADB attach state (`adb devices -l` returned no attached devices after the Phase 5 landing). Re-run `H4/H4-b`, `Q3-1`, `Q5-1`, `Q5-1b`, and the local quick-task bundle as soon as the Pixel is visible again instead of treating the missing device as an app regression
-[2026-04-10] [PASS]    Phase5-r3  Local model state consolidation compile gate: `LocalModelManager` now exposes shared device-support, catalog, and active-model state so `LlmConfigActivity` and `ChatSessionController` stop maintaining separate RAM/support/downloaded calculations (`compileDebugKotlin`, `compileDebugJavaWithJavac`)
-[2026-04-10] [PASS]    Phase5-r4  Local model ownership cleanup compile gate: `LocalModelManager.downloadModel()` no longer mutates MMKV selection state directly; chat/settings callers now decide whether a finished download should update the default or active local model (`compileDebugKotlin`, `compileDebugJavaWithJavac`)
-[2026-04-10] [NOTE]    QA-wf-r2  Device-state guard for Compose UI smoke: if notification shade or another app steals foreground, collapse/foreground PokeClaw again before judging the refactor; if IME moves the input bar, re-dump live bounds instead of reusing stale tap coordinates
-[2026-04-10] [PASS]    H2-d  Chat keyboard dismiss smoke passed on Pixel 8 Pro: after focusing the input, tapping the blank header area cleared focus (`focused=true` -> `focused=false`) and hid the IME instead of trapping the keyboard on screen
-[2026-04-10] [PASS]    B4-c  Accessibility text-match hardening compile/unit bundle passed: low-level lookup now keeps Android's fast text path but falls back to a Unicode-normalized tree walk, and standard launch dialogs try stable positive-button ids before language-specific keywords
-[2026-04-10] [PASS]    Phase5-r5  Cloud send smoke passed after send-affordance hardening: `send yo to girlfriend on WhatsApp` ran on `gpt-4.1`, called `send_message(contact=\"girlfriend\", message=\"yo\", app=\"WhatsApp\")`, finished in 2 rounds, and auto-returned with `Task completed: Sent 'yo' to your girlfriend on WhatsApp.`
-[2026-04-10] [PASS]    Phase5-r6  Chat-noise filtering is no longer English-string-bound: conversation-reading heuristics now treat timestamps and centered system labels as layout noise using shared tested rules (`ChatNoiseFilterUtilsTest`, `UiTextMatchUtilsTest`, `ContactMatchUtilsTest`)
-[2026-04-11] [FIXED]   DD-guard-1  Cloud no longer falls back to generic "I cannot access your device" denials for direct phone-data requests when a matching tool exists; the direct-device-data guard now forces a real tool attempt first and blocks text-only completion / premature `finish`
-[2026-04-11] [PASS]    DD1  Cloud task `read my clipboard and explain what it says` → `clipboard(action=get)` → real clipboard content returned and explained; no generic privacy/device-access refusal
-[2026-04-11] [PASS]    DD2  Cloud task `read my notifications and summarize` → `get_notifications()` → summarized live notifications; no false claim that notifications are inaccessible
-[2026-04-11] [PASS]    DD3  Cloud task `how much battery left` → `get_device_info(category=battery)` → answered with real battery/charging/temperature state; no generic limitation disclaimer
-[2026-04-11] [PASS]    DD5  Cloud task `what apps do i have` → `get_installed_apps()` → returned the real installed-app list; no generic chatbot fallback
-[2026-04-11] [PASS]    DD7-unit  Conceptual control `what is an Android clipboard` remains a normal chat-style case in unit coverage; the guard no longer falsely forces a clipboard tool just because the word `clipboard` appears
-[2026-04-11] [FIXED]   Q2-r1  Cloud unified-input send no longer reuses task-running chrome for ordinary chat turns; chat waiting state and true task execution state are tracked separately
-[2026-04-11] [PASS]    Q2-1b/Q6-3/T10  Pixel 8 Pro smoke after switching to `gpt-4.1-mini`: top pill shows `● gpt-4.1-mini · Cloud`, Cloud tab remains selected, placeholder stays `Chat or give a task...`, and no orange `Task running...` bar appears for the chat shell
-[2026-04-11] [PASS]    Q2-1c  Fresh Cloud chat smoke on Pixel 8 Pro: typing `say hi` stayed in ordinary chat, produced a normal `Hello! How can I assist you today?` assistant bubble tagged `gpt-4o-2024-08-06`, and did not launch `Send Message` or reuse any old contact state
-[2026-04-11] [PASS]    Q1-6/Q6-3/T10  Settings round-trip truth smoke: switch to Cloud, open Settings, press Back, and return to the same conversation → logcat reports `Cloud chat ready: gpt-4.1-mini`, top pill still shows `● gpt-4.1-mini · Cloud`, and the chat shell stays on the Cloud placeholder instead of drifting back to Local
-[2026-04-11] [PASS]    H4-d/H4-e/T2/T10  Models page truth smoke on Pixel 8 Pro: page now shows `Active model`, `Default local model`, and `Default cloud model` separately; the linked default Gemma built-in row no longer claims `Not downloaded`
-[2026-04-11] [PASS]    H4-c  Cloud dropdown switch smoke after install: switching to `GPT-4o` leaves a single `Switched to GPT-4o` system line instead of a lower-case + display-name duplicate pair
-[2026-04-11] [PASS]    Q2-4/Q2-4b  Cloud clipboard bridge on Pixel 8 Pro: `read my clipboard and explain what it says` called `clipboard(action=get)` and produced the visible assistant bubble `Your clipboard is currently empty.` in the same chatroom; no generic device-access refusal and no misleading `Clipboard failed` status line remained in the UI
-[2026-04-11] [PASS]    Q8-smoke-cloud  Same Cloud chatroom memory smoke on Pixel 8 Pro: `Remember token plum8492 and reply with only OK.` → `OK` → `What token did I ask you to remember?` → `The token you asked me to remember is "plum8492".` Visible UI and logcat matched
-[2026-04-11] [PASS]    Q8-smoke-local  Same Local chatroom memory smoke on Pixel 8 Pro after local session-restore fix: `Remember token guava9184 and reply with only OK.` → `OK.` → `What token did I ask you to remember?` → `You asked me to remember the token **guava9184**.` Visible UI matched the expected same-chatroom continuity
-[2026-04-11] [PASS]    Q9-1-smoke-cloud  Cloud chat -> task handoff proved on Pixel 8 Pro: in one Cloud chatroom, `Remember token mango4421 and reply with only OK` → `OK`, then `Copy that token to the clipboard` triggered `clipboard(action=set,text=mango4421)`, returned `The token "mango4421" has been successfully copied to your clipboard.`, and a follow-up `Read my clipboard and reply with only the clipboard contents` visibly returned `mango4421`
-[2026-04-11] [FAIL]    Q9-2-smoke-local  Local task still does NOT inherit prior chat context, which is expected, but the vague task UX is not graceful yet: after a Local chat remembered `papaya6614`, switching to Local Task mode and sending `Copy that token to the clipboard` did not overwrite the clipboard (Cloud readback still returned the earlier `mango4421`) but the Local task also failed to produce a clear user-facing "I need the exact content in this task message" result
-[2026-04-11] [PASS]    Q3-r6  Local auto-task session-ownership hardening on Pixel 8 Pro: a foreground `TASK` intent for `How much battery left?` no longer triggers the previous LiteRT `A session already exists` retry/reset crash path; app survives and returns through the normal task shell
-[2026-04-11] [PASS]    Q3-r7  Non-interactive Local task fallback without Accessibility: with Accessibility disabled, `How much battery left?` now bypasses the old Settings redirect, executes `get_device_info(category=battery)` directly, and returns `Battery: 100%, charging, 26.4°C`
-[2026-04-11] [PASS]    RC6-cloud-email-10x  Repeated-trial Cloud compose task stability on Pixel 8 Pro: `Write an email saying I will be late today` completed successfully in **10/10** direct-ADB trials. Each pass stayed on the in-app compose flow and ended with a draft-created `onComplete`, despite occasional stale-node retries during compose-field refresh.
-[2026-04-11] [PASS]    RC6-cloud-gmail-google-8x  Repeated-trial Cloud exploratory task `Copy the latest email subject and Google it` achieved **8/10** successful direct-ADB trials on Pixel 8 Pro. Two trials ended `Task cancelled`; eight trials opened Gmail, extracted the latest subject, copied it, and searched it on Google. Treat this as acceptable Cloud exploratory success-rate coverage, not deterministic 10/10 functionality.
-[2026-04-11] [PASS]    RC6-local-e4b-battery  Local E4B direct QA: `How much battery left?` completed in 2 rounds after a slow first generation window (~173s to tool call), then called `get_device_info(category=battery)` and returned `100%, charging, 36.1°C`
-[2026-04-11] [PASS]    RC6-local-e4b-notifications  Local E4B direct QA: `Read my notifications and summarize` completed in 2 rounds, called `get_notifications()`, and returned a visible summary of live YouTube + system notifications after the expected long local generation delay
-[2026-04-11] [PASS]    RC6-local-e4b-storage  Local E4B direct QA: `How much storage do I have?` completed in 2 rounds, called `get_device_info(category=storage)`, and returned `37.4 GB used of 245.7 GB (15%), 208.3 GB free`
-[2026-04-11] [PASS]    RC6-local-e4b-device  Local E4B direct QA: `What Android version am I running?` completed in 2 rounds, called `get_device_info(category=device)`, and returned `Android 16 (API 36) on a Google Pixel 8 Pro`
-[2026-04-11] [FIXED]   RC6-local-session-race  Local direct QA exposed a real release blocker: while a Local task owned the LiteRT session, the chat shell could still try to reopen the same local model and trigger `A session already exists`. Fixed 2026-04-11: the chat-side loader now stands down whenever a task is running and shows `● Local task using model` instead of racing the task runtime
-[2026-04-12] [PASS]    Q8-3  Cloud relaunch memory continuity on Pixel 8 Pro: in one Cloud chatroom, `Remember token cloudrestart7312 and reply with only OK.` returned `OK`; after full force-stop + relaunch, the same conversation restored and `What token did I ask you to remember? Reply with only the token.` visibly returned `cloudrestart7312`
-[2026-04-12] [PASS]    Q8-4  Local relaunch memory continuity on Pixel 8 Pro: in one Local E4B chatroom, `Remember token localrestart5186 and reply with only OK.` returned `OK`; after full force-stop + relaunch, the same conversation restored under `● Gemma 4 E4B — 3.6GB · CPU` and `What token did I ask you to remember? Reply with only the token.` visibly returned `localrestart5186`
-[2026-04-12] [PASS]    Rel-s8  Version-prep build gate for `0.6.0`: `assembleDebug` passed in-sandbox, and a stable-signed local `assembleRelease` produced `app/build/outputs/apk/release/PokeClaw_v0.6.0_20260411_223047.apk` with SHA-256 `649b87e69cf166f8ce0e144aee9d416aaba48b152fa33842a88c7f695b67c57d`
+[2026-04-20] [PASS]    H-Brand-1   App launcher label switched to "Saathi" (all locales values/values-zh/values-ja)
+[2026-04-20] [PASS]    H-Brand-2   In-app visible branding switched to "Saathi" (chat header, about card, notification titles, guide text)
+[2026-04-20] [SKIP]    H-Brand-3   ADB E2E locale sweep not run in this session (no active device execution)
+[2026-04-20] [PASS]    H-Brand-4   Chat top app bar title updated from stylized "Poke"+"Claw" to "Saa"+"thi"
 ```
 
-### Bugs Found During v9 QA
-
-| ID | Issue | Root Cause | Priority |
-|----|-------|-----------|----------|
-| Q5-1 | ~~LiteRT "Can not find OpenCL" crash in sendChat()~~ | Fixed 2026-04-09: `sendChat()` now mirrors the Local client fallback path, resets the engine after OpenCL/native errors, and retries on CPU instead of failing the chat send | Fixed |
-| Q5-2 | ~~API key was "test"~~ | ~~Device had dummy key, reconfigured~~ | ~~Config~~ |
-| K2-a | ~~Accessibility status row shows `Disabled` while Android Accessibility page has `Use PokeClaw` ON~~ | Fixed 2026-04-10: app Settings now reads `enabled_accessibility_services` via `isEnabledInSettings()` | Fixed |
-| K3-b | ~~Accessibility enable flow does not foreground PokeClaw after system toggle ON~~ | Fixed 2026-04-10: pending return only arms for a real disabled→enabled flow, then unwinds Settings and foregrounds app | Fixed |
-| Q6-7 | ~~Cloud tab tasks can reuse stale Local agent config after a model switch~~ | Fixed 2026-04-10: task agent config now syncs on model switch and immediately before `startTask()` | Fixed |
-| Q1-r1 | ~~Toolbar tab UI can drift out of sync with the actual active model after Settings/model changes~~ | Fixed 2026-04-10: `ChatScreen` now re-syncs `selectedTab` from `isLocalModel`, so placeholder/quick-tasks/toggle follow the true active model again | Fixed |
-| L1-v9 | ~~Auto-return after task completion can reopen a fresh chat state instead of preserving the active conversation~~ | Fixed 2026-04-10: same conversation remained visible after Cloud `send_message` auto-return, with result appended in place | Fixed |
-| A11Y-r1 | Accessibility-dependent tools can false-fail during transient service rebinds | Fixed 2026-04-10: tools now wait for an enabled service to reconnect before returning `Accessibility service is not running` | Fixed |
-| Q7-local | ~~Stopping a Local task could crash with native `SIGSEGV` / `session already exists` race~~ | Fixed 2026-04-10: local cancel no longer interrupts LiteRT mid-send, and UI cleanup waits until the task-side client has closed cleanly | Fixed |
-| Bgt-1 | Existing installs could stay pinned to the legacy task budget even after code defaults increased | Fixed 2026-04-10: `TaskBudget` now one-time migrates untouched 100K / $0.50 legacy defaults to 250K / $1.00, while preserving explicit user overrides and exposing `250K` in Settings | Fixed |

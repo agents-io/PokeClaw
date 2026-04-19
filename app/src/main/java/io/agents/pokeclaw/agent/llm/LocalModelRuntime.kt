@@ -4,7 +4,6 @@
 package io.agents.pokeclaw.agent.llm
 
 import android.content.Context
-import com.google.ai.edge.litertlm.Backend
 import com.google.ai.edge.litertlm.Conversation
 import com.google.ai.edge.litertlm.ConversationConfig
 import com.google.ai.edge.litertlm.Contents
@@ -41,27 +40,21 @@ object LocalModelRuntime {
         modelPath: String,
         preferCpu: Boolean = false,
     ): LocalEngineLease {
-        val shouldUseCpu = LocalBackendHealth.shouldForceCpu(preferCpu)
-        if (shouldUseCpu) {
-            val engine = EngineHolder.getOrCreate(modelPath, context.cacheDir.path, Backend.CPU())
-            return LocalEngineLease(engine = engine, backendLabel = "CPU")
-        }
+        XLog.i(
+            TAG,
+            "acquireSharedEngine: initializing GPU backend for $modelPath (preferCpu=$preferCpu)",
+        )
 
-        return try {
-            val engine = EngineHolder.getOrCreate(modelPath, context.cacheDir.path, Backend.GPU())
-            LocalEngineLease(engine = engine, backendLabel = EngineHolder.getBackendLabel(modelPath) ?: "GPU")
+        try {
+            val engine = EngineHolder.getOrCreate(modelPath, context.cacheDir.path)
+            return LocalEngineLease(
+                engine = engine,
+                backendLabel = EngineHolder.getBackendLabel(modelPath) ?: "GPU",
+            )
         } catch (e: Exception) {
-            if (!isGpuBackendFailure(e)) throw e
-            XLog.w(TAG, "GPU runtime failed for $modelPath, retrying on CPU: ${e.message}")
-            LocalBackendHealth.noteRecoverableGpuFailure(modelPath, e)
-            forceCpuEngine(context, modelPath)
+            XLog.e(TAG, "acquireSharedEngine: GPU initialization failed for $modelPath", e)
+            throw IllegalStateException("GPU Backend Initialization Failed", e)
         }
-    }
-
-    fun forceCpuEngine(context: Context, modelPath: String): LocalEngineLease {
-        resetSharedEngine()
-        val engine = EngineHolder.getOrCreate(modelPath, context.cacheDir.path, Backend.CPU())
-        return LocalEngineLease(engine = engine, backendLabel = "CPU")
     }
 
     fun resetSharedEngine() {
@@ -83,50 +76,23 @@ object LocalModelRuntime {
         preferCpu: Boolean = false,
         maxRetries: Int = DEFAULT_RETRY_COUNT,
     ): LocalConversationLease {
-        var lastError: Exception? = null
-        var forceCpu = preferCpu
+        try {
+            val engineLease = acquireSharedEngine(context, modelPath, preferCpu = preferCpu)
+            val conversation = engineLease.engine.createConversation(conversationConfig)
+            return LocalConversationLease(
+                engine = engineLease.engine,
+                conversation = conversation,
+                backendLabel = engineLease.backendLabel,
+            )
+        } catch (e: Exception) {
+            XLog.w(TAG, "openConversation failed for $modelPath: ${e.message}")
 
-        for (attempt in 1..maxRetries) {
-            try {
-                val engineLease = acquireSharedEngine(context, modelPath, preferCpu = forceCpu)
-                val conversation = engineLease.engine.createConversation(conversationConfig)
-                return LocalConversationLease(
-                    engine = engineLease.engine,
-                    conversation = conversation,
-                    backendLabel = engineLease.backendLabel,
-                )
-            } catch (e: Exception) {
-                lastError = e
-                XLog.w(TAG, "openConversation attempt $attempt failed for $modelPath: ${e.message}")
-
-                if (isSessionConflict(e)) {
-                    throw IllegalStateException("Local model session already in use", e)
-                }
-
-                if (!forceCpu && isGpuBackendFailure(e)) {
-                    XLog.w(TAG, "openConversation: GPU path failed, forcing CPU for $modelPath")
-                    LocalBackendHealth.noteRecoverableGpuFailure(modelPath, e)
-                    forceCpuEngine(context, modelPath)
-                    forceCpu = true
-                } else if (attempt == DEFAULT_RESET_ATTEMPT) {
-                    XLog.w(TAG, "openConversation: resetting shared runtime for $modelPath")
-                    try {
-                        resetSharedEngine()
-                    } catch (resetError: Exception) {
-                        XLog.e(TAG, "openConversation: shared runtime reset failed", resetError)
-                    }
-                }
-
-                if (attempt < maxRetries) {
-                    Thread.sleep(DEFAULT_RETRY_SLEEP_MS)
-                }
+            if (isSessionConflict(e)) {
+                throw IllegalStateException("Local model session already in use", e)
             }
-        }
 
-        throw RuntimeException(
-            "Failed to create conversation after $maxRetries retries: ${lastError?.message}",
-            lastError
-        )
+            throw e
+        }
     }
 
     fun runSingleShot(
@@ -166,15 +132,6 @@ object LocalModelRuntime {
         }
     }
 
-    fun isGpuBackendFailure(error: Throwable?): Boolean {
-        val message = error?.message.orEmpty()
-        if (message.isEmpty()) return false
-        return message.contains("OpenCL", ignoreCase = true) ||
-            message.contains("GPU", ignoreCase = true) ||
-            message.contains("nativeSendMessage", ignoreCase = true) ||
-            message.contains("Failed to create engine", ignoreCase = true) ||
-            message.contains("compiled model", ignoreCase = true)
-    }
 
     fun isSessionConflict(error: Throwable?): Boolean {
         val message = error?.message.orEmpty()

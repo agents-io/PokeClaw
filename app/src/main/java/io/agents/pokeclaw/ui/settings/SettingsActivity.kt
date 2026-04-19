@@ -366,7 +366,7 @@ class SettingsActivity : BaseActivity() {
 
         aboutGroup.addMenuItem(
             leadingIcon = android.R.drawable.ic_menu_info_details,
-            title = "PokeClaw",
+            title = "Saathi",
             onClick = { },
             showDivider = true
         ).apply {
@@ -420,8 +420,8 @@ class SettingsActivity : BaseActivity() {
                 )
                 val intent = Intent(Intent.ACTION_SEND).apply {
                     type = "application/zip"
-                    putExtra(Intent.EXTRA_SUBJECT, "PokeClaw debug report ${io.agents.pokeclaw.BuildConfig.VERSION_NAME}")
-                    putExtra(Intent.EXTRA_TEXT, "Attach this debug report when reporting a PokeClaw issue.")
+                    putExtra(Intent.EXTRA_SUBJECT, "Saathi debug report ${io.agents.pokeclaw.BuildConfig.VERSION_NAME}")
+                    putExtra(Intent.EXTRA_TEXT, "Attach this debug report when reporting a Saathi issue.")
                     putExtra(Intent.EXTRA_STREAM, uri)
                     addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
                 }
