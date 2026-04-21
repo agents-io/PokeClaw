@@ -1,12 +1,5 @@
 pluginManagement {
     repositories {
-        maven {
-            url = uri("https://maven.aliyun.com/repository/public")
-            content {
-                // Tell Gradle NOT to look for Qualcomm packages on Aliyun
-                excludeGroupByRegex("com\\.qualcomm.*")
-            }
-        }
         google {
             content {
                 includeGroupByRegex("com\\.android.*")
@@ -16,6 +9,14 @@ pluginManagement {
         }
         mavenCentral()
         gradlePluginPortal()
+        maven {
+            url = uri("https://maven.aliyun.com/repository/public")
+            content {
+                // Tell Gradle NOT to look for Qualcomm packages on Aliyun
+                excludeGroupByRegex("com\\.qualcomm.*")
+            }
+        }
+
         maven { url = uri("https://jitpack.io") }
     }
 }
@@ -27,6 +28,8 @@ plugins {
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
+        google()
+        mavenCentral()
         maven {
             url = uri("https://maven.aliyun.com/repository/public")
             content {
@@ -34,8 +37,7 @@ dependencyResolutionManagement {
                 excludeGroupByRegex("com\\.qualcomm.*")
             }
         }
-        google()
-        mavenCentral()
+
         maven { url = uri("https://jitpack.io") }
     }
 }

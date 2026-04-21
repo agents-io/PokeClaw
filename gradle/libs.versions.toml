@@ -1,5 +1,7 @@
 [versions]
 agp = "9.1.1"
+ksp = "2.2.10-2.0.2"
+appfunctions = "1.0.0-alpha08"
 coreKtx = "1.10.1"
 junit = "4.13.2"
 junitVersion = "1.1.5"
@@ -27,6 +29,8 @@ litertlm = "0.10.0"
 qnn = "2.45.0"
 
 [libraries]
+androidx-appfunctions = { group = "androidx.appfunctions", name = "appfunctions", version.ref = "appfunctions" }
+androidx-appfunctions-compiler = { group = "androidx.appfunctions", name = "appfunctions-compiler", version.ref = "appfunctions" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
@@ -61,4 +65,5 @@ qualcomm-qnn-delegate = { module = "com.qualcomm.qti:qnn-litert-delegate", versi
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 

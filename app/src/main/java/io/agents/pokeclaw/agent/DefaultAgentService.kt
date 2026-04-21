@@ -4,6 +4,8 @@
 package io.agents.pokeclaw.agent
 
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.DisplayMetrics
 import android.view.WindowManager
 import io.agents.pokeclaw.ClawApplication
@@ -14,6 +16,7 @@ import io.agents.pokeclaw.agent.llm.LlmClientFactory
 import io.agents.pokeclaw.agent.llm.LlmResponse
 import io.agents.pokeclaw.agent.llm.StreamingListener
 import io.agents.pokeclaw.service.ClawAccessibilityService
+import io.agents.pokeclaw.service.ForegroundService
 import io.agents.pokeclaw.tool.ToolRegistry
 import io.agents.pokeclaw.tool.impl.GetScreenInfoTool
 import io.agents.pokeclaw.tool.ToolResult
@@ -25,12 +28,20 @@ import dev.langchain4j.data.message.ChatMessage
 import dev.langchain4j.data.message.SystemMessage
 import dev.langchain4j.data.message.ToolExecutionResultMessage
 import dev.langchain4j.data.message.UserMessage
-import dev.langchain4j.agent.tool.ToolExecutionRequest
 import java.io.File
 import java.util.LinkedList
-import java.util.concurrent.ExecutorService
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.yield
 
 class DefaultAgentService : AgentService {
 
@@ -114,16 +125,15 @@ class DefaultAgentService : AgentService {
     private lateinit var config: AgentConfig
     private lateinit var llmClient: LlmClient
     private lateinit var toolSpecs: List<dev.langchain4j.agent.tool.ToolSpecification>
-    private var executor: ExecutorService? = null
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    private var currentAgentJob: Job? = null
     private val running = AtomicBoolean(false)
     private val cancelled = AtomicBoolean(false)
-    private var taskFuture: java.util.concurrent.Future<*>? = null
 
     override fun initialize(config: AgentConfig) {
         this.config = config
         this.llmClient = LlmClientFactory.create(config)
         this.toolSpecs = LangChain4jToolBridge.buildToolSpecifications()
-        this.executor = Executors.newSingleThreadExecutor()
         XLog.i(TAG, "Agent initialized: provider=${config.provider}, model=${config.modelName}, streaming=${config.streaming}")
     }
 
@@ -132,7 +142,6 @@ class DefaultAgentService : AgentService {
             cancel()
             XLog.w(TAG, "Task was running during config update, cancelled")
         }
-        executor?.shutdownNow()
         // Close old LlmClient before reinitializing to free engine memory
         if (::llmClient.isInitialized) {
             try {
@@ -147,6 +156,13 @@ class DefaultAgentService : AgentService {
     }
 
     override fun executeTask(userPrompt: String, callback: AgentCallback) {
+        // Surface RUNNING state to UI before heavy inference work starts.
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            callback.onLoopStart(0)
+        } else {
+            Handler(Looper.getMainLooper()).post { callback.onLoopStart(0) }
+        }
+
         if (running.get()) {
             callback.onError(0, IllegalStateException("Agent is already running a task"), 0)
             return
@@ -184,9 +200,20 @@ class DefaultAgentService : AgentService {
             }
         }
 
-        taskFuture = executor?.submit {
+        currentAgentJob = serviceScope.launch {
             try {
+                // Give Compose one frame to render the running/stop controls.
+                yield()
+                delay(50)
+                currentCoroutineContext().ensureActive()
                 runAgentLoop(userPrompt, callbackProxy)
+            } catch (_: CancellationException) {
+                XLog.i(TAG, "Agent task cancelled (coroutine)")
+                if (terminalCallback == null && cancelled.get()) {
+                    terminalCallback = {
+                        callback.onComplete(0, ClawApplication.instance.getString(R.string.agent_task_cancel), 0)
+                    }
+                }
             } catch (e: Exception) {
                 if (terminalCallback == null) {
                     if (cancelled.get()) {
@@ -200,6 +227,7 @@ class DefaultAgentService : AgentService {
                     }
                 }
             } finally {
+                currentAgentJob = null
                 // Close local engine BEFORE clearing running flag so the chat engine
                 // reload (triggered by onComplete/onError) never overlaps with task engine.
                 if (::llmClient.isInitialized) {
@@ -265,23 +293,28 @@ class DefaultAgentService : AgentService {
 
     // ==================== LLM Call (with retry) ====================
 
-    private fun chatWithRetry(messages: List<ChatMessage>, callback: AgentCallback, iteration: Int): LlmResponse {
+    private suspend fun chatWithRetry(messages: List<ChatMessage>, callback: AgentCallback, iteration: Int): LlmResponse {
         var lastException: Exception? = null
         for (attempt in 0 until MAX_API_RETRIES) {
+            currentCoroutineContext().ensureActive()
             if (cancelled.get()) throw RuntimeException(ClawApplication.instance.getString(R.string.agent_task_cancelled))
             try {
                 return if (config.streaming) {
                     val textBuilder = StringBuilder()
-                    llmClient.chatStreaming(messages, toolSpecs, object : StreamingListener {
-                        override fun onPartialText(token: String) {
-                            textBuilder.append(token)
-                            callback.onContent(iteration, token)
-                        }
-                        override fun onComplete(response: LlmResponse) {}
-                        override fun onError(error: Throwable) {}
-                    })
+                    runInterruptible(Dispatchers.Default) {
+                        llmClient.chatStreaming(messages, toolSpecs, object : StreamingListener {
+                            override fun onPartialText(token: String) {
+                                textBuilder.append(token)
+                                callback.onContent(iteration, token)
+                            }
+                            override fun onComplete(response: LlmResponse) {}
+                            override fun onError(error: Throwable) {}
+                        })
+                    }
                 } else {
-                    llmClient.chat(messages, toolSpecs)
+                    runInterruptible(Dispatchers.Default) {
+                        llmClient.chat(messages, toolSpecs)
+                    }
                 }
             } catch (e: Exception) {
                 lastException = e
@@ -290,12 +323,11 @@ class DefaultAgentService : AgentService {
                 if (msg.contains("401") || msg.contains("403") || msg.contains("insufficient")) {
                     throw e
                 }
-                val delay = (Math.pow(2.0, attempt.toDouble()) * 1000).toLong()
-                XLog.w(TAG, "LLM API call failed (attempt ${attempt + 1}/$MAX_API_RETRIES), retrying in ${delay}ms: $msg")
+                val retryDelayMs = (Math.pow(2.0, attempt.toDouble()) * 1000).toLong()
+                XLog.w(TAG, "LLM API call failed (attempt ${attempt + 1}/$MAX_API_RETRIES), retrying in ${retryDelayMs}ms: $msg")
                 try {
-                    Thread.sleep(delay)
-                } catch (ie: InterruptedException) {
-                    Thread.currentThread().interrupt()
+                    delay(retryDelayMs)
+                } catch (_: CancellationException) {
                     throw e
                 }
             }
@@ -435,8 +467,9 @@ class DefaultAgentService : AgentService {
 
     // ==================== Main Execution Loop ====================
 
-    private fun runAgentLoop(userPrompt: String, callback: AgentCallback) {
+    private suspend fun runAgentLoop(userPrompt: String, callback: AgentCallback) {
         // Pre-flight check
+        currentCoroutineContext().ensureActive()
         preCheck()?.let {
             callback.onError(0, RuntimeException(it), 0)
             return
@@ -533,7 +566,6 @@ class DefaultAgentService : AgentService {
         var iterations = 0
         var totalTokens = 0
         var actualModelName: String? = null  // Track the real model name from API response
-        val maxIterations = config.maxIterations
         val loopHistory = LinkedList<RoundFingerprint>()
         var lastScreenHash = 0
         var previousScreenTexts: Set<String> = emptySet()
@@ -541,7 +573,11 @@ class DefaultAgentService : AgentService {
         val stuckDetector = StuckDetector()
         val taskBudget = TaskBudget.fromSettings()
         var softLimitWarned = false
-        var consecutiveNoToolCalls = 0
+        var hasExecutedTool = false
+        val maxIterations = minOf(config.maxIterations, 10)
+        if (config.maxIterations > maxIterations) {
+            XLog.w(TAG, "runAgentLoop: maxIterations capped to $maxIterations (configured=${config.maxIterations})")
+        }
 
         while (iterations < maxIterations && !cancelled.get()) {
             iterations++
@@ -625,7 +661,7 @@ class DefaultAgentService : AgentService {
             messages.add(aiMessage)
 
             // Push thinking content in non-streaming mode
-            if (!config.streaming && !llmResponse.text.isNullOrEmpty()) {
+            if (!config.streaming && !llmResponse.text.isNullOrBlank()) {
                 val suppressHallucinatedCompletion =
                     !llmResponse.hasToolExecutionRequests() &&
                         (inAppSearchGuard.shouldBlockTextOnlyCompletion() ||
@@ -635,41 +671,21 @@ class DefaultAgentService : AgentService {
                 }
             }
 
-            // No tool calls in this response — LLM chose to respond with text only.
-            // Respect that. If there's text, it's the answer. Done.
+            // No tool calls in this response — treat it as the final user-facing result.
             if (!llmResponse.hasToolExecutionRequests()) {
-                val responseText = llmResponse.text ?: ""
-                if (responseText.isNotEmpty()) {
-                    if (inAppSearchGuard.shouldBlockTextOnlyCompletion()) {
-                        val correction = inAppSearchGuard.buildCompletionCorrection()
-                        XLog.i(TAG, "InAppSearchGuard blocked text-only completion for '$userPrompt'")
-                        messages.add(UserMessage.from(correction))
-                        continue
-                    }
-                    if (directDeviceDataGuard.shouldBlockTextOnlyCompletion()) {
-                        val correction = directDeviceDataGuard.buildCompletionCorrection()
-                        XLog.i(TAG, "DirectDeviceDataGuard blocked text-only completion for '$userPrompt'")
-                        messages.add(UserMessage.from(correction))
-                        continue
-                    }
-                    if (emailComposeGuard.shouldBlockTextOnlyCompletion()) {
-                        val correction = emailComposeGuard.buildCompletionCorrection()
-                        XLog.i(TAG, "EmailComposeGuard blocked text-only completion for '$userPrompt'")
-                        messages.add(UserMessage.from(correction))
-                        continue
-                    }
-                    XLog.i(TAG, "runAgentLoop: text-only response, completing")
-                    callback.onComplete(iterations, responseText, totalTokens, actualModelName)
-                    return
+                val responseText = llmResponse.text?.trim().orEmpty()
+                val completionReason = when {
+                    responseText.isNotEmpty() -> "text-only response"
+                    hasExecutedTool -> "empty post-tool response"
+                    else -> "empty response"
                 }
-                // Empty response with no tools — something went wrong, finish
-                XLog.w(TAG, "runAgentLoop: empty response with no tools, finishing")
-                callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_completed), totalTokens, actualModelName)
-                continue
+                val finalAnswer = if (responseText.isNotEmpty()) responseText else ClawApplication.instance.getString(R.string.agent_task_completed)
+                XLog.i(TAG, "runAgentLoop: $completionReason, completing")
+                callback.onComplete(iterations, finalAnswer, totalTokens, actualModelName)
+                return
             }
 
-            // Reset counter when LLM does use tools
-            consecutiveNoToolCalls = 0
+            hasExecutedTool = true
 
             // Execute tool calls
             for (toolRequest in llmResponse.toolExecutionRequests) {
@@ -747,7 +763,7 @@ class DefaultAgentService : AgentService {
                 // immediately without spending an extra 5 s inference round on get_screen_info.
                 val combinedResultData: String = if (toolName in ACTION_TOOLS) {
                     try {
-                        Thread.sleep(SCREEN_SETTLE_MS) // let UI animate/settle
+                        delay(SCREEN_SETTLE_MS) // let UI animate/settle
                         val screenTool = ToolRegistry.getInstance().getTool("get_screen_info")
                         val screenAfter = screenTool?.execute(emptyMap())
                         if (screenAfter != null && screenAfter.isSuccess && !screenAfter.data.isNullOrBlank()) {
@@ -836,26 +852,37 @@ class DefaultAgentService : AgentService {
         if (cancelled.get()) {
             callback.onComplete(iterations, ClawApplication.instance.getString(R.string.agent_task_cancel), totalTokens, actualModelName)
         } else {
+            XLog.w(TAG, "runAgentLoop: max-iterations reached ($iterations/$maxIterations), terminating")
             callback.onError(iterations, RuntimeException(ClawApplication.instance.getString(R.string.agent_max_iterations, maxIterations)), totalTokens)
         }
     }
 
     override fun cancel() {
         cancelled.set(true)
-        if (config.provider == LlmProvider.LOCAL) {
-            // LiteRT native sendMessage is not interrupt-safe; let the current round yield
-            // naturally, then surface Task cancelled after the client closes cleanly.
-            XLog.i(TAG, "cancel: LOCAL task marked cancelled; waiting for current LiteRT round to finish safely")
-            return
+        XLog.i(TAG, "Agent task forcefully terminated by user.")
+        currentAgentJob?.cancel(CancellationException("Agent task forcefully terminated by user."))
+        running.set(false)
+        try {
+            ForegroundService.resetToIdle(ClawApplication.instance)
+        } catch (e: Exception) {
+            XLog.w(TAG, "cancel: failed to reset foreground state to idle", e)
         }
-        // Cloud/network-backed tasks can be aborted safely via thread interruption.
-        taskFuture?.cancel(true)
-        XLog.i(TAG, "cancel: flag set + thread interrupted")
+        if (::llmClient.isInitialized) {
+            try {
+                llmClient.close()
+                XLog.i(TAG, "LlmClient closed during forceful cancellation")
+            } catch (e: Exception) {
+                XLog.w(TAG, "LlmClient close error during forceful cancellation", e)
+            }
+        }
+    }
+
+    fun stopTask() {
+        cancel()
     }
 
     override fun shutdown() {
         cancel()
-        executor?.shutdownNow()
         if (::llmClient.isInitialized) {
             try {
                 llmClient.close()

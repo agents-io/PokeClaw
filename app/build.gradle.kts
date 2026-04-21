@@ -7,6 +7,7 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.ksp)
     id("org.jetbrains.kotlin.plugin.compose") version "2.2.10"
 }
 
@@ -119,8 +120,9 @@ dependencies {
     implementation(libs.material)
     implementation(libs.constraintlayout)
     implementation(libs.gson)
-
-
+//android app functions addition
+    implementation(libs.androidx.appfunctions)
+    ksp(libs.androidx.appfunctions.compiler)
     implementation(libs.oapi.sdk)
     implementation(libs.dingtalk)
 
