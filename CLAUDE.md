@@ -230,3 +230,42 @@ try {
 - `!!` on nullable values — use `?.let {}` or explicit null check with error message
 - Assume network is available — always handle offline
 - Assume model file exists — always check before loading
+
+
+---
+
+## 由 Claude memory 搬入（2026-08-21）— `rule_android_qa_uiautomator2.md`
+
+原本每個 session 都載入。呢啲係 project-specific，cd 入呢個 repo 先 load。
+
+---
+name: Android QA must use uiautomator2 not raw adb input
+description: For any Android UI QA work via ADB, default to uiautomator2 Python library. Raw `adb shell input tap` and `adb shell input text` fail in predictable ways (IME-occluded taps, long-string truncation, special-char mangling)
+type: feedback
+originSessionId: 36074db4-c565-46db-84ff-1912e5b94138
+---
+For any Android UI QA work via ADB, default to **`uiautomator2`** (Python library) — not raw `adb shell input tap` / `adb shell input text`.
+
+**Why:** Raw `adb shell input` fails in three predictable ways that block real-world QA:
+
+1. **Long-string truncation** — `adb shell input text "$LONG_API_KEY"` drops bytes for anything over ~100 chars. 164-char `sk-proj-...` OpenAI keys arrive corrupted. uiautomator2 `d(...).set_text()` uses `AccessibilityNodeInfo.ACTION_SET_TEXT` and writes the full string directly to the node.
+2. **IME-occluded taps** — once the keyboard is shown (auto-shown when EditText is focused), tapping coordinates in the bottom half of the screen hits keyboard keys instead of the underlying UI. uiautomator2 selector clicks resolve by node bounds at current layout state.
+3. **Special-char mangling** — `&`, `'`, spaces, quotes need escape gymnastics with `adb input text`; uiautomator2 `set_text` passes the string cleanly.
+
+**How to apply:**
+- Setup: `pip install uiautomator2` + `python -m uiautomator2 init` (installs AdbKeyboard companion on device, one-time)
+- Connect: `d = u2.connect()` (auto-picks ADB device)
+- Text input: `d(className='android.widget.EditText').set_text(s)` — never use `adb shell input text` for EditText
+- Click: `d(description='Send').click()` — better than coordinate tap (still tap-based under the hood but at current node bounds)
+- Dump: `d.dump_hierarchy()` — replace `adb shell uiautomator dump`
+
+**Caveats:**
+- `d.click(x, y)` is still a coordinate tap with the same IME-occlusion problem
+- `set_text` may still trigger IME visibility on focus — after typing, layout reflows and cached coords go stale; always re-dump before next tap
+- Release builds disable `run-as` and `XLog.i/d` to logcat — uiautomator2 doesn't help with those; use AppLogStore + debug-report.zip via UI share intent, or switch to debug build for log-trace QA
+
+**Full playbook with traps + patterns:** `~/MyGithub/agentic-journal/projects/3-ship/playbooks/android-qa-uiautomator2-playbook.md`
+
+**Project-specific playbook for PokeClaw:** `~/MyGithub/PokeClaw/docs/AI_AGENT_PLAYBOOK.md`
+
+**Verified usage:** 2026-05-26 PokeClaw QA — configured Groq Cloud LLM end-to-end via Custom-provider tab (3 EditText fields + Save & Activate button) on signed-release APK. Same flow had failed repeatedly with raw `adb input text` (164-char key truncated, Send FAB tap missed because keyboard occluded the y-coord).
