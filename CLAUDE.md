@@ -120,3 +120,113 @@ Every code path must be traceable through logcat alone. If a bug happens and the
 ### The rule
 
 When reading logcat for any user flow, you should be able to reconstruct exactly what happened, what decisions were made, and where it went wrong — without reading the source code. One session of `adb logcat --pid=$(pidof io.agents.pokeclaw)` should tell the full story.
+
+---8<--- (由 ~/.claude/rules 搬入 2026-08-21) ---8<---
+
+# Android Dev Workflow — Token-Efficient Mobile Development
+
+## The Problem
+
+Building, installing, and screenshotting Android apps is expensive in tokens. The biggest waste comes from:
+
+1. **One-change-per-cycle**: editing one thing → build → install → screenshot → read image → repeat. Each cycle costs ~2000 tokens minimum (build output + screenshot read). Batching 5 changes saves ~8000 tokens.
+2. **Re-reading files already in context**: Reading SettingsActivity.kt when the summary already has its full content.
+3. **SDK/build errors from not checking setup first**: Missing local.properties, wrong SDK path — wasted build cycles.
+4. **Trial-and-error tap coordinates**: Screenshots + uiautomator dumps to find buttons.
+5. **Running background tasks then polling**: Using `run_in_background` then checking output wastes a turn.
+
+## The Workflow
+
+### Phase 1: Collect ALL changes first (NO builds)
+
+- Read all files you need to edit (if not already in context)
+- Make ALL code edits in sequence — no builds between edits
+- If user sends multiple feedback items, batch them ALL before building
+
+### Phase 2: Pre-flight check (1 command)
+
+Before first build in a session:
+```bash
+# Verify SDK, device, and app package in one command
+ls local.properties 2>/dev/null || echo "NEED_SDK"; adb devices -l 2>/dev/null | grep device; adb shell pm list packages | grep pokeclaw
+```
+
+### Phase 3: Build once
+
+```bash
+./gradlew assembleDebug 2>&1 | tail -5
+```
+- Only read last 5 lines — SUCCESS or the error
+- If error, fix and rebuild (still only tail -5)
+
+### Phase 4: Install + multi-screenshot in ONE command chain
+
+```bash
+APK=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -1) && \
+adb install -r "$APK" && sleep 1 && \
+adb shell am start -n io.agents.pokeclaw/com.apk.claw.android.ui.splash.SplashActivity && sleep 3 && \
+adb shell screencap -p /sdcard/s1.png && \
+adb shell input tap <SETTINGS_X> <SETTINGS_Y> && sleep 2 && \
+adb shell screencap -p /sdcard/s2.png && \
+adb pull /sdcard/s1.png /tmp/s1.png && \
+adb pull /sdcard/s2.png /tmp/s2.png
+```
+
+- Chain everything. Don't split into 5 separate Bash calls.
+- Known coordinates: Settings gear = (1003, 191), Menu hamburger = (77, 191)
+
+### Phase 5: Read screenshots in parallel
+
+Read both /tmp/s1.png and /tmp/s2.png in one message with parallel Read calls.
+
+## Rules
+
+- **NEVER build after a single edit**. Collect all edits first.
+- **NEVER re-read a file that's already in context** from the current session or summary.
+- **NEVER use `run_in_background` for adb/gradle** — just run it foreground and read the tail.
+- **NEVER use `adb shell screencap` or read screenshot PNGs for QA**. Screenshots cost ~10K tokens each and bloat the session. Use uiautomator2 `d(text=...).exists()`, `d(resourceId=...).info`, `dump_hierarchy()`, or `adb logcat` to verify UI state instead. The ONLY exception is if the user explicitly asks to see a screenshot.
+- **Cache tap coordinates** in this rule after discovering them via uiautomator.
+- **Max 2 build cycles per user request**. If it takes more, something is wrong — stop and think.
+
+## Known App Coordinates (1080px width device)
+
+- Settings gear icon: (1003, 191)
+- Menu hamburger: (77, 191) 
+- New chat pencil: (871, 191)
+- Message input field: (480, 2130)
+- Send button: (1003, 2136)
+- Rocket button: (882, 2136)
+
+# Android Error Handling — Mandatory Best Practices
+
+Every piece of Android code MUST follow these rules. No exceptions. No laziness.
+
+## Rules
+
+1. **Every network call** — try-catch with timeout, retry logic, user-visible error message
+2. **Every file operation** — check exists, check permissions, catch IOException
+3. **Every model load** — catch all exceptions, show status to user, graceful fallback
+4. **Every intent/activity launch** — catch ActivityNotFoundException
+5. **Every JSON parse** — catch JSONException, log the raw input for debugging
+6. **Every SharedPreferences/MMKV write** — verify write succeeded
+7. **Every Accessibility Service call** — null check on rootInActiveWindow, catch DeadObjectException
+
+## Pattern
+
+```kotlin
+try {
+    // happy path
+} catch (e: SpecificException) {
+    XLog.e(TAG, "What failed and why", e)
+    runOnUiThread { showUserError("Human readable message") }
+    // graceful fallback
+}
+```
+
+## Never Do
+
+- `catch (_: Exception) {}` with empty body — ALWAYS log
+- Silent failures — user MUST know something went wrong
+- `!!` on nullable values — use `?.let {}` or explicit null check with error message
+- Assume network is available — always handle offline
+- Assume model file exists — always check before loading
