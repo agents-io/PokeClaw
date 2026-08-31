@@ -8,6 +8,7 @@ import io.agents.pokeclaw.agent.llm.LocalBackendHealth
 import io.agents.pokeclaw.base.BaseApp
 import io.agents.pokeclaw.channel.ChannelManager
 import io.agents.pokeclaw.tool.ToolRegistry
+import io.agents.pokeclaw.utils.AppLogStore
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
 import com.blankj.utilcode.util.NetworkUtils
@@ -28,7 +29,9 @@ class ClawApplication : BaseApp() {
 
     override fun onCreate() {
         super.onCreate()
+        AppCapabilityCoordinator.markProcessStart()
         instance = this
+        AppLogStore.init(this)
         XLog.setDEBUG(BuildConfig.DEBUG)
         registerNetworkCallback()
         appViewModelInstance = getAppViewModelProvider()[AppViewModel::class.java]

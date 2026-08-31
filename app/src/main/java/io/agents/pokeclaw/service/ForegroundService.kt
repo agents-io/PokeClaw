@@ -121,12 +121,8 @@ class ForegroundService : Service() {
         }
 
         private fun showNotification(context: Context, title: String, text: String): Boolean {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-                    != PackageManager.PERMISSION_GRANTED
-                ) {
-                    return false
-                }
+            if (!hasNotificationPermission(context)) {
+                return false
             }
 
             try {
@@ -154,11 +150,8 @@ class ForegroundService : Service() {
             text: String = context.getString(R.string.notification_content_text)
         ): Boolean {
             // Android 13+ requires notification permission check
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                if (ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    return false
-                }
+            if (!hasNotificationPermission(context)) {
+                return false
             }
 
             return try {
@@ -176,6 +169,12 @@ class ForegroundService : Service() {
                 XLog.w(TAG, "Foreground service start blocked or failed", e)
                 false
             }
+        }
+
+        private fun hasNotificationPermission(context: Context): Boolean {
+            return Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) ==
+                PackageManager.PERMISSION_GRANTED
         }
 
         fun stop(context: Context) {
@@ -224,6 +223,15 @@ class ForegroundService : Service() {
         super.onCreate()
         _isRunning = true
         createNotificationChannel()
+        if (hasNotificationPermission(this)) {
+            startForeground(
+                NOTIFICATION_ID,
+                buildNotification(this, DEFAULT_TASK_TITLE, DEFAULT_TASK_TEXT)
+            )
+        } else {
+            stopSelf()
+            return
+        }
         healthHandler.post(healthRunnable)
     }
 

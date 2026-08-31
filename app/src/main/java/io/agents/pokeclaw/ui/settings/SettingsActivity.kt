@@ -21,7 +21,9 @@ import androidx.lifecycle.repeatOnLifecycle
 import io.agents.pokeclaw.R
 import io.agents.pokeclaw.base.BaseActivity
 import io.agents.pokeclaw.widget.AlertDialog
+import io.agents.pokeclaw.widget.ConfirmDialog
 import io.agents.pokeclaw.widget.CommonToolbar
+import io.agents.pokeclaw.widget.InputDialog
 import io.agents.pokeclaw.widget.MenuGroup
 import io.agents.pokeclaw.widget.MenuItem
 import io.agents.pokeclaw.AppCapabilityCoordinator
@@ -57,6 +59,9 @@ class SettingsActivity : BaseActivity() {
     private var permOverlay: io.agents.pokeclaw.widget.MenuItem? = null
     private var permBattery: io.agents.pokeclaw.widget.MenuItem? = null
     private var permStorage: io.agents.pokeclaw.widget.MenuItem? = null
+    private var externalAutomationItem: io.agents.pokeclaw.widget.MenuItem? = null
+    private var globalPromptItem: io.agents.pokeclaw.widget.MenuItem? = null
+    private var customModelUrlItem: io.agents.pokeclaw.widget.MenuItem? = null
 
     private val viewModel by lazy {
         ViewModelProvider(this)[SettingsViewModel::class.java]
@@ -104,6 +109,7 @@ class SettingsActivity : BaseActivity() {
         super.onResume()
         refreshSettings()
         refreshPermissions()
+        refreshExternalAutomation()
         handler.removeCallbacks(permPoller)
         handler.postDelayed(permPoller, 1000)
     }
@@ -121,6 +127,34 @@ class SettingsActivity : BaseActivity() {
         permOverlay?.setTrailingText(if (capabilities.overlayGranted) "Enabled" else "Disabled")
         permBattery?.setTrailingText(if (capabilities.batteryOptimizationIgnored) "Unrestricted" else "Restricted")
         permStorage?.setTrailingText(if (capabilities.storageAccessGranted) "Enabled" else "Disabled")
+    }
+
+    private fun refreshExternalAutomation() {
+        externalAutomationItem?.setTrailingText(
+            if (KVUtils.isExternalAutomationEnabled()) "Enabled" else "Disabled"
+        )
+    }
+
+    /** Refreshes the trailing label on the global-prompt row (#45). */
+    private fun refreshGlobalPromptStatus() {
+        val current = KVUtils.getGlobalPrompt()
+        val label = if (current.isBlank()) {
+            getString(R.string.global_prompt_not_set)
+        } else {
+            getString(R.string.global_prompt_set_status, current.length)
+        }
+        globalPromptItem?.setTrailingText(label)
+    }
+
+    /** Refreshes the trailing label on the custom-model-URL row (#36). */
+    private fun refreshCustomModelUrlStatus() {
+        val current = KVUtils.getCustomLocalModelUrl()
+        val label = if (current.isBlank()) {
+            getString(R.string.custom_local_model_url_not_set)
+        } else {
+            getString(R.string.custom_local_model_url_set)
+        }
+        customModelUrlItem?.setTrailingText(label)
     }
 
     private fun initToolbar() {
@@ -158,6 +192,28 @@ class SettingsActivity : BaseActivity() {
 
     private fun refreshSettings() {
         viewModel.refresh()
+    }
+
+    private fun toggleExternalAutomation() {
+        if (KVUtils.isExternalAutomationEnabled()) {
+            KVUtils.setExternalAutomationEnabled(false)
+            refreshExternalAutomation()
+            Toast.makeText(this, "External Automation disabled", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        ConfirmDialog.showWarm(
+            context = this,
+            title = "Enable External Automation?",
+            message = "This lets trusted apps like Tasker, MacroDroid, or ADB start PokeClaw tasks with explicit Android intents. Keep it off unless you control the automation that will call it.",
+            actionTitle = "Enable",
+            cancelTitle = getString(R.string.common_cancel),
+            onAction = {
+                KVUtils.setExternalAutomationEnabled(true)
+                refreshExternalAutomation()
+                Toast.makeText(this, "External Automation enabled", Toast.LENGTH_SHORT).show()
+            }
+        )
     }
 
     private fun initMenuGroups() {
@@ -289,10 +345,84 @@ class SettingsActivity : BaseActivity() {
             leadingIcon = android.R.drawable.ic_menu_recent_history,
             title = "Task Budget",
             onClick = { showBudgetDialog() },
-            showDivider = false
+            showDivider = true
         ).apply {
             setTrailingText(io.agents.pokeclaw.agent.TaskBudget.describeCurrentBudget())
         }
+
+        // Global Prompt (#45) — user-defined persistent instructions
+        globalPromptItem = modelGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_menu_edit,
+            title = getString(R.string.global_prompt_title),
+            onClick = {
+                val current = KVUtils.getGlobalPrompt()
+                XLog.i("SettingsActivity", "open global prompt dialog: current.len=${current.length}")
+                InputDialog.show(
+                    context = this@SettingsActivity,
+                    title = getString(R.string.global_prompt_dialog_title),
+                    presetText = current,
+                    hint = getString(R.string.global_prompt_hint),
+                    maxLength = 2000,
+                ) { text ->
+                    KVUtils.setGlobalPrompt(text)
+                    XLog.i("SettingsActivity", "global prompt saved: new.len=${text.length}, hasPrompt=${KVUtils.hasGlobalPrompt()}")
+                    refreshGlobalPromptStatus()
+                }
+            },
+            showDivider = false
+        )
+        globalPromptItem?.setLeadingIconColor(getColor(R.color.colorTextPrimary))
+        refreshGlobalPromptStatus()
+
+        // Custom Local Model URL (#36) — advanced: lets users add their own model download URL
+        customModelUrlItem = modelGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_menu_share,
+            title = getString(R.string.custom_local_model_url_title),
+            onClick = {
+                val current = KVUtils.getCustomLocalModelUrl()
+                XLog.i("SettingsActivity", "open custom model url dialog: current.len=${current.length}")
+                InputDialog.show(
+                    context = this@SettingsActivity,
+                    title = getString(R.string.custom_local_model_url_dialog_title),
+                    presetText = current,
+                    hint = getString(R.string.custom_local_model_url_hint),
+                    maxLength = 1000,
+                    inputValidate = { text ->
+                        val lower = text.trim().lowercase()
+                        if (lower.isEmpty()) {
+                            // Empty = clear; allow
+                            io.agents.pokeclaw.widget.InputDialog.ValidateResult(true, null)
+                        } else if (!lower.startsWith("http://") && !lower.startsWith("https://")) {
+                            io.agents.pokeclaw.widget.InputDialog.ValidateResult(
+                                false,
+                                getString(R.string.custom_local_model_url_invalid)
+                            )
+                        } else {
+                            io.agents.pokeclaw.widget.InputDialog.ValidateResult(true, null)
+                        }
+                    },
+                ) { text ->
+                    // Normalize the protocol prefix to lowercase (Android keyboard auto-cap
+                    // can produce "HTTPS://..."). Rest of the URL is case-preserved.
+                    val trimmed = text.trim().let { raw ->
+                        when {
+                            raw.startsWith("HTTPS://", ignoreCase = false) -> "https://" + raw.substring(8)
+                            raw.startsWith("HTTP://", ignoreCase = false) -> "http://" + raw.substring(7)
+                            else -> raw
+                        }
+                    }
+                    KVUtils.setCustomLocalModelUrl(trimmed)
+                    XLog.i(
+                        "SettingsActivity",
+                        "custom local model url saved: new.len=${trimmed.length}, hasUrl=${KVUtils.hasCustomLocalModelUrl()}"
+                    )
+                    refreshCustomModelUrlStatus()
+                }
+            },
+            showDivider = false
+        )
+        customModelUrlItem?.setLeadingIconColor(getColor(R.color.colorTextPrimary))
+        refreshCustomModelUrlStatus()
 
         // Appearance
         val appearanceGroup = findViewById<MenuGroup>(R.id.appearanceGroup)
@@ -342,6 +472,15 @@ class SettingsActivity : BaseActivity() {
             setTrailingText(if (token.isNotEmpty()) "Connected" else "Not connected")
         }
 
+        externalAutomationItem = remoteGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_menu_share,
+            title = "External Automation",
+            onClick = { toggleExternalAutomation() },
+            showDivider = true
+        ).apply {
+            setTrailingText(if (KVUtils.isExternalAutomationEnabled()) "Enabled" else "Disabled")
+        }
+
         remoteGroup.addMenuItem(
             leadingIcon = android.R.drawable.ic_menu_call,
             title = "WhatsApp",
@@ -371,6 +510,15 @@ class SettingsActivity : BaseActivity() {
             showDivider = true
         ).apply {
             setTrailingText("v${io.agents.pokeclaw.BuildConfig.VERSION_NAME}")
+        }
+
+        aboutGroup.addMenuItem(
+            leadingIcon = android.R.drawable.ic_menu_send,
+            title = "Report a Bug",
+            onClick = { reportBug() },
+            showDivider = true
+        ).apply {
+            setTrailingText("GitHub + ZIP")
         }
 
         aboutGroup.addMenuItem(
@@ -405,9 +553,56 @@ class SettingsActivity : BaseActivity() {
         }
     }
 
+    private fun reportBug() {
+        buildSupportBundle(
+            preparingToast = "Preparing bug report…"
+        ) { report ->
+            AlertDialog.show(
+                context = this@SettingsActivity,
+                title = "Bug report ready",
+                message = """
+                    ${report.name} is ready.
+
+                    Open GitHub Issue to file the bug now.
+                    If your browser or GitHub app makes attachment upload awkward, tap Share ZIP instead and send the report manually.
+                """.trimIndent(),
+                actionTitle = "Open GitHub Issue",
+                cancelTitle = "Share ZIP",
+                onAction = { openGitHubIssue(report) },
+                onCancel = {
+                    shareReportFile(
+                        report = report,
+                        chooserTitle = "Share bug report ZIP",
+                        subject = "PokeClaw bug report ${io.agents.pokeclaw.BuildConfig.VERSION_NAME}",
+                        body = """
+                            Attach this ZIP to your GitHub issue:
+                            https://github.com/agents-io/PokeClaw/issues/new
+                        """.trimIndent()
+                    )
+                }
+            )
+        }
+    }
+
     private fun shareDebugReport() {
+        buildSupportBundle(
+            preparingToast = "Preparing debug report…",
+        ) { report ->
+            shareReportFile(
+                report = report,
+                chooserTitle = "Share debug report",
+                subject = "PokeClaw debug report ${io.agents.pokeclaw.BuildConfig.VERSION_NAME}",
+                body = "Attach this debug report when reporting a PokeClaw issue."
+            )
+        }
+    }
+
+    private fun buildSupportBundle(
+        preparingToast: String,
+        onReportReady: (java.io.File) -> Unit,
+    ) {
         lifecycleScope.launch {
-            Toast.makeText(this@SettingsActivity, "Preparing debug report…", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@SettingsActivity, preparingToast, Toast.LENGTH_SHORT).show()
             runCatching {
                 withContext(Dispatchers.IO) {
                     DebugReportManager.buildReport(this@SettingsActivity)
@@ -434,6 +629,78 @@ class SettingsActivity : BaseActivity() {
                 XLog.e("SettingsActivity", "Failed to build debug report", error)
                 Toast.makeText(this@SettingsActivity, "Failed to build debug report", Toast.LENGTH_LONG).show()
             }
+        }
+    }
+
+    private fun openGitHubIssue(report: java.io.File) {
+        val issueUri = "https://github.com/agents-io/PokeClaw/issues/new".toUri()
+            .buildUpon()
+            .appendQueryParameter(
+                "title",
+                "[Bug] ${Build.MANUFACTURER} ${Build.MODEL} - "
+            )
+            .appendQueryParameter("body", buildGitHubIssueBody(report))
+            .build()
+        try {
+            startActivity(Intent(Intent.ACTION_VIEW, issueUri))
+            Toast.makeText(
+                this,
+                "Attach ${report.name} to the GitHub issue after the page opens",
+                Toast.LENGTH_LONG
+            ).show()
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this, "No app available to open GitHub", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun buildGitHubIssueBody(report: java.io.File): String {
+        return """
+            ## What happened
+            -
+
+            ## What you expected
+            -
+
+            ## Exact steps to reproduce
+            1.
+            2.
+            3.
+
+            ## Device
+            - Manufacturer: ${Build.MANUFACTURER}
+            - Model: ${Build.MODEL}
+            - Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})
+
+            ## Attachments
+            - Attach this ZIP from PokeClaw: `${report.name}`
+            - If this looks device-specific and you have ADB available, also attach `adb logcat`
+
+            Generated by PokeClaw ${io.agents.pokeclaw.BuildConfig.VERSION_NAME}.
+        """.trimIndent()
+    }
+
+    private fun shareReportFile(
+        report: java.io.File,
+        chooserTitle: String,
+        subject: String,
+        body: String,
+    ) {
+        val uri = FileProvider.getUriForFile(
+            this@SettingsActivity,
+            "${packageName}.fileprovider",
+            report
+        )
+        val intent = Intent(Intent.ACTION_SEND).apply {
+            type = "application/zip"
+            putExtra(Intent.EXTRA_SUBJECT, subject)
+            putExtra(Intent.EXTRA_TEXT, body)
+            putExtra(Intent.EXTRA_STREAM, uri)
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        try {
+            startActivity(Intent.createChooser(intent, chooserTitle))
+        } catch (e: ActivityNotFoundException) {
+            Toast.makeText(this@SettingsActivity, "No app available to share the report", Toast.LENGTH_LONG).show()
         }
     }
 

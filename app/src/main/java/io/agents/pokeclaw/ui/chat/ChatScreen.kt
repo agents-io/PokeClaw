@@ -3,7 +3,14 @@
 
 package io.agents.pokeclaw.ui.chat
 
+import android.app.Activity
+import android.content.ActivityNotFoundException
+import android.content.Intent
+import android.speech.RecognizerIntent
 import android.text.format.DateUtils
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -37,8 +44,11 @@ import io.agents.pokeclaw.agent.skill.Skill
 import io.agents.pokeclaw.agent.skill.SkillCategory
 import io.agents.pokeclaw.agent.skill.SkillRegistry
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.res.stringResource
+import io.agents.pokeclaw.utils.XLog
 import androidx.compose.ui.focus.FocusManager
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
@@ -850,6 +860,37 @@ private fun ChatInputBar(
     var text by remember { mutableStateOf("") }
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val context = LocalContext.current
+
+    // Voice input — Android system RecognizerIntent, no RECORD_AUDIO needed (system dialog
+    // handles its own permission). Appends transcript to current text instead of replacing,
+    // so users can prefix with typed context.
+    val voiceLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        XLog.d("VoiceInput", "voiceLauncher result: resultCode=${result.resultCode}")
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data
+                ?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+                ?.firstOrNull()
+                ?.takeIf { it.isNotBlank() }
+            if (spokenText != null) {
+                XLog.i("VoiceInput", "transcript received: ${spokenText.length} chars, currentText.len=${text.length}")
+                val prefix = when {
+                    text.isBlank() -> ""
+                    text.endsWith(" ") -> text
+                    else -> "$text "
+                }
+                text = prefix + spokenText
+            } else {
+                XLog.w("VoiceInput", "transcript empty or missing from result data")
+                Toast.makeText(context, R.string.voice_input_error, Toast.LENGTH_SHORT).show()
+            }
+        } else {
+            XLog.d("VoiceInput", "voice input cancelled by user (resultCode != OK)")
+        }
+    }
+
     // Consume prefill from prompt chips
     LaunchedEffect(prefillText) {
         if (prefillText.isNotEmpty()) {
@@ -954,6 +995,59 @@ private fun ChatInputBar(
                 textStyle = androidx.compose.ui.text.TextStyle(fontSize = 14.sp),
                 maxLines = 4,
             )
+
+            Spacer(Modifier.width(6.dp))
+
+            // Voice input mic button (Issue #44) — launches Android system speech dialog.
+            // Available whenever input is enabled (including while a task runs, so user
+            // can queue next prompt with voice without waiting).
+            val micEnabled = inputEnabled
+            FloatingActionButton(
+                onClick = {
+                    XLog.i("VoiceInput", "mic tapped: text.len=${text.length}, isTaskMode=$isTaskMode, isLocalModel=$isLocalModel")
+                    val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                        putExtra(
+                            RecognizerIntent.EXTRA_LANGUAGE_MODEL,
+                            RecognizerIntent.LANGUAGE_MODEL_FREE_FORM
+                        )
+                        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault())
+                        putExtra(
+                            RecognizerIntent.EXTRA_PROMPT,
+                            context.getString(R.string.voice_input_prompt)
+                        )
+                    }
+                    try {
+                        voiceLauncher.launch(intent)
+                    } catch (e: ActivityNotFoundException) {
+                        XLog.e("VoiceInput", "no speech recognition service installed", e)
+                        Toast.makeText(
+                            context,
+                            R.string.voice_input_unavailable,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    } catch (e: Exception) {
+                        XLog.e("VoiceInput", "voice launch failed unexpectedly", e)
+                        Toast.makeText(
+                            context,
+                            R.string.voice_input_error,
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                },
+                modifier = Modifier
+                    .size(34.dp)
+                    .alpha(if (micEnabled) 1f else 0.35f),
+                containerColor = colors.background,
+                shape = CircleShape,
+                elevation = FloatingActionButtonDefaults.elevation(defaultElevation = 0.dp),
+            ) {
+                Icon(
+                    Icons.Default.Mic,
+                    contentDescription = stringResource(R.string.voice_input_button_cd),
+                    tint = colors.textTertiary,
+                    modifier = Modifier.size(16.dp),
+                )
+            }
 
             Spacer(Modifier.width(6.dp))
 
@@ -1673,14 +1767,17 @@ private fun SidebarContent(
             }
             items(conversations.size) { index ->
                 val conv = conversations[index]
-                Surface(
+                // Per BACKLOG P3 "Rename chat session" — long-press still opens the
+                // Rename/Delete action menu (kept for power users), AND a tappable
+                // pencil icon now sits at the trailing edge for discoverability.
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .combinedClickable(
                             onClick = { onSelectConversation(conv) },
                             onLongClick = { actionTarget = conv },
                         ),
-                    color = androidx.compose.ui.graphics.Color.Transparent,
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Text(
                         text = conv.title,
@@ -1688,7 +1785,21 @@ private fun SidebarContent(
                         color = colors.textPrimary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(start = 20.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
+                    )
+                    Icon(
+                        Icons.Default.Edit,
+                        contentDescription = "Rename conversation",
+                        tint = colors.textTertiary,
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(18.dp)
+                            .clickable {
+                                renameText = conv.title
+                                renameTarget = conv
+                            },
                     )
                 }
             }

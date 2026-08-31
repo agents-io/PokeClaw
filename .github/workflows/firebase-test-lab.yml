@@ -1,0 +1,149 @@
+name: Firebase Test Lab — real device smoke
+
+# Runs the same smoke test as emulator-matrix.yml but on REAL devices in
+# Firebase Test Lab. Catches what AOSP emulators miss:
+# - Pixel Tensor GPU / LiteRT path
+# - Real Samsung One UI variants
+# - Real OpenCL driver presence (catches #14 root cause class)
+# - Battery / thermal behavior under load
+#
+# Triggers:
+# - release tag (vX.Y.Z): full matrix on signed release APK
+# - workflow_dispatch: manual run, debug APK
+#
+# Requires GitHub Actions secrets (NOT installed yet as of 2026-05-26):
+#   GCP_PROJECT_ID            - the Google Cloud project that has Firebase
+#                               Test Lab API enabled
+#   GCP_SA_KEY_JSON           - the JSON service-account key (base64 or raw)
+#                               with the role `roles/cloudtestservice.testAdmin`
+#                               and `roles/firebase.testLabAdmin`
+#
+# Setup playbook: docs/OEM_COVERAGE_TIERS.md → T2 section.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      apk_path:
+        description: 'Path to APK to test (default: latest build artifact)'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  build-apk:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk-for-ftl
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  ftl-smoke:
+    name: Firebase Test Lab smoke (real devices)
+    needs: build-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse to run without GCP secrets
+        run: |
+          if [ -z "${{ secrets.GCP_PROJECT_ID }}" ] || [ -z "${{ secrets.GCP_SA_KEY_JSON }}" ]; then
+            echo "::error::Missing GCP_PROJECT_ID or GCP_SA_KEY_JSON repo secret. See docs/OEM_COVERAGE_TIERS.md T2 for setup."
+            exit 1
+          fi
+          echo "Secrets present, proceeding."
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-apk-for-ftl
+          path: apk
+
+      - name: Locate APK
+        id: apk
+        run: |
+          APK="$(find apk -type f -name '*.apk' | head -1)"
+          if [ -z "$APK" ] || [ ! -f "$APK" ]; then
+            echo "::error::No APK found"
+            ls -laR apk/
+            exit 1
+          fi
+          echo "path=$APK" >> "$GITHUB_OUTPUT"
+          echo "Using APK: $APK ($(stat -c%s "$APK") bytes)"
+
+      - name: Auth to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY_JSON }}
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v2
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+
+      - name: Run FTL smoke — 3-device matrix
+        # Real device coverage:
+        # - Pixel 7 / Tensor — Pixel-class regressions, GPU/LiteRT path
+        # - Samsung Galaxy S22 / Snapdragon — Samsung One UI, Knox
+        # - Xiaomi Redmi Note 11 — MIUI vendor service behavior (FTL coverage may vary)
+        # Smoke type: ROBO (no test code needed — FTL drives the UI)
+        run: |
+          set -e
+          APK="${{ steps.apk.outputs.path }}"
+          echo "::group::FTL smoke matrix"
+          # NOTE: --results-bucket intentionally omitted. On the Spark (free) plan
+          # the project cannot create its own Cloud Storage buckets, but Firebase
+          # Test Lab will auto-create and use a default scratch bucket
+          # (test-lab-<random>) under the project. That's exactly what we want for
+          # a free-tier smoke harness.
+          gcloud firebase test android run \
+            --type robo \
+            --app "$APK" \
+            --device model=panther,version=33,locale=en,orientation=portrait \
+            --device model=b0q,version=33,locale=en,orientation=portrait \
+            --timeout 5m \
+            --num-flaky-test-attempts=0 \
+            --no-record-video \
+            --no-performance-metrics \
+            --results-history-name "pokeclaw-smoke-${{ github.ref_name }}" \
+            || (echo "::error::FTL smoke FAILED"; exit 1)
+          echo "::endgroup::"
+
+      - name: Summarize
+        if: always()
+        run: |
+          echo "## Firebase Test Lab — real device smoke" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Tested APK: ${{ steps.apk.outputs.path }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Results: see FTL console for auto-created scratch bucket (Spark plan)." >> $GITHUB_STEP_SUMMARY
+          echo "Console: https://console.firebase.google.com/project/${{ secrets.GCP_PROJECT_ID }}/testlab/histories" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**This covers what the emulator matrix CANNOT** — Pixel Tensor GPU, real Samsung One UI, real OpenCL driver presence." >> $GITHUB_STEP_SUMMARY

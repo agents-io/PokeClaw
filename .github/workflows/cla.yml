@@ -14,6 +14,7 @@ permissions:
 
 jobs:
   cla-check:
+    if: github.event_name != 'issue_comment' || github.event.issue.pull_request
     runs-on: ubuntu-latest
     steps:
       - name: CLA Assistant
@@ -26,10 +27,6 @@ jobs:
           path-to-document: https://github.com/agents-io/PokeClaw/blob/main/CLA.md
           branch: main
           allowlist: bot*
-
-          sign-comment: "I have read the CLA and I agree"
-
-          signed-comment-emoji: ":white_check_mark:"
 
           custom-notsigned-prcomment: |
             Thank you for your contribution to PokeClaw!

@@ -3,13 +3,16 @@
 
 package io.agents.pokeclaw.support
 
+import android.app.ActivityManager
 import android.content.Context
 import android.os.Build
 import io.agents.pokeclaw.AppCapabilityCoordinator
 import io.agents.pokeclaw.BuildConfig
 import io.agents.pokeclaw.agent.llm.LocalBackendHealth
+import io.agents.pokeclaw.agent.llm.LocalModelManager
 import io.agents.pokeclaw.agent.llm.ModelConfigRepository
 import io.agents.pokeclaw.service.AutoReplyManager
+import io.agents.pokeclaw.utils.AppLogStore
 import io.agents.pokeclaw.utils.KVUtils
 import java.io.File
 import java.io.FileInputStream
@@ -33,7 +36,9 @@ object DebugReportManager {
 
         ZipOutputStream(FileOutputStream(output)).use { zip ->
             addText(zip, "summary.txt", buildSummary(context))
+            addText(zip, "bug-report-template.txt", buildBugReportTemplate(context))
             collectLogcat().takeIf { it.isNotBlank() }?.let { addText(zip, "app-logcat.txt", it) }
+            addRecentAppLogs(zip, context)
             addRecentHttpLogs(zip, context.cacheDir)
         }
 
@@ -45,6 +50,8 @@ object DebugReportManager {
         val config = ModelConfigRepository.snapshot()
         val httpDir = File(context.cacheDir, "http_logs")
         val httpLogs = httpDir.listFiles()?.size ?: 0
+        val appLogs = AppLogStore.listLogFiles(context).size
+        val modelStorage = LocalModelManager.storageDiagnostics(context)
         val autoReplyManager = AutoReplyManager.getInstance()
         val monitorTargets = autoReplyManager.monitoredTargets.joinToString(", ") { it.displayLabel }
         val cpuSafeAt = KVUtils.getLocalCpuSafeAt()
@@ -73,6 +80,13 @@ object DebugReportManager {
             appendLine("- Hardware: ${Build.HARDWARE}")
             appendLine("- Fingerprint: ${Build.FINGERPRINT}")
             appendLine("- Android: ${Build.VERSION.RELEASE} (SDK ${Build.VERSION.SDK_INT})")
+            appendLine("- Supported ABIs: ${Build.SUPPORTED_ABIS.joinToString(", ")}")
+            appendLine("- RAM (total): ${getDeviceRamGb(context)} GB")
+            appendLine()
+            appendLine("Local Inference Runtime (#41 / #14 diagnostics)")
+            val openClPaths = detectOpenClLibraryPaths()
+            appendLine("- OpenCL libraries found: ${if (openClPaths.isEmpty()) "(none) — GPU path will not work" else openClPaths.joinToString(", ")}")
+            appendLine("- Backend health: ${LocalBackendHealth.debugStateSummary()}")
             appendLine()
             appendLine("Capabilities")
             appendLine("- Accessibility: ${capabilities.accessibilityStatusLabel}")
@@ -105,12 +119,48 @@ object DebugReportManager {
             appendLine("- GPU re-arm eligible now: ${if (gpuRearmEligible) "Yes" else "No"}")
             appendLine("- Pending GPU init marker: ${if (LocalBackendHealth.hasPendingGpuInitMarker()) "Present" else "None"}")
             appendLine()
+            appendLine("Local model storage")
+            appendLine("- Selected model dir: ${modelStorage.selectedDir ?: "(none)"}")
+            appendLine("- Selected model dir available bytes: ${modelStorage.selectedAvailableBytes?.toString() ?: "(unknown)"}")
+            appendLine("- Selected model dir error: ${modelStorage.selectedError ?: "(none)"}")
+            appendLine("- External model dir: ${modelStorage.externalDir}")
+            appendLine("- External model dir status: ${modelStorage.externalStatus}")
+            appendLine("- Internal model dir: ${modelStorage.internalDir}")
+            appendLine("- Internal model dir status: ${modelStorage.internalStatus}")
+            appendLine()
             appendLine("Auto-reply")
             appendLine("- Enabled: ${if (autoReplyManager.isEnabled) "Yes" else "No"}")
             appendLine("- Targets: ${monitorTargets.ifBlank { "(none)" }}")
             appendLine()
             appendLine("Artifacts")
+            appendLine("- App rolling logs present: $appLogs")
             appendLine("- HTTP log files present: $httpLogs")
+        }
+    }
+
+    private fun buildBugReportTemplate(context: Context): String {
+        return buildString {
+            appendLine("PokeClaw Bug Report Template")
+            appendLine()
+            appendLine("Attach this ZIP and fill in the blanks below:")
+            appendLine()
+            appendLine("- What happened:")
+            appendLine("- What you expected instead:")
+            appendLine("- Exact steps to reproduce:")
+            appendLine("- Does it happen every time, or only sometimes?")
+            appendLine("- Device model + ROM/build:")
+            appendLine("- App version: ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})")
+            appendLine()
+            appendLine("If this looks device-specific and you have ADB available, add:")
+            appendLine("adb logcat -c")
+            appendLine("adb logcat -v time > pokeclaw-logcat.txt")
+            appendLine("# reproduce once, then stop with Ctrl+C")
+            appendLine("adb shell dumpsys activity top > pokeclaw-activity-top.txt")
+            appendLine("adb shell dumpsys activity services io.agents.pokeclaw > pokeclaw-services.txt")
+            appendLine()
+            appendLine("Open a new GitHub issue: https://github.com/agents-io/PokeClaw/issues/new")
+            appendLine("Built on: ${Date()}")
+            appendLine("Package: ${context.packageName}")
         }
     }
 
@@ -128,6 +178,7 @@ object DebugReportManager {
                 "AutoReplyManager:V",
                 "ForegroundService:V",
                 "LocalBackendHealth:V",
+                "LocalModelManager:V",
                 "EngineHolder:V",
                 "LocalModelRuntime:V",
                 "InputTextTool:V",
@@ -149,6 +200,13 @@ object DebugReportManager {
         }
     }
 
+    private fun addRecentAppLogs(zip: ZipOutputStream, context: Context) {
+        val files = AppLogStore.listLogFiles(context)
+        for (file in files) {
+            addFile(zip, "app_logs/${file.name}", file)
+        }
+    }
+
     private fun addText(zip: ZipOutputStream, entryName: String, content: String) {
         zip.putNextEntry(ZipEntry(entryName))
         zip.write(content.toByteArray(Charsets.UTF_8))
@@ -165,5 +223,36 @@ object DebugReportManager {
     private fun formatEpoch(value: Long): String {
         if (value <= 0L) return "(none)"
         return Date(value).toString()
+    }
+
+    /** Returns total device RAM in GB (rounded up). Used in debug summary for GPU/model RAM
+     *  sizing diagnostics (#41 / #14 — OEM bug reporters need to know real RAM vs minRamGb). */
+    private fun getDeviceRamGb(context: Context): Int {
+        return try {
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val info = ActivityManager.MemoryInfo()
+            am.getMemoryInfo(info)
+            (info.totalMem / (1024L * 1024L * 1024L)).toInt() + 1
+        } catch (_: Throwable) {
+            -1
+        }
+    }
+
+    /** Probes well-known Android OpenCL driver paths. If none exist the GPU LiteRT path will
+     *  fail at first inference (this is the root cause for issue #14 and the Pixel-8-Pro
+     *  GPU→CPU fallback documented in #41). Returning the actual paths found makes triage
+     *  trivial for non-Pixel OEM reporters. */
+    private fun detectOpenClLibraryPaths(): List<String> {
+        val candidates = listOf(
+            "/system/vendor/lib64/libOpenCL.so",
+            "/system/vendor/lib/libOpenCL.so",
+            "/vendor/lib64/libOpenCL.so",
+            "/vendor/lib/libOpenCL.so",
+            "/system/lib64/libOpenCL.so",
+            "/system/lib/libOpenCL.so",
+        )
+        return candidates.filter {
+            runCatching { File(it).exists() }.getOrDefault(false)
+        }
     }
 }

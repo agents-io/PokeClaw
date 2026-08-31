@@ -52,11 +52,17 @@ data class ResolvedModelConfig(
         maxIterations: Int,
         streaming: Boolean = false
     ): AgentConfig {
+        // Inject persistent global instructions (#45) into systemPrompt.
+        // This is the runtime construction path used by AppViewModel/AgentService,
+        // bypassing AgentConfig.Builder.build(), so we must apply the helper here too.
+        val finalSystemPrompt = io.agents.pokeclaw.agent.PromptUtils
+            .applyGlobalPrompt(AgentConfig.DEFAULT_SYSTEM_PROMPT)
         return if (activeMode == ActiveModelMode.LOCAL) {
             AgentConfig(
                 apiKey = "",
                 baseUrl = local.modelPath,
                 modelName = local.modelId,
+                systemPrompt = finalSystemPrompt,
                 maxIterations = maxIterations,
                 temperature = temperature,
                 provider = LlmProvider.LOCAL,
@@ -67,6 +73,7 @@ data class ResolvedModelConfig(
                 apiKey = activeCloud.apiKey,
                 baseUrl = activeCloud.resolvedBaseUrl,
                 modelName = activeCloud.modelName,
+                systemPrompt = finalSystemPrompt,
                 maxIterations = maxIterations,
                 temperature = temperature,
                 provider = activeCloud.agentProvider,

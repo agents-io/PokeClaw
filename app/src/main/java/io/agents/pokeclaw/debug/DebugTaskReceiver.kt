@@ -59,11 +59,15 @@ class DebugTaskReceiver : BroadcastReceiver() {
             return
         }
         if (directTool.isNotEmpty()) {
-            executeTool(intent, directTool, paramsJson)
+            runAsync("debug-tool-$directTool") {
+                executeTool(intent, directTool, paramsJson)
+            }
             return
         }
         if (simulateMessage.isNotEmpty()) {
-            simulateIncomingMessage(intent, simulateMessage)
+            runAsync("debug-simulate-message") {
+                simulateIncomingMessage(intent, simulateMessage)
+            }
             return
         }
 
@@ -110,6 +114,19 @@ class DebugTaskReceiver : BroadcastReceiver() {
             return
         }
 
+        if (task == "cancel:" || task == "__cancel__") {
+            try {
+                val vm = io.agents.pokeclaw.ClawApplication.appViewModelInstance
+                vm.stopTask()
+                vm.clearTaskCallback()
+                XLog.i("DebugTaskReceiver", "Debug task cancellation requested")
+                breadcrumb(context, "cancel requested")
+            } catch (e: Exception) {
+                XLog.e("DebugTaskReceiver", "Failed to cancel debug task", e)
+            }
+            return
+        }
+
         try {
             val vm = io.agents.pokeclaw.ClawApplication.appViewModelInstance
             vm.startTask(task, "debug_${System.currentTimeMillis()}") { /* no UI callback for debug */ }
@@ -117,6 +134,19 @@ class DebugTaskReceiver : BroadcastReceiver() {
         } catch (e: Exception) {
             XLog.e("DebugTaskReceiver", "Failed to start task", e)
         }
+    }
+
+    private fun runAsync(name: String, block: () -> Unit) {
+        val pending = goAsync()
+        Thread({
+            try {
+                block()
+            } catch (e: Exception) {
+                XLog.e("DebugTaskReceiver", "Async debug action failed: $name", e)
+            } finally {
+                pending.finish()
+            }
+        }, name).start()
     }
 
     private fun executeTool(intent: Intent, toolName: String, paramsJson: String) {

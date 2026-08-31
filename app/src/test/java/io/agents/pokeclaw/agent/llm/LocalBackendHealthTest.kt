@@ -14,6 +14,7 @@ class LocalBackendHealthTest {
                 currentDeviceKey = "device-a",
                 pendingDeviceKey = "device-a",
                 pendingAtMs = now - 5_000L,
+                pendingPid = 0,
                 nowMs = now,
             )
         )
@@ -27,6 +28,7 @@ class LocalBackendHealthTest {
                 currentDeviceKey = "device-a",
                 pendingDeviceKey = "device-b",
                 pendingAtMs = now - 5_000L,
+                pendingPid = 0,
                 nowMs = now,
             )
         )
@@ -40,6 +42,7 @@ class LocalBackendHealthTest {
                 currentDeviceKey = "device-a",
                 pendingDeviceKey = "device-a",
                 pendingAtMs = now - 100_000L,
+                pendingPid = 0,
                 nowMs = now,
                 maxAgeMs = 10_000L,
             )

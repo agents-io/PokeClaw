@@ -36,6 +36,7 @@ object TaskParser {
         val lower = task.lowercase().trim()
 
         return matchCall(lower, task)
+            ?: matchSendMessage(lower, task)
             ?: matchSms(lower, task)
             ?: matchAlarm(lower, task)
             ?: matchTimer(lower, task)
@@ -69,6 +70,49 @@ object TaskParser {
             // search for the contact, and dial. "call" is in looksLikeTask
             // so agent loop will get screen context.
             null
+        }
+    }
+
+    private val SEND_MESSAGE_PATTERN = Regex(
+        """(?:send|message|text)\s+(.+?)\s+to\s+(.+?)(?:\s+on\s+([\p{L}\p{N} ._-]+))?$""",
+        RegexOption.IGNORE_CASE
+    )
+
+    private fun matchSendMessage(lower: String, original: String): ParseResult? {
+        if (lower.contains("email")) return null
+        val match = SEND_MESSAGE_PATTERN.find(original.trim()) ?: return null
+        val message = match.groupValues[1].trim().trim('"', '\'')
+        val contact = match.groupValues[2].trim().trim('"', '\'')
+        val app = canonicalMessagingApp(match.groupValues.getOrNull(3))
+
+        if (message.isBlank() || contact.isBlank()) return null
+        if (contact.contains("@")) return null
+
+        val contextual = setOf("that", "this", "it", "them", "above", "summary", "token")
+        val messageTokens = message.lowercase().split(Regex("\\s+")).filter { it.isNotBlank() }
+        if (messageTokens.any { it in contextual }) return null
+
+        return ParseResult(
+            action = "send_message",
+            intent = null,
+            toolName = "send_message",
+            toolParams = mapOf(
+                "contact" to contact,
+                "message" to message,
+                "app" to app,
+            ),
+            description = "Sending '$message' to $contact via $app"
+        )
+    }
+
+    private fun canonicalMessagingApp(raw: String?): String {
+        val value = raw?.trim().orEmpty()
+        if (value.isBlank()) return "WhatsApp"
+        return when (value.lowercase()) {
+            "wa", "whatsapp", "whats app" -> "WhatsApp"
+            "telegram", "tg" -> "Telegram"
+            "sms", "message", "messages", "android messages", "google messages" -> "Messages"
+            else -> value
         }
     }
 

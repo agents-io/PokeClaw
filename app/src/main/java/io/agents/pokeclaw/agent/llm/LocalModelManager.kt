@@ -30,7 +30,11 @@ object LocalModelManager {
         val url: String,
         val fileName: String,
         val sizeBytes: Long,
-        val minRamGb: Int
+        val minRamGb: Int,
+        /** True when this model came from the user-supplied custom URL (#36).
+         *  Custom models skip strict size-bound validation since we don't know
+         *  the expected size up front. */
+        val isCustom: Boolean = false
     )
 
     data class DeviceSupport(
@@ -130,7 +134,7 @@ object LocalModelManager {
 
     fun catalog(context: Context): List<CatalogEntry> {
         val support = deviceSupport(context)
-        return AVAILABLE_MODELS.map { model ->
+        val builtIns = AVAILABLE_MODELS.map { model ->
             CatalogEntry(
                 model = model,
                 isDownloaded = isModelDownloaded(context, model),
@@ -138,6 +142,40 @@ object LocalModelManager {
                 path = getModelPath(context, model),
             )
         }
+        val custom = customModel()?.let { model ->
+            listOf(
+                CatalogEntry(
+                    model = model,
+                    isDownloaded = isModelDownloaded(context, model),
+                    isSupported = true, // user opted in — don't gate on RAM heuristic
+                    path = getModelPath(context, model),
+                )
+            )
+        } ?: emptyList()
+        return builtIns + custom
+    }
+
+    /** Returns a synthetic ModelInfo for the user's custom URL (#36), or null if not set.
+     *  fileName is derived from the URL's last path segment; sizeBytes is unknown (0)
+     *  and validation falls back to a 1MB minimum (see isValidModelFile). */
+    fun customModel(): ModelInfo? {
+        val url = io.agents.pokeclaw.utils.KVUtils.getCustomLocalModelUrl()
+        if (url.isBlank()) return null
+        val fileName = url.substringAfterLast('/').ifBlank { "custom-model.bin" }
+            .let { name ->
+                // Defensive: strip query string if present
+                val q = name.indexOf('?')
+                if (q > 0) name.substring(0, q) else name
+            }
+        return ModelInfo(
+            id = "custom-local",
+            displayName = "Custom: $fileName",
+            url = url,
+            fileName = fileName,
+            sizeBytes = 0L,
+            minRamGb = 0,
+            isCustom = true,
+        )
     }
 
     fun configuredBuiltInModel(localConfig: LocalModelConfig): ModelInfo? {
@@ -215,13 +253,119 @@ object LocalModelManager {
         fun onError(error: String)
     }
 
+    data class ModelStorageDiagnostics(
+        val selectedDir: String?,
+        val selectedAvailableBytes: Long?,
+        val selectedError: String?,
+        val externalDir: String,
+        val externalStatus: String,
+        val internalDir: String,
+        val internalStatus: String,
+    )
+
     /**
      * Get the directory where models are stored.
      */
     fun getModelDir(context: Context): File {
-        val dir = File(context.getExternalFilesDir(null), "models")
-        if (!dir.exists()) dir.mkdirs()
-        return dir
+        return resolveUsableModelDir(
+            externalRoot = context.getExternalFilesDir(null),
+            internalRoot = context.filesDir,
+        )
+    }
+
+    internal fun resolveUsableModelDir(
+        externalRoot: File?,
+        internalRoot: File,
+        canWriteDirectory: (File) -> Boolean = ::canWriteToDirectory,
+    ): File {
+        val externalDir = externalRoot?.let { File(it, "models") }
+        if (externalDir != null && prepareModelDirectory(externalDir, canWriteDirectory)) {
+            return externalDir
+        }
+
+        val internalDir = File(internalRoot, "models")
+        if (prepareModelDirectory(internalDir, canWriteDirectory)) {
+            return internalDir
+        }
+
+        throw IllegalStateException(
+            "Could not create model storage directory at ${externalDir?.absolutePath ?: "(no external dir)"} or ${internalDir.absolutePath}"
+        )
+    }
+
+    fun storageDiagnostics(context: Context): ModelStorageDiagnostics {
+        val externalDir = context.getExternalFilesDir(null)?.let { File(it, "models") }
+        val internalDir = File(context.filesDir, "models")
+        val selected = runCatching { getModelDir(context) }
+
+        return ModelStorageDiagnostics(
+            selectedDir = selected.getOrNull()?.absolutePath,
+            selectedAvailableBytes = selected.getOrNull()?.let { availableBytes(it) },
+            selectedError = selected.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" },
+            externalDir = externalDir?.absolutePath ?: "(no external files dir)",
+            externalStatus = describeModelDirectory(externalDir),
+            internalDir = internalDir.absolutePath,
+            internalStatus = describeModelDirectory(internalDir),
+        )
+    }
+
+    private fun prepareModelDirectory(dir: File, canWriteDirectory: (File) -> Boolean): Boolean {
+        if (!ensureDirectory(dir)) {
+            logWarning("Model directory is not usable: could not create ${dir.absolutePath}")
+            return false
+        }
+        if (!canWriteDirectory(dir)) {
+            logWarning("Model directory is not usable: write probe failed for ${dir.absolutePath}")
+            return false
+        }
+        return true
+    }
+
+    private fun ensureDirectory(dir: File): Boolean {
+        return dir.isDirectory || dir.mkdirs() || dir.isDirectory
+    }
+
+    private fun canWriteToDirectory(dir: File): Boolean {
+        val probe = File(dir, ".pokeclaw-write-probe")
+        return runCatching {
+            FileOutputStream(probe, false).use { output ->
+                output.write(1)
+            }
+            if (probe.exists() && !probe.delete()) {
+                logWarning("Could not delete model storage probe: ${probe.absolutePath}")
+            }
+            true
+        }.getOrElse { e ->
+            logWarning("Model storage write probe failed: ${dir.absolutePath}", e)
+            false
+        }
+    }
+
+    private fun logWarning(message: String, throwable: Throwable? = null) {
+        runCatching {
+            if (throwable == null) {
+                XLog.w(TAG, message)
+            } else {
+                XLog.w(TAG, message, throwable)
+            }
+        }
+    }
+
+    private fun describeModelDirectory(dir: File?): String {
+        if (dir == null) return "unavailable"
+        val stat = runCatching { StatFs(dir.absolutePath).availableBytes }
+        return listOf(
+            "exists=${dir.exists()}",
+            "isDirectory=${dir.isDirectory}",
+            "canRead=${dir.canRead()}",
+            "canWrite=${dir.canWrite()}",
+            "availableBytes=${stat.getOrNull() ?: "(unknown)"}",
+            "statError=${stat.exceptionOrNull()?.let { "${it.javaClass.simpleName}: ${it.message}" } ?: "(none)"}",
+        ).joinToString(", ")
+    }
+
+    private fun availableBytes(dir: File): Long? {
+        return runCatching { StatFs(dir.absolutePath).availableBytes }.getOrNull()
     }
 
     /**
@@ -287,7 +431,13 @@ object LocalModelManager {
         model: ModelInfo,
         callback: DownloadCallback
     ) {
-        val modelDir = getModelDir(context)
+        val modelDir = try {
+            getModelDir(context)
+        } catch (e: Exception) {
+            XLog.e(TAG, "Could not prepare model storage", e)
+            callback.onError("Could not prepare model storage: ${e.message}")
+            return
+        }
         val targetFile = File(modelDir, model.fileName)
         val tempFile = File(modelDir, "${model.fileName}.downloading")
         cleanupInvalidFiles(model, targetFile, tempFile)
@@ -425,6 +575,9 @@ object LocalModelManager {
         if (!file.exists()) return false
         val length = file.length()
         if (length <= 0L) return false
+        // Custom user-supplied models have unknown expected size — accept anything
+        // larger than 1MB (anything smaller is almost certainly not a real model).
+        if (model.isCustom) return length >= 1_048_576L
         return length in expectedLowerBound(model)..expectedUpperBound(model)
     }
 

@@ -51,6 +51,9 @@ public final class ContactListUiUtils {
         final int maxReopens = 2;
         for (int attempt = 0; attempt <= attempts; attempt++) {
             AccessibilityNodeInfo root = service.getRootInActiveWindow();
+            if (dismissBlockingOverlay(service, root, settleMs)) {
+                continue;
+            }
             if (isContactLookupReady(root)) {
                 XLog.i(TAG, "prepareForContactLookup: ready on attempt=" + attempt);
                 return true;
@@ -256,6 +259,10 @@ public final class ContactListUiUtils {
         }
 
         AccessibilityNodeInfo searchField = UiActionMatchUtils.findBestSearchField(root);
+        if (searchField == null && dismissBlockingOverlay(service, root, settleMs)) {
+            root = service.getRootInActiveWindow();
+            searchField = UiActionMatchUtils.findBestSearchField(root);
+        }
         boolean tappedSearchAction = false;
         if (searchField == null) {
             AccessibilityNodeInfo searchAction = UiActionMatchUtils.findBestSearchAction(root);
@@ -454,21 +461,19 @@ public final class ContactListUiUtils {
             return Integer.MIN_VALUE;
         }
 
-        // Avoid false positives like WhatsApp camera/search icons in the top bar.
-        // A close candidate must expose an explicit close/dismiss semantic signal.
-        boolean hasCloseId = viewIdLower.contains("close") || viewIdLower.contains("dismiss");
-        boolean hasCloseText = matchesCloseHint(text) || matchesCloseHint(desc);
-        if (!hasCloseId && !hasCloseText) {
+        boolean explicitClose = false;
+        if (viewId != null && (viewId.toLowerCase().contains("close") || viewId.toLowerCase().contains("dismiss"))) {
+            explicitClose = true;
+        }
+        if (matchesCloseHint(text) || matchesCloseHint(desc)) {
+            explicitClose = true;
+        }
+        if (!explicitClose) {
             return Integer.MIN_VALUE;
         }
 
         int score = 10;
-        if (hasCloseId) {
-            score += 100;
-        }
-        if (hasCloseText) {
-            score += 90;
-        }
+        score += 100;
         if (className.contains("ImageButton") || className.contains("ImageView")) {
             score += 20;
         }

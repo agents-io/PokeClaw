@@ -97,6 +97,44 @@ configure_mode() {
     sleep 2
 }
 
+cancel_running_task() {
+    adb_retry adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task 'cancel:'" >/dev/null 2>&1 || true
+    sleep "${TASK_CANCEL_SETTLE_SECONDS:-2}"
+}
+
+dismiss_blocking_system_dialogs() {
+    local window_state
+    window_state="$(adb shell dumpsys window 2>/dev/null || true)"
+    if printf '%s' "$window_state" | grep -q "Application Not Responding: io.agents.pokeclaw"; then
+        # Android ANR dialogs use package=android and block Accessibility focus.
+        # Coordinates default to the Pixel 8 Pro QA device; override if needed.
+        adb shell input tap "${ANR_CLOSE_X:-300}" "${ANR_CLOSE_Y:-1158}" >/dev/null 2>&1 || true
+        sleep 2
+    fi
+}
+
+wait_for_accessibility() {
+    local attempt
+    for attempt in $(seq 1 "${ACCESSIBILITY_WAIT_ATTEMPTS:-10}"); do
+        if adb shell dumpsys accessibility 2>/dev/null | grep -q "Bound services:{Service\\[label=PokeClaw"; then
+            return 0
+        fi
+        sleep 1
+    done
+    echo "    WARN — PokeClaw Accessibility service did not report bound before task start" | tee -a "$RESULTS_FILE"
+    return 1
+}
+
+reset_foreground() {
+    adb shell input keyevent KEYCODE_WAKEUP >/dev/null 2>&1 || true
+    adb shell wm dismiss-keyguard >/dev/null 2>&1 || true
+    adb shell cmd statusbar collapse >/dev/null 2>&1 || true
+    dismiss_blocking_system_dialogs
+    adb_retry adb shell am start -n io.agents.pokeclaw/.ui.splash.SplashActivity >/dev/null 2>&1 || true
+    wait_for_accessibility >/dev/null 2>&1 || true
+    sleep "${TASK_RESET_SETTLE_SECONDS:-2}"
+}
+
 classify_blocked() {
     local message_lower
     message_lower="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]')"
@@ -123,6 +161,8 @@ run() {
     echo "[$TOTAL] $name" | tee -a "$RESULTS_FILE"
     echo "    Task: $task" | tee -a "$RESULTS_FILE"
 
+    cancel_running_task
+    reset_foreground
     adb_retry adb logcat -c >/dev/null 2>&1 || true
     sleep 1
     adb_retry adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task '$task'" >/dev/null 2>&1
@@ -149,9 +189,9 @@ run() {
         already="$(printf '%s\n' "$log" | grep 'already running' | tail -1 || true)"
 
         if [ -n "$already" ]; then
-            echo "    [${i}s] BLOCKED — agent still running previous task, retrying..." | tee -a "$RESULTS_FILE"
-            sleep 15
-            i=$((i + 15))
+            echo "    [${i}s] BLOCKED — agent still running previous task, cancelling and retrying..." | tee -a "$RESULTS_FILE"
+            cancel_running_task
+            reset_foreground
             adb_retry adb logcat -c >/dev/null 2>&1 || true
             adb_retry adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task '$task'" >/dev/null 2>&1
             continue
@@ -166,12 +206,12 @@ run() {
         if [ -n "$comp" ]; then
             ans="$(printf '%s\n' "$comp" | sed 's/.*answer=//')"
             tools="$(printf '%s\n' "$log" | grep 'onToolCall:' | sed 's/.*onToolCall: //' | tr '\n' ' ' || true)"
-            if printf '%s' "$ans" | grep -qiE 'budget limit reached|task cancelled|task stopped:'; then
-                record_result "FAIL" "$i" "$ans" "$tools"
-                FAIL=$((FAIL + 1))
-            elif classify_blocked "$ans"; then
+            if classify_blocked "$ans"; then
                 record_result "BLOCKED" "$i" "$ans" "$tools"
                 BLOCKED=$((BLOCKED + 1))
+            elif printf '%s' "$ans" | grep -qiE '(^|[[:space:]])failed:|budget limit reached|task cancelled|task stopped:'; then
+                record_result "FAIL" "$i" "$ans" "$tools"
+                FAIL=$((FAIL + 1))
             else
                 record_result "PASS" "$i" "$ans" "$tools"
                 PASS=$((PASS + 1))
@@ -193,6 +233,8 @@ run() {
     done
 
     echo "    TIMEOUT (${max}s)" | tee -a "$RESULTS_FILE"
+    cancel_running_task
+    reset_foreground
     TIMEOUT=$((TIMEOUT + 1))
 }
 
@@ -205,6 +247,8 @@ echo "==========================================" | tee -a "$RESULTS_FILE"
 adb_retry adb shell am start -n io.agents.pokeclaw/.ui.splash.SplashActivity >/dev/null 2>&1 || true
 sleep 3
 configure_mode
+cancel_running_task
+reset_foreground
 
 if [ "$MODE" = "cloud" ]; then
     run "Reddit pokeclaw"       "Open Reddit and search for pokeclaw" 60

@@ -150,6 +150,7 @@
     <string name="cd_task_error">タスク失敗</string>
     <string name="cd_channel_logo">チャネルロゴ</string>
     <string name="cd_app_logo">アプリロゴ</string>
+    <string name="cd_floating_idle">PokeClaw — タップしてフォーカス</string>
     <string name="cd_qr_code">QRコード</string>
     <string name="cd_toggle_password">パスワードの表示/非表示</string>
     <string name="cd_copy">コピー</string>
@@ -205,4 +206,25 @@
     <string name="input_dialog_need_more">%d文字以上入力してください</string>
     <string name="input_dialog_need_less">%d文字以内で入力してください</string>
     <string name="input_dialog_no_zero">ゼロ以外の値を入力してください</string>
+
+    <!-- 音声入力 (#44) -->
+    <string name="voice_input_button_cd">音声入力</string>
+    <string name="voice_input_prompt">話してください…</string>
+    <string name="voice_input_unavailable">この端末では音声認識を利用できません</string>
+    <string name="voice_input_error">音声入力に失敗しました。もう一度お試しください</string>
+
+    <!-- グローバル指示 (#45) -->
+    <string name="global_prompt_title">グローバル指示</string>
+    <string name="global_prompt_dialog_title">グローバル指示を編集</string>
+    <string name="global_prompt_hint">すべての会話に適用する指示。空欄で無効。</string>
+    <string name="global_prompt_not_set">未設定</string>
+    <string name="global_prompt_set_status">設定済み (%d 文字)</string>
+
+    <!-- カスタムローカルモデル URL (#36) -->
+    <string name="custom_local_model_url_title">カスタムローカルモデル URL</string>
+    <string name="custom_local_model_url_dialog_title">カスタムモデルのダウンロード URL</string>
+    <string name="custom_local_model_url_hint">https://… 直接の .litertlm ダウンロード URL。上級者向け：カスタムモデルはサイズ検証を緩和。</string>
+    <string name="custom_local_model_url_not_set">未設定</string>
+    <string name="custom_local_model_url_set">カスタム URL 設定済み</string>
+    <string name="custom_local_model_url_invalid">URL は http:// または https:// で始まる必要があります</string>
 </resources>

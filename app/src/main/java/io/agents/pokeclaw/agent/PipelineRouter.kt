@@ -6,6 +6,7 @@ package io.agents.pokeclaw.agent
 import android.content.Context
 import android.content.Intent
 import io.agents.pokeclaw.agent.skill.SkillRegistry
+import io.agents.pokeclaw.tool.ToolResult
 import io.agents.pokeclaw.tool.ToolRegistry
 import io.agents.pokeclaw.utils.XLog
 
@@ -101,10 +102,10 @@ class PipelineRouter(private val context: Context) {
     /**
      * Execute a Tier 1 direct tool call.
      */
-    fun executeTool(toolName: String, params: Map<String, Any>): String {
+    fun executeTool(toolName: String, params: Map<String, Any>): ToolResult {
         val result = ToolRegistry.getInstance().executeTool(toolName, params)
         XLog.i(TAG, "Executed tool: $toolName → ${if (result.isSuccess) "success" else result.error}")
-        return result.data ?: result.error ?: ""
+        return result
     }
 
     /**

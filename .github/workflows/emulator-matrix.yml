@@ -1,0 +1,162 @@
+name: Android Emulator Matrix QA
+
+# Boots emulators across multiple API levels, installs the debug APK,
+# launches the app, and captures logcat. Catches launch crashes /
+# regression on Android version differences without a physical device farm.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    name: Build debug APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-
+
+      - name: Build debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          retention-days: 7
+
+  smoke-test:
+    name: Smoke test on API ${{ matrix.api-level }} (${{ matrix.target }})
+    needs: build-apk
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Android 10 — oldest supported (PokeClaw requires Android 9+, API 28; testing 29 as min realistic)
+          - api-level: 29
+            target: default
+            arch: x86_64
+          # Android 12
+          - api-level: 31
+            target: default
+            arch: x86_64
+          # Android 13
+          - api-level: 33
+            target: default
+            arch: x86_64
+          # Android 14
+          - api-level: 34
+            target: google_apis
+            arch: x86_64
+          # Android 15 — latest
+          - api-level: 35
+            target: google_apis
+            arch: x86_64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Download APK artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: debug-apk
+          path: apk
+
+      - name: Cache AVD
+        uses: actions/cache@v4
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}-${{ matrix.target }}
+
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
+
+      - name: Run smoke test
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: ${{ matrix.arch }}
+          force-avd-creation: false
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          # NOTE: reactivecircus/android-emulator-runner@v2 runs each LINE of the
+          # `script:` block as a separate `sh -c <line>` call (variables and
+          # if/then/fi don't persist across lines). So we keep `script:` to a
+          # single command and put real logic in scripts/emulator-smoke.sh.
+          script: bash scripts/emulator-smoke.sh ${{ matrix.api-level }}
+
+      - name: Upload logs + screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-api${{ matrix.api-level }}-${{ matrix.target }}
+          path: |
+            logcat-*.txt
+            screen-*.png
+          retention-days: 7
+          if-no-files-found: ignore
+
+  matrix-summary:
+    name: Compatibility matrix summary
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Summarize matrix results
+        run: |
+          echo "## PokeClaw Compatibility Matrix" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Smoke test = app installs + launches + no FATAL within 8s." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Per-API results above. Logcat + screenshots saved as artifacts." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**This only covers AOSP / Google APIs emulators. Vendor (Xiaomi/Samsung/OPPO) coverage requires Firebase Test Lab or physical devices.**" >> $GITHUB_STEP_SUMMARY

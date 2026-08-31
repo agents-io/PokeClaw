@@ -198,7 +198,10 @@ Steps:
             require(apiKey.isNotEmpty() || baseUrl.isNotEmpty()) {
                 "Either API key or base URL is required"
             }
-            return AgentConfig(apiKey, baseUrl, modelName, systemPrompt, maxIterations, temperature, provider, streaming)
+            // Inject persistent global instructions (#45) ahead of whatever
+            // caller-specific systemPrompt was set. No-op if user hasn't set one.
+            val finalSystemPrompt = PromptUtils.applyGlobalPrompt(systemPrompt)
+            return AgentConfig(apiKey, baseUrl, modelName, finalSystemPrompt, maxIterations, temperature, provider, streaming)
         }
     }
 }

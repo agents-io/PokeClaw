@@ -523,8 +523,10 @@ class ChatSessionController(
     }
 
     private fun buildConversationConfig(systemPrompt: String? = null): ConversationConfig {
+        val finalPrompt = io.agents.pokeclaw.agent.PromptUtils
+            .applyGlobalPrompt(systemPrompt ?: BASE_SYSTEM_PROMPT)
         return ConversationConfig(
-            systemInstruction = Contents.of(systemPrompt ?: BASE_SYSTEM_PROMPT),
+            systemInstruction = Contents.of(finalPrompt),
             samplerConfig = SamplerConfig(topK = 64, topP = 0.95, temperature = 0.7)
         )
     }

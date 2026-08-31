@@ -134,12 +134,15 @@ class TaskOrchestrator(
             }
         }
 
+        ForegroundService.updateTaskStatus(ClawApplication.instance, "Preparing task...")
+
         // Tier 1: Deterministic routing
         val route = pipelineRouter.route(task)
         when (route) {
             is PipelineRouter.Route.DirectIntent -> {
                 XLog.i(TAG, "Pipeline Tier 1: DirectIntent — ${route.description}")
                 pipelineRouter.executeIntent(route.intent)
+                XLog.i(TAG, "onComplete: rounds=0, totalTokens=0, model=direct, answer=${route.description}")
                 taskEventCallback?.invoke(TaskEvent.Completed(route.description))
                 ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
                 releaseTask()
@@ -150,19 +153,40 @@ class TaskOrchestrator(
             }
             is PipelineRouter.Route.DirectTool -> {
                 XLog.i(TAG, "Pipeline Tier 1: DirectTool — ${route.toolName}")
-                val toolResult = pipelineRouter.executeTool(route.toolName, route.params)
-                if (toolResult.contains("Failed") || toolResult.contains("error") || toolResult.contains("Cannot")) {
-                    XLog.w(TAG, "Tier 1 tool failed: $toolResult")
-                    taskEventCallback?.invoke(TaskEvent.Completed("Failed: ${route.description}"))
-                    ChannelManager.sendMessage(channel, "✗ ${route.description}: $toolResult", messageID)
-                } else {
-                    taskEventCallback?.invoke(TaskEvent.Completed(route.description))
-                    ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
-                }
-                releaseTask()
-                ForegroundService.resetToIdle(ClawApplication.instance)
-                FloatingCircleManager.setSuccessState()
-                onTaskFinished()
+                Thread({
+                    var success = false
+                    val answer = try {
+                        val toolResult = pipelineRouter.executeTool(route.toolName, route.params)
+                        if (!toolResult.isSuccess) {
+                            val error = toolResult.error ?: "Unknown error"
+                            XLog.w(TAG, "Tier 1 tool failed: $error")
+                            taskEventCallback?.invoke(TaskEvent.Completed("Failed: ${route.description}"))
+                            ChannelManager.sendMessage(channel, "✗ ${route.description}: $error", messageID)
+                            "Failed: ${route.description}: $error"
+                        } else {
+                            success = true
+                            taskEventCallback?.invoke(TaskEvent.Completed(route.description))
+                            ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
+                            route.description
+                        }
+                    } catch (e: Exception) {
+                        val message = e.message ?: "Unknown error"
+                        XLog.e(TAG, "Tier 1 tool crashed: ${route.toolName}", e)
+                        taskEventCallback?.invoke(TaskEvent.Failed(message))
+                        ChannelManager.sendMessage(channel, "✗ ${route.description}: $message", messageID)
+                        "Failed: ${route.description}: $message"
+                    } finally {
+                        releaseTask()
+                        ForegroundService.resetToIdle(ClawApplication.instance)
+                        if (success) {
+                            FloatingCircleManager.setSuccessState()
+                        } else {
+                            FloatingCircleManager.setErrorState()
+                        }
+                        onTaskFinished()
+                    }
+                    XLog.i(TAG, "onComplete: rounds=0, totalTokens=0, model=direct, answer=$answer")
+                }, "direct-tool-${route.toolName}").start()
                 return
             }
             is PipelineRouter.Route.Skill -> {

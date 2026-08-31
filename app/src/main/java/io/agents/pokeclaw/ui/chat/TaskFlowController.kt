@@ -50,6 +50,7 @@ class TaskFlowController(
     private val uiState: TaskFlowUiState,
     private val onPersistConversation: () -> Unit,
     private val onTaskSettled: (() -> Unit)? = null,
+    private val onTaskTerminal: ((TaskEvent) -> Unit)? = null,
 ) {
 
     companion object {
@@ -63,12 +64,20 @@ class TaskFlowController(
     fun sendTask(text: String) {
         if (appViewModel.isTaskRunning()) {
             addSystem("Another task is still running. Stop it first.")
+            onTaskTerminal?.invoke(TaskEvent.Failed("Another task is still running. Stop it first."))
             return
         }
 
         if (ModelConfigRepository.snapshot().isLocalActive() && isLikelyMonitorRequest(text)) {
             addUser(text)
             addSystem("Local mode starts monitoring from the Background card. Open Background, choose the app/contact, then tap Start Monitoring.")
+            onTaskTerminal?.invoke(TaskEvent.Failed("Local mode starts monitoring from the Background card."))
+            return
+        }
+
+        DirectDeviceDataGuard.deterministicToolCall(text)?.let { directTool ->
+            XLog.i(TAG, "sendTask: executing deterministic direct tool before LLM/accessibility gates")
+            executeDirectToolTask(text, directTool)
             return
         }
 
@@ -87,6 +96,7 @@ class TaskFlowController(
                 addSystem("⚠️ Task mode needs Accessibility Service enabled. Opening Settings...")
                 openSettings()
                 sendTaskRetryCount = 0
+                onTaskTerminal?.invoke(TaskEvent.Failed("Accessibility Service is required for this task."))
                 return
                 }
             }
@@ -105,6 +115,7 @@ class TaskFlowController(
                     addSystem("Accessibility service didn't connect. Try toggling it off and on in Settings.")
                     openSettings()
                     sendTaskRetryCount = 0
+                    onTaskTerminal?.invoke(TaskEvent.Failed("Accessibility service did not connect."))
                     return
                 }
                 sendTaskRetryCount++
@@ -118,6 +129,7 @@ class TaskFlowController(
                             Toast.makeText(activity, "Accessibility service didn't connect", Toast.LENGTH_LONG).show()
                             addSystem("Accessibility service didn't connect. Go to Settings and toggle it off then on.")
                             sendTaskRetryCount = 0
+                            onTaskTerminal?.invoke(TaskEvent.Failed("Accessibility service did not connect."))
                         }
                     }
                 }
@@ -138,6 +150,7 @@ class TaskFlowController(
                     addSystem("Accessibility service disconnected. Open Settings and toggle it off then on.")
                     openSettings()
                     sendTaskRetryCount = 0
+                    onTaskTerminal?.invoke(TaskEvent.Failed("Accessibility service is disconnected."))
                     return
                 }
             }
@@ -151,6 +164,7 @@ class TaskFlowController(
 
         if (!KVUtils.hasLlmConfig()) {
             Toast.makeText(activity, "Configure LLM in Settings first", Toast.LENGTH_LONG).show()
+            onTaskTerminal?.invoke(TaskEvent.Failed("Configure LLM in Settings first."))
             return
         }
 
@@ -193,12 +207,14 @@ class TaskFlowController(
                 activity.runOnUiThread {
                     val answer = result.data ?: result.error ?: "Done."
                     replaceTypingIndicator(answer)
+                    onTaskTerminal?.invoke(TaskEvent.Completed(answer))
                     cleanupAfterTask()
                 }
             } catch (e: Exception) {
                 XLog.e(TAG, "executeDirectToolTask failed: ${e.message}", e)
                 activity.runOnUiThread {
                     replaceTypingIndicator("Error: ${e.message}")
+                    onTaskTerminal?.invoke(TaskEvent.Failed(e.message ?: "Direct tool failed"))
                     cleanupAfterTask()
                 }
             }
@@ -242,6 +258,7 @@ class TaskFlowController(
                 Toast.LENGTH_LONG
             ).show()
             openSettings()
+            onTaskTerminal?.invoke(TaskEvent.Failed("Missing required permissions for monitoring."))
             return
         }
 
@@ -269,19 +286,23 @@ class TaskFlowController(
             when (event) {
                 is TaskEvent.Completed -> {
                     replaceTypingIndicator(event.answer, event.modelName)
+                    onTaskTerminal?.invoke(event)
                     cleanupAfterTask()
                     checkAutoReplyConfirmation()
                 }
                 is TaskEvent.Failed -> {
                     replaceTypingIndicator("Error: ${event.error}")
+                    onTaskTerminal?.invoke(event)
                     cleanupAfterTask()
                 }
                 is TaskEvent.Cancelled -> {
                     removeTypingIndicator()
+                    onTaskTerminal?.invoke(event)
                     cleanupAfterTask()
                 }
                 is TaskEvent.Blocked -> {
                     replaceTypingIndicator("Blocked by system dialog.")
+                    onTaskTerminal?.invoke(event)
                     cleanupAfterTask()
                 }
                 is TaskEvent.ToolAction -> {

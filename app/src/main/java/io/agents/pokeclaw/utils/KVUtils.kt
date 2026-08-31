@@ -184,6 +184,11 @@ object KVUtils {
     fun isConfigServerEnabled(): Boolean = getBoolean(KEY_CONFIG_SERVER_ENABLED, false)
     fun setConfigServerEnabled(enabled: Boolean) = putBoolean(KEY_CONFIG_SERVER_ENABLED, enabled)
 
+    // ==================== External Automation ====================
+    private const val KEY_EXTERNAL_AUTOMATION_ENABLED = "KEY_EXTERNAL_AUTOMATION_ENABLED"
+    fun isExternalAutomationEnabled(): Boolean = getBoolean(KEY_EXTERNAL_AUTOMATION_ENABLED, false)
+    fun setExternalAutomationEnabled(enabled: Boolean) = putBoolean(KEY_EXTERNAL_AUTOMATION_ENABLED, enabled)
+
     private const val KEY_PENDING_ACCESSIBILITY_RETURN = "KEY_PENDING_ACCESSIBILITY_RETURN"
     private const val KEY_PENDING_ACCESSIBILITY_RETURN_AT = "KEY_PENDING_ACCESSIBILITY_RETURN_AT"
     private const val KEY_PENDING_NOTIFICATION_ACCESS_RETURN = "KEY_PENDING_NOTIFICATION_ACCESS_RETURN"
@@ -382,4 +387,25 @@ object KVUtils {
     /** Returns true if LLM is configured (API key, base URL, or local model path is non-empty) */
     fun hasLlmConfig(): Boolean =
         getLlmApiKey().isNotEmpty() || getLlmBaseUrl().isNotEmpty() || getLocalModelPath().isNotEmpty()
+
+    // ==================== Global Prompt (#45) ====================
+    // User-defined persistent instructions prepended to every system prompt.
+    // Empty string = disabled. No separate enable toggle by design (less to misconfigure).
+
+    private const val KEY_GLOBAL_PROMPT = "KEY_GLOBAL_PROMPT"
+
+    fun getGlobalPrompt(): String = getString(KEY_GLOBAL_PROMPT, "")
+    fun setGlobalPrompt(value: String) = putString(KEY_GLOBAL_PROMPT, value)
+    fun hasGlobalPrompt(): Boolean = getGlobalPrompt().isNotBlank()
+
+    // ==================== Custom Local Model URL (#36) ====================
+    // Advanced: lets user point PokeClaw at a custom .litertlm download URL
+    // (e.g. self-hosted, HuggingFace mirrors) instead of only the built-in catalog.
+    // Empty string = no custom model. fileName is derived from URL last segment.
+
+    private const val KEY_CUSTOM_LOCAL_MODEL_URL = "KEY_CUSTOM_LOCAL_MODEL_URL"
+
+    fun getCustomLocalModelUrl(): String = getString(KEY_CUSTOM_LOCAL_MODEL_URL, "")
+    fun setCustomLocalModelUrl(value: String) = putString(KEY_CUSTOM_LOCAL_MODEL_URL, value)
+    fun hasCustomLocalModelUrl(): Boolean = getCustomLocalModelUrl().isNotBlank()
 }

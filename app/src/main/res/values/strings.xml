@@ -150,6 +150,7 @@
     <string name="cd_task_error">Task failed</string>
     <string name="cd_channel_logo">Channel logo</string>
     <string name="cd_app_logo">App logo</string>
+    <string name="cd_floating_idle">PokeClaw — tap to focus</string>
     <string name="cd_qr_code">QR code</string>
     <string name="cd_toggle_password">Show or hide password</string>
     <string name="cd_copy">Copy</string>
@@ -205,4 +206,25 @@
     <string name="input_dialog_need_more">Enter at least %d characters</string>
     <string name="input_dialog_need_less">Enter at most %d characters</string>
     <string name="input_dialog_no_zero">Please enter a non-zero value</string>
+
+    <!-- Voice Input (#44) -->
+    <string name="voice_input_button_cd">Voice input</string>
+    <string name="voice_input_prompt">Speak now…</string>
+    <string name="voice_input_unavailable">Speech recognition not available on this device</string>
+    <string name="voice_input_error">Voice input failed. Try again.</string>
+
+    <!-- Global Prompt (#45) -->
+    <string name="global_prompt_title">Global instructions</string>
+    <string name="global_prompt_dialog_title">Edit global instructions</string>
+    <string name="global_prompt_hint">Instructions to apply to every conversation. Leave empty to disable.</string>
+    <string name="global_prompt_not_set">Not set</string>
+    <string name="global_prompt_set_status">Set (%d chars)</string>
+
+    <!-- Custom Local Model URL (#36) -->
+    <string name="custom_local_model_url_title">Custom local model URL</string>
+    <string name="custom_local_model_url_dialog_title">Custom model download URL</string>
+    <string name="custom_local_model_url_hint">https://… direct .litertlm download URL. Advanced: file size validation is relaxed for custom models.</string>
+    <string name="custom_local_model_url_not_set">Not set</string>
+    <string name="custom_local_model_url_set">Custom URL set</string>
+    <string name="custom_local_model_url_invalid">URL must start with http:// or https://</string>
 </resources>

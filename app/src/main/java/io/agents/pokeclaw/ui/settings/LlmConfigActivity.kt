@@ -64,7 +64,8 @@ class LlmConfigActivity : BaseActivity() {
             findViewById<android.widget.ImageView>(R.id.ivBack)?.setColorFilter(tc.aiText)
         }
 
-        val models = LocalModelManager.AVAILABLE_MODELS
+        // Include user's custom local model URL (#36) at the tail of the rendered list.
+        val models = LocalModelManager.AVAILABLE_MODELS + listOfNotNull(LocalModelManager.customModel())
         val activeModelName = findViewById<TextView>(R.id.tvActiveModelName)
         val activeModelMeta = findViewById<TextView>(R.id.tvActiveModelMeta)
         val activeModelStatus = findViewById<TextView>(R.id.tvActiveModelStatus)
@@ -348,7 +349,7 @@ class LlmConfigActivity : BaseActivity() {
     }
 
     private fun updateStorageInfo() {
-        val models = LocalModelManager.AVAILABLE_MODELS
+        val models = LocalModelManager.AVAILABLE_MODELS + listOfNotNull(LocalModelManager.customModel())
         var totalSize = 0L
         var count = 0
         models.forEach { model ->

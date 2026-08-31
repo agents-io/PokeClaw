@@ -14,7 +14,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.compose.runtime.collectAsState
+import io.agents.pokeclaw.TaskEvent
 import io.agents.pokeclaw.agent.llm.ModelConfigRepository
+import io.agents.pokeclaw.automation.ExternalAutomationContract
+import io.agents.pokeclaw.automation.ExternalAutomationEntrypoint
 import io.agents.pokeclaw.appViewModel
 import io.agents.pokeclaw.floating.FloatingCircleManager
 import io.agents.pokeclaw.ui.settings.LlmConfigActivity
@@ -56,6 +59,9 @@ class ComposeChatActivity : ComponentActivity() {
     private val _sessionTokens = mutableStateOf(0)
     private val _sessionCost = mutableStateOf(0.0)
     private var deferLocalChatBootstrapForAutoTask = false
+    private var pendingExternalRequestId: String? = null
+    private var pendingExternalReturnAction: String? = null
+    private var pendingExternalReturnPackage: String? = null
 
     private val chatSessionController by lazy {
         ChatSessionController(
@@ -92,6 +98,7 @@ class ComposeChatActivity : ComponentActivity() {
             ),
             onPersistConversation = { saveChat() },
             onTaskSettled = { deferLocalChatBootstrapForAutoTask = false },
+            onTaskTerminal = { sendExternalAutomationTerminalCallback(it) },
         )
     }
 
@@ -233,6 +240,7 @@ class ComposeChatActivity : ComponentActivity() {
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        setIntent(intent)
         deferLocalChatBootstrapForAutoTask = shouldDeferLocalChatBootstrap(intent)
         handleIntentAutomation(intent, initialDelayMs = 1000)
     }
@@ -280,7 +288,7 @@ class ComposeChatActivity : ComponentActivity() {
         val chatText = intent?.getStringExtra(EXTRA_CHAT)?.takeIf { it.isNotBlank() }
         val automationText = taskText ?: chatText ?: return
         val isTask = taskText != null
-        val isDeferredLocalTask = isTask && shouldDeferLocalChatBootstrap(intent)
+        captureExternalAutomationCallback(intent, isTask)
 
         XLog.i(
             TAG,
@@ -290,16 +298,18 @@ class ComposeChatActivity : ComponentActivity() {
         val handler = Handler(Looper.getMainLooper())
         handler.postDelayed(object : Runnable {
             override fun run() {
-                if (isDeferredLocalTask) {
+                if (isTask) {
                     taskFlowController.sendTask(automationText)
                     return
                 }
+                if (!KVUtils.hasLlmConfig()) {
+                    _messages.add(ChatMessage(ChatMessage.Role.USER, automationText))
+                    _messages.add(ChatMessage(ChatMessage.Role.SYSTEM, "Configure LLM in Settings first."))
+                    saveChat()
+                    return
+                }
                 if (chatSessionController.isModelReady()) {
-                    if (isTask) {
-                        taskFlowController.sendTask(automationText)
-                    } else {
-                        sendChat(automationText)
-                    }
+                    sendChat(automationText)
                 } else {
                     handler.postDelayed(this, 1000)
                 }
@@ -310,6 +320,57 @@ class ComposeChatActivity : ComponentActivity() {
     private fun shouldDeferLocalChatBootstrap(intent: Intent?): Boolean {
         val taskText = intent?.getStringExtra(EXTRA_TASK)?.takeIf { it.isNotBlank() } ?: return false
         return taskText.isNotBlank() && ModelConfigRepository.isLocalActive()
+    }
+
+    private fun captureExternalAutomationCallback(intent: Intent?, isTask: Boolean) {
+        pendingExternalRequestId = null
+        pendingExternalReturnAction = null
+        pendingExternalReturnPackage = null
+        if (!isTask) return
+        pendingExternalRequestId = intent?.getStringExtra(ExternalAutomationEntrypoint.EXTRA_EXTERNAL_REQUEST_ID)
+        pendingExternalReturnAction = intent?.getStringExtra(ExternalAutomationEntrypoint.EXTRA_EXTERNAL_RETURN_ACTION)
+        pendingExternalReturnPackage = intent?.getStringExtra(ExternalAutomationEntrypoint.EXTRA_EXTERNAL_RETURN_PACKAGE)
+    }
+
+    private fun sendExternalAutomationTerminalCallback(event: TaskEvent) {
+        val returnAction = pendingExternalReturnAction ?: return
+        val requestId = pendingExternalRequestId
+        val returnPackage = pendingExternalReturnPackage
+        val status: String
+        var result: String? = null
+        var error: String? = null
+        when (event) {
+            is TaskEvent.Completed -> {
+                status = ExternalAutomationContract.STATUS_COMPLETED
+                result = event.answer
+            }
+            is TaskEvent.Failed -> {
+                status = ExternalAutomationContract.STATUS_FAILED
+                error = event.error
+            }
+            is TaskEvent.Cancelled -> {
+                status = ExternalAutomationContract.STATUS_CANCELLED
+                error = "Task cancelled."
+            }
+            is TaskEvent.Blocked -> {
+                status = ExternalAutomationContract.STATUS_BLOCKED
+                error = "Task blocked by a system dialog."
+            }
+            else -> return
+        }
+        ExternalAutomationContract.sendCallback(
+            context = this,
+            returnAction = returnAction,
+            requestId = requestId,
+            status = status,
+            result = result,
+            error = error,
+            returnPackage = returnPackage,
+            mode = ExternalAutomationContract.Mode.TASK,
+        )
+        pendingExternalRequestId = null
+        pendingExternalReturnAction = null
+        pendingExternalReturnPackage = null
     }
 
     private fun syncTaskAgentConfig() {

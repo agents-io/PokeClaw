@@ -236,10 +236,13 @@ public class AutoReplyManager {
 
     private void syncForegroundNotification() {
         try {
+            Context context = ClawApplication.Companion.getInstance();
             if (enabled && !monitoredTargets.isEmpty()) {
-                ForegroundService.Companion.showMonitorStatus(ClawApplication.Companion.getInstance());
+                ForegroundService.Companion.showMonitorStatus(context);
+                KeepAliveJobService.Companion.schedule(context);
             } else {
-                ForegroundService.Companion.resetToIdle(ClawApplication.Companion.getInstance());
+                KeepAliveJobService.Companion.cancel(context);
+                ForegroundService.Companion.resetToIdle(context);
             }
         } catch (Exception e) {
             XLog.w(TAG, "Failed to sync foreground notification", e);

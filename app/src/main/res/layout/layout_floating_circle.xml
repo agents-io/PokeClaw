@@ -47,7 +47,7 @@
 
     </androidx.cardview.widget.CardView>
 
-    <!-- 等待任务状态（默认） -->
+    <!-- 等待任务状态（默认） — PokeClaw 圖標代替 "AI" 文字 -->
     <androidx.cardview.widget.CardView
         android:id="@+id/cardIdle"
         android:layout_width="match_parent"
@@ -56,15 +56,14 @@
         app:cardElevation="4dp"
         app:cardBackgroundColor="@color/colorBrandPrimary">
 
-        <TextView
-            android:id="@+id/tvFloatTextIdle"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
+        <ImageView
+            android:id="@+id/ivFloatIconIdle"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
             android:layout_gravity="center"
-            android:text="@string/floating_ai_label"
-            android:textColor="@color/colorBrandOnPrimary"
-            android:textSize="16dp"
-            android:textStyle="bold" />
+            android:contentDescription="@string/cd_floating_idle"
+            android:src="@drawable/pokeclaw_icon_small"
+            android:scaleType="centerCrop" />
 
     </androidx.cardview.widget.CardView>
 

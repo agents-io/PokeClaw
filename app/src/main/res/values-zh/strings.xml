@@ -150,6 +150,7 @@
     <string name="cd_task_error">任务失败</string>
     <string name="cd_channel_logo">渠道图标</string>
     <string name="cd_app_logo">应用图标</string>
+    <string name="cd_floating_idle">PokeClaw — 点击聚焦</string>
     <string name="cd_qr_code">二维码</string>
     <string name="cd_toggle_password">显示或隐藏密码</string>
     <string name="cd_copy">复制</string>
@@ -205,4 +206,25 @@
     <string name="input_dialog_need_more">至少输入%d个字符</string>
     <string name="input_dialog_need_less">最多输入%d个字符</string>
     <string name="input_dialog_no_zero">请输入非零数值</string>
+
+    <!-- 语音输入 (#44) -->
+    <string name="voice_input_button_cd">语音输入</string>
+    <string name="voice_input_prompt">请说话…</string>
+    <string name="voice_input_unavailable">此设备不支持语音识别</string>
+    <string name="voice_input_error">语音输入失败，请重试</string>
+
+    <!-- 全局指令 (#45) -->
+    <string name="global_prompt_title">全局指令</string>
+    <string name="global_prompt_dialog_title">编辑全局指令</string>
+    <string name="global_prompt_hint">应用到每次对话的指令，留空则禁用。</string>
+    <string name="global_prompt_not_set">未设置</string>
+    <string name="global_prompt_set_status">已设置 (%d 字符)</string>
+
+    <!-- 自定义本地模型 URL (#36) -->
+    <string name="custom_local_model_url_title">自定义本地模型 URL</string>
+    <string name="custom_local_model_url_dialog_title">自定义模型下载 URL</string>
+    <string name="custom_local_model_url_hint">https://… 直接 .litertlm 下载链接。进阶：自定义模型的文件大小校验已放宽。</string>
+    <string name="custom_local_model_url_not_set">未设置</string>
+    <string name="custom_local_model_url_set">已设置自定义 URL</string>
+    <string name="custom_local_model_url_invalid">URL 必须以 http:// 或 https:// 开头</string>
 </resources>

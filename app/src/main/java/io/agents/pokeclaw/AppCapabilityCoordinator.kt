@@ -73,7 +73,15 @@ data class AppCapabilitySnapshot(
 
 object AppCapabilityCoordinator {
     private const val SERVICE_REBIND_GRACE_MS = 15_000L
+    private const val PROCESS_START_REBIND_GRACE_MS = 30_000L
     private const val ACCESSIBILITY_INTERRUPT_GRACE_MS = 4_000L
+
+    @Volatile
+    private var processStartTimestamp: Long = System.currentTimeMillis()
+
+    fun markProcessStart() {
+        processStartTimestamp = System.currentTimeMillis()
+    }
 
     fun snapshot(context: Context): AppCapabilitySnapshot {
         return AppCapabilitySnapshot(
@@ -133,6 +141,15 @@ object AppCapabilityCoordinator {
                 }
             }
             return ServiceBindingState.READY
+        }
+
+        // Process-young grace: after any process restart (manual force-stop, OS task-kill on
+        // aggressive OEMs like Xiaomi/Samsung), the AccessibilityService singleton is null and
+        // onServiceConnected hasn't fired yet for the new process. The OS rebinds within seconds.
+        // Anchor the grace to PROCESS start time so a fresh process always gets a fair window
+        // regardless of how stale lastHealthyAt is in MMKV.
+        if (now - processStartTimestamp <= PROCESS_START_REBIND_GRACE_MS) {
+            return ServiceBindingState.CONNECTING
         }
 
         if (lastHealthyAt <= 0L) return ServiceBindingState.CONNECTING

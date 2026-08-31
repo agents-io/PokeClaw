@@ -154,6 +154,10 @@ public final class UiActionMatchUtils {
         String viewId = node.getViewIdResourceName();
         CharSequence desc = node.getContentDescription();
         CharSequence text = node.getText();
+        boolean hasExplicitSendSignal = containsIdHint(viewId)
+                || containsTextHint(desc)
+                || containsTextHint(text);
+        boolean nearComposerAnchor = false;
 
         int score = 0;
 
@@ -181,11 +185,14 @@ public final class UiActionMatchUtils {
             int centerX = bounds.centerX();
             int centerY = bounds.centerY();
             int anchorHeight = Math.max(anchorBounds.height(), 1);
+            boolean verticallyNearAnchor = centerY >= anchorBounds.top - anchorHeight
+                    && centerY <= anchorBounds.bottom + (anchorHeight * 2);
+            boolean rightOfComposer = centerX >= anchorBounds.centerX();
 
-            if (centerY >= anchorBounds.top - anchorHeight && centerY <= anchorBounds.bottom + (anchorHeight * 2)) {
+            if (verticallyNearAnchor) {
                 score += 20;
             }
-            if (centerX >= anchorBounds.centerX()) {
+            if (rightOfComposer) {
                 score += 18;
             }
             if (bounds.left >= anchorBounds.left) {
@@ -194,11 +201,16 @@ public final class UiActionMatchUtils {
             if (bounds.top <= anchorBounds.bottom + anchorHeight) {
                 score += 10;
             }
+            nearComposerAnchor = verticallyNearAnchor && rightOfComposer;
         }
 
         if (!screenBounds.isEmpty()) {
             if (bounds.centerX() >= screenBounds.centerX()) score += 6;
             if (bounds.centerY() >= screenBounds.centerY()) score += 6;
+        }
+
+        if (!hasExplicitSendSignal && !nearComposerAnchor) {
+            return Integer.MIN_VALUE;
         }
 
         if (!actionable && score < 80) {
