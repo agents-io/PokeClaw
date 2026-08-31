@@ -7,7 +7,6 @@ import android.graphics.Rect;
 import android.os.Bundle;
 import android.view.accessibility.AccessibilityNodeInfo;
 
-import io.agents.pokeclaw.ClawApplication;
 import io.agents.pokeclaw.service.ClawAccessibilityService;
 import io.agents.pokeclaw.tool.BaseTool;
 import io.agents.pokeclaw.tool.ToolParameter;
@@ -16,6 +15,7 @@ import io.agents.pokeclaw.utils.ContactListUiUtils;
 import io.agents.pokeclaw.utils.UiActionMatchUtils;
 import io.agents.pokeclaw.utils.ContactMatchUtils;
 import io.agents.pokeclaw.utils.XLog;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,22 +40,27 @@ public class SendMessageTool extends BaseTool {
     private static final String TAG = "SendMessageTool";
 
     @Override
+    @NotNull
     public String getName() { return "send_message"; }
 
     @Override
+    @NotNull
     public String getDisplayName() { return "Send Message"; }
 
     @Override
+    @NotNull
     public String getDescriptionEN() {
         return "Send a text message to a contact via any messaging app (WhatsApp, Telegram, Messages, etc).";
     }
 
     @Override
+    @NotNull
     public String getDescriptionCN() {
         return "Send a text message to a contact via any messaging app (WhatsApp, Telegram, Messages, etc).";
     }
 
     @Override
+    @NotNull
     public List<ToolParameter> getParameters() {
         return Arrays.asList(
                 new ToolParameter("contact", "string", "Contact name or phone number to message (e.g. 'Mom', '+1 604 555 1234')", true),
@@ -65,7 +70,7 @@ public class SendMessageTool extends BaseTool {
     }
 
     @Override
-    public ToolResult execute(Map<String, Object> params) {
+    public ToolResult execute(@NotNull Map<String, Object> params) {
         ClawAccessibilityService service = requireAccessibilityService();
         if (service == null) {
             return ToolResult.error("Accessibility service is not running");
@@ -73,7 +78,8 @@ public class SendMessageTool extends BaseTool {
 
         String contact = requireString(params, "contact");
         String message = requireString(params, "message");
-        String app = params.containsKey("app") ? params.get("app").toString() : "WhatsApp";
+        Object appParam = params.get("app");
+        String app = appParam != null ? appParam.toString() : "WhatsApp";
 
         XLog.i(TAG, "Sending '" + message + "' to " + contact + " via " + app);
 
@@ -81,11 +87,11 @@ public class SendMessageTool extends BaseTool {
             // Step 1: Resolve and open the messaging app
             String packageName = OpenAppTool.resolveAppNameStatic(app);
             if (packageName == null) packageName = app;
-            boolean opened = service.openApp(packageName);
+            boolean opened = OpenAppTool.openAppWithInterceptHandling(service, packageName);
             if (!opened) {
                 return ToolResult.error("Failed to open " + app + ". Is it installed?");
             }
-            XLog.i(TAG, "Step 1: Opened " + app + " (" + packageName + ")");
+            XLog.i(TAG, "Step 1: Opened " + app + " (" + packageName + ") with intercept handling");
             Thread.sleep(2000);
 
             // Step 2: Wait for the messaging app window to become active
@@ -102,6 +108,9 @@ public class SendMessageTool extends BaseTool {
                 // Navigate to chat list and find contact
                 XLog.i(TAG, "Step 3: Not in chatroom, navigating to " + contact);
                 if (!ContactListUiUtils.prepareForContactLookup(service, packageName, 4, 1200)) {
+                    AccessibilityNodeInfo activeRoot = service.getRootInActiveWindow();
+                    CharSequence activePkg = activeRoot != null ? activeRoot.getPackageName() : null;
+                    XLog.w(TAG, "Step 3: contact lookup not ready; activePkg=" + activePkg + " targetPkg=" + packageName);
                     return ToolResult.error("Could not reach a searchable " + app + " chat list.");
                 }
 

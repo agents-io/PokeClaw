@@ -10,7 +10,7 @@ data class AgentConfig(
     val baseUrl: String,
     val modelName: String = "",
     val systemPrompt: String = DEFAULT_SYSTEM_PROMPT,
-    val maxIterations: Int = 60,
+    val maxIterations: Int = 10,
     val temperature: Double = 0.1,
     val provider: LlmProvider = LlmProvider.OPENAI,
     val streaming: Boolean = false
@@ -180,7 +180,7 @@ Steps:
         private var baseUrl: String = ""
         private var modelName: String = ""
         private var systemPrompt: String = DEFAULT_SYSTEM_PROMPT
-        private var maxIterations: Int = 20
+        private var maxIterations: Int = 10
         private var temperature: Double = 0.1
         private var provider: LlmProvider = LlmProvider.OPENAI
         private var streaming: Boolean = false

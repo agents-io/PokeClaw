@@ -88,15 +88,24 @@ public class OpenAppTool extends BaseTool {
             }
         }
 
-        boolean success = service.openApp(packageName);
+        boolean success = openAppWithInterceptHandling(service, packageName);
         if (!success) {
             return ToolResult.error("Failed to open app: " + packageName + ". Make sure the app is installed.");
         }
 
-        // Wait for possible chain-launch intercept dialog and auto-click "Allow"
-        dismissChainLaunchDialog(service);
-
         return ToolResult.success("Opened app: " + packageName);
+    }
+
+    /**
+     * Shared launch path used by tools that need reliable cross-app transitions.
+     */
+    public static boolean openAppWithInterceptHandling(ClawAccessibilityService service, String packageName) {
+        boolean success = service.openApp(packageName);
+        if (!success) {
+            return false;
+        }
+        dismissChainLaunchDialog(service);
+        return true;
     }
 
     /**
@@ -105,7 +114,7 @@ public class OpenAppTool extends BaseTool {
      * This method waits for the dialog and auto-clicks the "Allow" button.
      * Checks up to 3 times, 500ms apart; silently returns if no dialog appears.
      */
-    private void dismissChainLaunchDialog(ClawAccessibilityService service) {
+    private static void dismissChainLaunchDialog(ClawAccessibilityService service) {
         for (int attempt = 0; attempt < 3; attempt++) {
             try {
                 Thread.sleep(500);
@@ -139,7 +148,7 @@ public class OpenAppTool extends BaseTool {
         }
     }
 
-    private boolean tapPositiveDialogButton(ClawAccessibilityService service) {
+    private static boolean tapPositiveDialogButton(ClawAccessibilityService service) {
         for (String viewId : POSITIVE_BUTTON_IDS) {
             List<AccessibilityNodeInfo> nodes = service.findNodesById(viewId);
             try {
@@ -251,7 +260,7 @@ public class OpenAppTool extends BaseTool {
     /**
      * Exact match for allow button labels, to avoid accidentally tapping other elements whose content contains the keyword
      */
-    private boolean matchesAllowButton(String text) {
+    private static boolean matchesAllowButton(String text) {
         String trimmed = text.trim();
         for (String keyword : ALLOW_KEYWORDS) {
             if (trimmed.equals(keyword)) return true;

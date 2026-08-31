@@ -411,9 +411,9 @@ private fun ChatTopBar(
             title = {
                 Text(
                     buildAnnotatedString {
-                        append("Poke")
+                        append("Saa")
                         withStyle(SpanStyle(color = colors.accent)) {
-                            append("Claw")
+                            append("thi")
                         }
                     },
                     fontWeight = FontWeight.Bold,
@@ -717,7 +717,7 @@ private fun AssistantBubble(text: String, timestamp: Long, colors: PokeclawColor
             // Avatar
             androidx.compose.foundation.Image(
                 painter = painterResource(R.drawable.pokeclaw_avatar),
-                contentDescription = "PokeClaw",
+                contentDescription = "Saathi",
                 modifier = Modifier
                     .size(32.dp)
                     .clip(CircleShape),
@@ -1225,7 +1225,7 @@ private fun DownloadOverlay(progress: Int, colors: PokeclawColors) {
             ) {
                 androidx.compose.foundation.Image(
                     painter = painterResource(R.drawable.pokeclaw_avatar),
-                    contentDescription = "PokeClaw",
+                    contentDescription = "Saathi",
                     modifier = Modifier
                         .size(64.dp)
                         .clip(RoundedCornerShape(16.dp)),
@@ -1301,14 +1301,14 @@ private fun EmptyStateWithPrompts(
         Spacer(Modifier.height(40.dp))
         androidx.compose.foundation.Image(
             painter = painterResource(R.drawable.pokeclaw_avatar),
-            contentDescription = "PokeClaw",
+            contentDescription = "Saathi",
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(12.dp)),
         )
         Spacer(Modifier.height(6.dp))
         Text(
-            "PokeClaw",
+            "Saathi",
             fontSize = 16.sp,
             fontWeight = FontWeight.SemiBold,
             color = colors.textPrimary,
@@ -1719,7 +1719,7 @@ private fun SidebarContent(
             )
             Spacer(Modifier.width(10.dp))
             Text(
-                "PokeClaw",
+                "Saathi",
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold,
                 color = colors.textPrimary,

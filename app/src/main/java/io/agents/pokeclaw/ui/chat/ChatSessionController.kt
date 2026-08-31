@@ -337,7 +337,7 @@ class ChatSessionController(
                         throw IllegalStateException("Local model is still loading. Try again in a moment.")
                     }
                     val response = currentConversation.sendMessage(text)
-                    val responseText = response?.toString() ?: "(no response)"
+                    val responseText = response.toString()
                     val inputTokensEst = text.length / 4 + 1
                     val outputTokensEst = responseText.length / 4 + 1
                     val modelPath = ModelConfigRepository.snapshot().local.modelPath.ifEmpty { loadedModelPath.orEmpty() }
@@ -350,26 +350,6 @@ class ChatSessionController(
                     }
                 }
             } catch (e: Exception) {
-                if (conversation != null && LocalModelRuntime.isGpuBackendFailure(e)) {
-                    XLog.w(TAG, "GPU inference failed, falling back to CPU: ${e.message}")
-                    try {
-                        val modelPath = ModelConfigRepository.snapshot().local.modelPath.ifEmpty { loadedModelPath.orEmpty() }
-                        val responseText = retryLocalChatOnCpu(modelPath, text)
-                        val inputTokensEst = text.length / 4 + 1
-                        val outputTokensEst = responseText.length / 4 + 1
-                        val cpuModelTag = localModelTag(modelPath)
-                        postToMain {
-                            replaceTypingIndicator(responseText, cpuModelTag)
-                            uiState.isAwaitingReply.value = false
-                            uiState.sessionTokens.value += inputTokensEst + outputTokensEst
-                            updateLocalModelStatus(modelPath)
-                            onPersistConversation()
-                        }
-                        return@submit
-                    } catch (cpuError: Exception) {
-                        XLog.e(TAG, "CPU fallback also failed", cpuError)
-                    }
-                }
                 XLog.e(TAG, "Chat error", e)
                 postToMain {
                     replaceTypingIndicator("Error: ${e.message}")
@@ -539,24 +519,7 @@ class ChatSessionController(
     }
 
     private fun retryLocalChatOnCpu(modelPath: String, text: String): String {
-        require(modelPath.isNotEmpty()) { "Local model path missing for CPU retry" }
-        try {
-            conversation?.close()
-        } catch (_: Exception) {
-        }
-        conversation = null
-        LocalModelRuntime.forceCpuEngine(activity, modelPath)
-        val lease = LocalModelRuntime.openConversation(
-            context = activity,
-            modelPath = modelPath,
-            conversationConfig = buildConversationConfig(),
-            preferCpu = true,
-        )
-        engine = lease.engine
-        loadedModelPath = modelPath
-        conversation = lease.conversation
-        XLog.i(TAG, "retryLocalChatOnCpu: CPU runtime ready, retrying sendMessage")
-        return conversation!!.sendMessage(text)?.toString() ?: "(no response)"
+        throw IllegalStateException("NPU Initialization Failed - Check QNN dependencies")
     }
 
     private fun buildConversationConfig(systemPrompt: String? = null): ConversationConfig {

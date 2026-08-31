@@ -47,6 +47,8 @@ public final class ContactListUiUtils {
         long settleMs
     ) throws InterruptedException {
         int attempts = Math.min(Math.max(maxBacks, 1), 6);
+        int reopenAttempts = 0;
+        final int maxReopens = 2;
         for (int attempt = 0; attempt <= attempts; attempt++) {
             AccessibilityNodeInfo root = service.getRootInActiveWindow();
             if (dismissBlockingOverlay(service, root, settleMs)) {
@@ -63,9 +65,24 @@ public final class ContactListUiUtils {
 
             CharSequence activePackage = root != null ? root.getPackageName() : null;
             if (activePackage == null || !activePackage.toString().equals(packageName)) {
-                XLog.i(TAG, "prepareForContactLookup: app not active, reopening " + packageName);
-                service.openApp(packageName);
+                if (reopenAttempts >= maxReopens) {
+                    XLog.w(TAG, "prepareForContactLookup: app not active after reopen budget; waiting (attempt=" + attempt + ")");
+                } else {
+                    reopenAttempts++;
+                    XLog.i(TAG, "prepareForContactLookup: app not active, reopening " + packageName + " (reopen=" + reopenAttempts + "/" + maxReopens + ")");
+                    service.openApp(packageName);
+                }
             } else {
+                if (dismissBlockingOverlay(service, root, settleMs)) {
+                    XLog.i(TAG, "prepareForContactLookup: dismissed overlay, re-checking readiness");
+                    continue;
+                }
+
+                if (tryExposeSearchUi(service, root, settleMs)) {
+                    XLog.i(TAG, "prepareForContactLookup: exposed search UI, re-checking readiness");
+                    continue;
+                }
+
                 XLog.i(TAG, "prepareForContactLookup: screen not ready, pressing back");
                 service.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK);
             }
@@ -368,6 +385,27 @@ public final class ContactListUiUtils {
         return clicked;
     }
 
+    private static boolean tryExposeSearchUi(
+        ClawAccessibilityService service,
+        AccessibilityNodeInfo root,
+        long settleMs
+    ) throws InterruptedException {
+        if (root == null) return false;
+        if (UiActionMatchUtils.findBestSearchField(root) != null) {
+            return false;
+        }
+
+        AccessibilityNodeInfo searchAction = UiActionMatchUtils.findBestSearchAction(root);
+        if (searchAction == null) return false;
+
+        boolean clicked = service.clickNode(searchAction);
+        XLog.i(TAG, "tryExposeSearchUi: search action clicked=" + clicked);
+        if (clicked) {
+            Thread.sleep(Math.max(settleMs, 500L));
+        }
+        return clicked;
+    }
+
     private static AccessibilityNodeInfo findBlockingOverlayCloseAction(AccessibilityNodeInfo root) {
         if (root == null) return null;
 
@@ -416,6 +454,7 @@ public final class ContactListUiUtils {
         String className = node.getClassName() != null ? node.getClassName().toString() : "";
         CharSequence text = node.getText();
         CharSequence desc = node.getContentDescription();
+        String viewIdLower = viewId != null ? viewId.toLowerCase() : "";
 
         boolean actionable = node.isClickable() || node.isLongClickable();
         if (!actionable) {

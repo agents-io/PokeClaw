@@ -1,4 +1,3 @@
-import jdk.internal.net.http.common.Log.channel
 import org.jetbrains.kotlin.konan.properties.hasProperty
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -8,7 +7,8 @@ import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
-    id("org.jetbrains.kotlin.plugin.compose") version "2.1.21"
+    alias(libs.plugins.ksp)
+    id("org.jetbrains.kotlin.plugin.compose") version "2.2.10"
 }
 
 fun readLocalOrEnvString(key: String, defaultValue: String = ""): String {
@@ -96,6 +96,9 @@ android {
     }
 
     packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
         resources {
             excludes += setOf(
                 "META-INF/DEPENDENCIES",
@@ -114,8 +117,9 @@ dependencies {
     implementation(libs.material)
     implementation(libs.constraintlayout)
     implementation(libs.gson)
-
-
+//android app functions addition
+    implementation(libs.androidx.appfunctions)
+    ksp(libs.androidx.appfunctions.compiler)
     implementation(libs.oapi.sdk)
     implementation(libs.dingtalk)
 
@@ -155,7 +159,11 @@ dependencies {
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // LiteRT-LM on-device LLM inference (Google AI Edge)
-    implementation("com.google.ai.edge.litertlm:litertlm-android:0.10.0")
+    implementation(libs.litertlm.android)
+
+    // Qualcomm NPU Backends (New)
+    implementation(libs.qualcomm.qnn.runtime)
+    implementation(libs.qualcomm.qnn.delegate)
 
     // ZXing 二维码/条形码扫描
     implementation(libs.zxing)

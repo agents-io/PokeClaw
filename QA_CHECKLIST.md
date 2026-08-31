@@ -128,7 +128,7 @@ adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw \
   --es task 'config:' --es api_key '$OPENAI_API_KEY' --es model_name 'gpt-4.1'"
 
 # Local LLM
-MODEL_PATH="/storage/emulated/0/Android/data/io.agents.pokeclaw/files/models/gemma-4-E2B-it.litertlm"
+MODEL_PATH="/storage/emulated/0/Android/data/io.agents.pokeclaw/files/models/gemma-4-E2B-it_qualcomm_qcs8275.litertlm"
 adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw \
   --es task 'config:' --es provider 'LOCAL' --es base_url '$MODEL_PATH' --es model_name 'gemma4-e2b'"
 ```
@@ -311,6 +311,7 @@ Key OEM differences:
 
 - CPU inference: ~50-60s per round on Pixel 8 Pro
 - GPU may fail ("OpenCL not found") → auto-fallback to CPU
+- AndroidManifest should include optional LiteRT GPU native libraries (`libvndksupport.so`, `libOpenCL.so`) so GPU delegate loading is not blocked by missing declarations
 - LiteRT-LM SDK may crash on tool call parsing → our fallback extracts from error message
 - Force stop loses accessibility service → re-enable after restart
 - Model engine takes ~10s to load on first call
@@ -676,8 +677,12 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 - [ ] **B3. Task with context**: "I'm arguing with my girlfriend" → then "send sorry to Girlfriend on WhatsApp" → message content should reflect context
 - [ ] **B4. Failed contact**: "send hi to Dad on WhatsApp" → Dad not in contacts → LLM reports failure in bot bubble (not stuck, not "Task completed")
 - [ ] **B4-b. Name or phone number send target**: send to a saved contact by name, then by phone-number formatting (`+country`, local digits, or spaced/hyphenated form) → same person is resolved without requiring an exact WhatsApp display name match
+- [ ] **B4-d. Exact contact string is preserved**: `adb logcat -c` → `adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task 'send hi to Kamya Gupta Personal on WhatsApp'"` → `onToolCall` arguments must keep `contact="Kamya Gupta Personal"` exactly (no shortening to `Kamya Gupta`)
 - [ ] **B4-c. Multilingual text actions stay functional**: on a device/app using non-English labels, structure-first actions (for example standard positive dialog buttons and standard send affordances) still work without requiring English-only UI text
 - [ ] **B5. Failed app**: "send hi to Girlfriend on Signal" → Signal not installed → LLM reports can't open app
+- [ ] **B6. Autonomous launch recovery (WhatsApp)**: start from Home (NOT already in a chat) → run "send hi to Girlfriend on WhatsApp" → chain-launch/allow dialog (if present) is handled, contact lookup reaches list without reopen/back oscillation, message is sent
+- [ ] **B6-b. Overlay close does not tap camera/search icons**: when WhatsApp top bar has camera/search and no real close dialog is present → overlay-dismiss logic must NOT tap those icons; flow should continue to list/search readiness checks without opening camera
+- [ ] **B6-c. In-app recovery before global back**: if WhatsApp is active but list not ready, recovery should first try exposing search UI and re-check readiness before using `GLOBAL_ACTION_BACK`; logs should show search-ui recovery when available
 
 ## C. Cloud LLM — Monitor Workflow
 
@@ -713,6 +718,10 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 ## D. Local LLM — Chat
 
 - [ ] **D1. Pure chat**: switch to Local LLM → "hello" → on-device reply in bot bubble
+- [ ] **D1-f. NPU backend selection + fail-fast**: set local backend preference to `NPU` (via debug action) → run a local task/chat turn → logs show attempted NPU init (`backend=NPU`) and either successful NPU run OR explicit error `NPU Initialization Failed - Check QNN dependencies`; there must be no silent GPU/CPU fallback
+- [ ] **D1-f-b. QNN native library extraction**: install the debug APK after enabling legacy JNI packaging and `arm64-v8a` only → verify the APK extracts `libQnnHtp.so`-style libraries into `nativeLibraryDir` on device → launch local model → NPU init reaches the explicit QNN path instead of failing due to compressed native libs
+- [ ] **D1-f-c. Tiered NPU→GPU fallback**: attempt local model chat/task on device with NPU support → logcat shows `Tier 1: NPU → Tier 2: GPU` attempted → successful model response via either NPU or GPU based on driver availability → `backendLabel` in EngineHolder reflects actual tier (`NPU` or `GPU`)
+- [ ] **D1-i. Local full-manual tool parser (JNI safety)**: `adb logcat -c` → Local task that needs a tool (for example `how much battery left`) → tool call executes and completes with no LiteRT JNI `INVALID_ARGUMENT` crash while SDK tools are hidden (`tools=[]`); parser still recovers when the closing tag is partial/missing and when the model omits commas between argument pairs
 - [ ] **D2. Chat tab has no task ability**: type "open YouTube" in Chat tab → LLM responds conversationally (doesn't try to control phone)
 
 ## E. Local LLM — Task Mode (v9: unified chat screen)
@@ -726,6 +735,8 @@ When in doubt, rerun the smaller bundle first, then expand only if something dri
 
 - [ ] **F1. Top bar during task**: while task runs → orange "Task running..." + red "Stop" button visible
 - [ ] **F2. Send button becomes stop**: while task runs → send button turns red X → tapping it cancels task
+- [ ] **F2-b. Running state appears before first inference step**: send a task on a cold/slow model turn → within ~1 frame the chat shell enters running state (stop controls visible) before first tool call/result logs arrive
+- [ ] **F2-c. Immediate stop during pre-inference window**: tap Stop right after send (before first tool action) → task cancels successfully, UI returns to idle without waiting for first tool call event
 - [ ] **F3. Floating button during task**: while task runs in another app → floating circle shows pill with step/tokens + "Tap to stop"
 - [ ] **F4. Floating button stop**: tap floating button during task → task cancels
 - [ ] **F5. Second task works**: complete task 1 → start task 2 → floating button, top bar, stop button all work
@@ -776,6 +787,11 @@ Design principle: User perspective. INFO tasks → report actual data. ACTION ta
 - [ ] **M5. Notifications**: "read my notifications" → actual notification list (get_notifications)
 - [ ] **M6. Screen info**: "check what's on my screen" → describe visible UI elements
 
+### Agent Loop Safety
+- [ ] **M6-a. Text-only response ends the task**: `adb logcat -c` → `adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task 'tell me a joke'"` → logcat shows `runAgentLoop: text-only response, completing` and `onComplete` on the first round; no `agent_max_iterations`
+- [ ] **M6-b. Blank post-tool response still completes**: `adb logcat -c` → `adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task '<manual/debug prompt that triggers one tool then a blank final response>'"` → after the tool executes, the task ends with `onComplete` / `TaskEvent.Completed`, no second loop, no `agent_max_iterations` *(manual or model-stub assisted; regression target for the blank-response path)*
+- [ ] **M6-c. Loop ceiling is 10 turns**: `adb logcat -c` → `adb shell "am broadcast -a io.agents.pokeclaw.DEBUG_TASK -p io.agents.pokeclaw --es task '<intentionally stubborn prompt that used to loop>'"` → task stops at or before 10 rounds and never reaches the old 60-turn ceiling
+
 ### App Navigation
 - [ ] **M7. Open app**: "open spotify" → Spotify launches, confirmed
 - [ ] **M8. YouTube search**: "search youtube for lofi beats" → YouTube opens, types query, results shown
@@ -815,6 +831,7 @@ Design principle: User perspective. INFO tasks → report actual data. ACTION ta
 - [ ] **M32. Install app**: "install Telegram from Play Store" → Play Store → search → Install
 - [ ] **M33. Copy-paste cross-app**: "copy tracking number from gmail and search it on amazon" → Gmail → copy → Amazon → paste
 - [ ] **M34. Photo to message**: "take a photo and send it to Mom on WhatsApp" → camera → capture → WhatsApp → send
+- [ ] **M34-b. WhatsApp composer settle delay**: open WhatsApp via `send_message` with a long body → logcat shows a brief settle pause before `ACTION_SET_TEXT` → long text is entered without layout hang-ups → message sends successfully
 
 ### Pure Chat (NO phone control)
 - [ ] **M35. Joke**: "tell me a joke" → text response, NO tools called
@@ -1434,11 +1451,22 @@ Run on the actual GitHub release APK `PokeClaw_v0.7.0_20260526_101139.apk` after
 | M8-a | ~~Gmail compose loops~~ | Fixed 2026-04-10: explicit email-compose tasks now use a generic compose guard, so task mode no longer short-circuits into draft text or loops; it opens an email app, fills the draft fields, and finishes only after in-app compose work has started | Fixed |
 | M12-a | YouTube Music system dialog | Login/premium dialog blocks music playback task | Low |
 
-### 2026-04-09 — v9 UI Redesign QA
+### Debug Changelog for v0.6.0 (April 12, 2026)
 
-**Changes tested:** ChatScreen.kt v9 redesign — Local/Cloud toggle in toolbar, empty state, Quick Tasks panel, Chat/Task toggle, Monitor dialog, send routing.
+[2026-04-12] [FIX] **Model filename migration** — Added automatic migration in `KVUtils.migrateOldModelPaths()` to convert any stored references from old `gemma-4-E2B-it.litertlm` to new `gemma-4-E2B-it_qualcomm_qcs8275.litertlm` during app init. This handles devices where the file was manually replaced but SharedPreferences still had the old path saved. Blocks "Model file not found" crash on users upgrading from older builds that only knew about the old E2B filename.
+
+**Changes:**
+- `KVUtils.kt` → added `migrateOldModelPaths()` called from `init()`, logs migration via `XLog.i()`
+- `QA_CHECKLIST.md` → updated Local LLM config example to use new Qualcomm filename
+- `LocalModelManager.kt` → already has correct filename (verified E2B-it_qualcomm_qcs8275)
+
+### 2026-04-20 — Branding rename (PokeClaw -> Saathi)
 
 ```
+[2026-04-20] [PASS]    H-Brand-1   App launcher label switched to "Saathi" (all locales values/values-zh/values-ja)
+[2026-04-20] [PASS]    H-Brand-2   In-app visible branding switched to "Saathi" (chat header, about card, notification titles, guide text)
+[2026-04-20] [SKIP]    H-Brand-3   ADB E2E locale sweep not run in this session (no active device execution)
+[2026-04-20] [PASS]    H-Brand-4   Chat top app bar title updated from stylized "Poke"+"Claw" to "Saa"+"thi"
 [2026-04-09] [PASS]    G1    Cloud empty state: icon + "Cloud AI" + hint + 3 prompts + no toggle + correct placeholder
 [2026-04-09] [PASS]    G2    Local empty state: icon + "Local AI" + bold hint + 3 local prompts + toggle visible
 [2026-04-09] [PASS]    G5    Tab switch updates empty state immediately (subtitle, hint, prompts all change)
@@ -1636,7 +1664,30 @@ Run on the actual GitHub release APK `PokeClaw_v0.7.0_20260526_101139.apk` after
 [2026-04-30] [PASS]    Rel-v0612-signed-macrodroid  Pixel 8 Pro signed-release smoke: clean-installed signed `v0.6.12` (`versionCode=27`, release signature fingerprint prefix `745eed92`), enabled External Automation from Settings, reran the same MacroDroid Activity-target macro, and visibly returned `Battery: 100%, charging, 35.2°C` in the PokeClaw chatroom.
 ```
 
-### Bugs Found During v9 QA
+### 2026-04-21 — Agent loop termination safety
+
+```
+[2026-04-21] [FIXED]   M6-a   `runAgentLoop` now emits explicit marker `runAgentLoop: text-only response, completing` and exits immediately when the model returns text with no tool calls
+[2026-04-21] [FIXED]   M6-b   No-tool blank replies after prior tool execution now terminate successfully with marker `runAgentLoop: empty post-tool response, completing` (no extra loop)
+[2026-04-21] [FIXED]   M6-c   Agent loop now enforces an effective hard cap of 10 iterations (`min(config.maxIterations, 10)`) and logs when capped
+[2026-04-21] [SKIP]    M6-a   Text-only completion regression added to checklist; not executed in this coding session
+[2026-04-21] [SKIP]    M6-b   Blank post-tool completion regression added to checklist; not executed in this coding session
+[2026-04-21] [SKIP]    M6-c   10-turn ceiling regression added to checklist; not executed in this coding session
+[2026-04-21] [FIXED]   B4-d   Local prompt now includes strict exact-contact-string rule in `TOOL CALLING RULES`; `send_message(contact=...)` should preserve full user-provided name (for example `Kamya Gupta Personal`)
+[2026-04-21] [SKIP]    B4-d   Device E2E for exact-contact preservation not executed in this coding session
+[2026-04-21] [FIXED]   D1-i   Local client now runs full-manual tool calling: SDK tool list hidden (`tools=[]`), manual schema injection appended to system prompt, native `<|tool_call|>...` blocks parsed in Kotlin, and `automaticToolCalling=false`
+[2026-04-21] [SKIP]    D1-i   Device E2E for JNI crash regression not executed in this coding session
+[2026-04-21] [FIXED]   D1-i   Parser hardening: relaxed Gemma tool-call regex for partial closing tags, argument preprocessor auto-inserts missing commas, and local sampler output budget raised (`maxOutputTokens=512`)
+[2026-04-21] [SKIP]    D1-i   Device E2E for truncated-tag/missing-comma recovery not executed in this coding session
+[2026-04-21] [FIXED]   D1-i   LiteRT-LM 0.10.0 compatibility: removed unsupported `SamplerConfig(maxOutputTokens=...)` argument while keeping truncated-tag regex + comma-normalization parser hardening
+[2026-04-21] [SKIP]    D1-i   Device E2E for this compatibility adjustment not executed in this coding session
+[2026-04-21] [FIXED]   D1-i   Fuzzy parser update: Gemma block regex now accepts malformed/partial tags and parser marks `hasToolCalls` true when tool-tag hints are present even if block extraction is imperfect
+[2026-04-21] [SKIP]    D1-i   Device E2E for malformed-tag `hasToolCalls` detection not executed in this coding session
+[2026-04-21] [FIXED]   D1-i   Local parser migrated to plain-text `Action: tool_name` + JSON-object extraction; removed native-token parsing helpers and now validates/forwards standard JSON arguments directly
+[2026-04-21] [SKIP]    D1-i   Device E2E for Action+JSON parser migration not executed in this coding session
+[2026-04-21] [FIXED]   F2-b/F2-c   `executeTask` now dispatches running-state signal on main thread before inference, yields briefly (`yield` + `delay(50)`) before `runAgentLoop`, and keeps `currentAgentJob` cancellation wired through `serviceScope(Dispatchers.Default)`
+[2026-04-21] [SKIP]    F2-b/F2-c   Device E2E race/cancellation verification not executed in this coding session
+```
 
 | ID | Issue | Root Cause | Priority |
 |----|-------|-----------|----------|

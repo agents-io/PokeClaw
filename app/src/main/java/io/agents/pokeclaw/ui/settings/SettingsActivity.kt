@@ -505,7 +505,7 @@ class SettingsActivity : BaseActivity() {
 
         aboutGroup.addMenuItem(
             leadingIcon = android.R.drawable.ic_menu_info_details,
-            title = "PokeClaw",
+            title = "Saathi",
             onClick = { },
             showDivider = true
         ).apply {
@@ -608,7 +608,23 @@ class SettingsActivity : BaseActivity() {
                     DebugReportManager.buildReport(this@SettingsActivity)
                 }
             }.onSuccess { report ->
-                onReportReady(report)
+                val uri = FileProvider.getUriForFile(
+                    this@SettingsActivity,
+                    "${packageName}.fileprovider",
+                    report
+                )
+                val intent = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_SUBJECT, "Saathi debug report ${io.agents.pokeclaw.BuildConfig.VERSION_NAME}")
+                    putExtra(Intent.EXTRA_TEXT, "Attach this debug report when reporting a Saathi issue.")
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                try {
+                    startActivity(Intent.createChooser(intent, "Share debug report"))
+                } catch (e: ActivityNotFoundException) {
+                    Toast.makeText(this@SettingsActivity, "No app available to share the report", Toast.LENGTH_LONG).show()
+                }
             }.onFailure { error ->
                 XLog.e("SettingsActivity", "Failed to build debug report", error)
                 Toast.makeText(this@SettingsActivity, "Failed to build debug report", Toast.LENGTH_LONG).show()
