@@ -56,6 +56,13 @@ object ExternalAutomationEntrypoint {
             return false
         }
 
+        // FIX 2 — for a TASK, fence the chat side now: startActivity below brings
+        // ComposeChatActivity to the foreground and its onResume must not open a
+        // chat Conversation on the shared engine before the task claims it.
+        if (request.mode == ExternalAutomationContract.Mode.TASK) {
+            io.agents.pokeclaw.agent.llm.EngineHolder.markTaskStarting()
+        }
+
         XLog.i(TAG, "Accepted external automation ${request.mode}: ${request.text.take(MAX_LOG_TEXT)}")
         ExternalAutomationContract.sendCallback(
             context = context,

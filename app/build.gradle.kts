@@ -90,6 +90,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
+    testOptions {
+        // Guard tests exercise objects that touch android.util.Log via XLog;
+        // return defaults instead of throwing "not mocked".
+        unitTests.isReturnDefaultValues = true
+    }
+
     buildFeatures {
         buildConfig = true
         compose = true

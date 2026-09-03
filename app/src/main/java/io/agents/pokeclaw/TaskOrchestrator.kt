@@ -78,14 +78,23 @@ class TaskOrchestrator(
     // ==================== Task Lock ====================
 
     fun tryAcquireTask(messageId: String, channel: Channel, taskText: String = ""): Boolean {
-        return taskSessionStore.tryAcquire(
+        val acquired = taskSessionStore.tryAcquire(
             messageId = messageId,
             channel = channel,
             taskText = taskText,
         )
+        // FIX 2 — task lock held: TaskSessionStore.isTaskRunning() is now the
+        // authoritative fence, so the short-lived "starting" flag can stand down.
+        if (acquired) io.agents.pokeclaw.agent.llm.EngineHolder.clearTaskStarting()
+        return acquired
     }
 
-    private fun releaseTask(): TaskSessionState = taskSessionStore.release()
+    private fun releaseTask(): TaskSessionState {
+        // FIX 2 — every task terminal (COMPLETE / FAILED / CANCELLED / BLOCKED)
+        // funnels through here — clear the fence unconditionally.
+        io.agents.pokeclaw.agent.llm.EngineHolder.clearTaskStarting()
+        return taskSessionStore.release()
+    }
 
     fun isTaskRunning(): Boolean = taskSessionStore.isTaskRunning()
 

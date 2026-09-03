@@ -44,6 +44,84 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
 
     private var gpuFailed = false
 
+    // ------------------------------------------------------------------
+    // Cancel-safe close (experiment/pokeclaw-cancel-safe-close)
+    //
+    // Bug: DefaultAgentService.cancel()/updateConfig()/shutdown() can call close()
+    // (→ Conversation.close() → nativeDeleteConversation) from another thread while
+    // the agent-loop thread is still inside Conversation.sendMessage → nativeSendMessage.
+    // LiteRT-LM's native send is NOT interrupt-safe → use-after-free → SIGSEGV.
+    //
+    // Guard: track in-flight native sends per client. close() flips `closing`,
+    // rejects new sends, and waits (bounded) for in-flight sends to drain before
+    // it ever calls nativeDeleteConversation. On timeout it fails closed — the
+    // native conversation is left alive rather than freed under an active send.
+    // ------------------------------------------------------------------
+    private val sendLifecycleLock = Object()
+    @Volatile private var closing = false
+    private var inFlightSendCount = 0
+    private var closeDeferred = false
+
+    // test hooks (same module only)
+    internal val inFlightSends: Int get() = synchronized(sendLifecycleLock) { inFlightSendCount }
+    internal val isClosing: Boolean get() = closing
+    internal val isCloseDeferred: Boolean get() = synchronized(sendLifecycleLock) { closeDeferred }
+
+    /** Reserve a send slot. Throws if the client is closing so the loop stops. */
+    internal fun beginSend() {
+        synchronized(sendLifecycleLock) {
+            if (closing) throw IllegalStateException("[SEND-GUARD] LocalLlmClient is closing — send rejected")
+            inFlightSendCount++
+            XLog.i(TAG, "[SEND-GUARD] SEND_ENTER inFlight=$inFlightSendCount")
+        }
+    }
+
+    /**
+     * Release a send slot. If a close() came in while this send was running, the
+     * close was deferred — perform the real native close now, on this (loop) thread,
+     * where it can never overlap a send.
+     */
+    internal fun endSend() {
+        val runDeferredClose: Boolean
+        synchronized(sendLifecycleLock) {
+            if (inFlightSendCount > 0) inFlightSendCount--
+            XLog.i(TAG, "[SEND-GUARD] SEND_EXIT inFlight=$inFlightSendCount")
+            if (inFlightSendCount == 0) sendLifecycleLock.notifyAll()
+            runDeferredClose = closeDeferred && inFlightSendCount == 0
+            if (runDeferredClose) closeDeferred = false
+        }
+        if (runDeferredClose) {
+            XLog.i(TAG, "[SEND-GUARD] running deferred close after last send drained")
+            closeConversationNative()
+        }
+    }
+
+    private inline fun <T> guardedSend(block: () -> T): T {
+        beginSend()
+        try {
+            return block()
+        } finally {
+            endSend()
+        }
+    }
+
+    /** Set once the native conversation has actually been torn down. Test hook. */
+    @Volatile internal var closeExecuted = false
+        private set
+
+    /** The actual native teardown — only ever called with inFlightSendCount == 0. */
+    private fun closeConversationNative() {
+        EngineHolder.withConversationSlot {
+            XLog.i(TAG, "[SESSION] SESSION_OWNER=TASK CONVERSATION_CLOSE")
+            try { conversation?.close() } catch (e: Exception) { XLog.w(TAG, "close conversation error", e) }
+            conversation = null
+            engine = null
+            processedMessageCount = 0
+        }
+        closeExecuted = true
+        XLog.i(TAG, "[SEND-GUARD] CLOSE_EXECUTED")
+    }
+
     private fun ensureEngine() {
         val modelPath = config.baseUrl
         val context = ClawApplication.instance
@@ -80,21 +158,19 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
     private fun fallbackToCpu() {
         XLog.w(TAG, "fallbackToCpu: GPU inference failed, switching to CPU")
         gpuFailed = true
-        try { conversation?.close() } catch (_: Exception) {}
-        conversation = null
-        processedMessageCount = 0
-        sendCount = 0
-        engine = LocalModelRuntime.forceCpuEngine(ClawApplication.instance, config.baseUrl).engine
+        EngineHolder.withConversationSlot {
+            try { conversation?.close() } catch (_: Exception) {}
+            conversation = null
+            processedMessageCount = 0
+            sendCount = 0
+            engine = LocalModelRuntime.forceCpuEngine(ClawApplication.instance, config.baseUrl).engine
+        }
     }
 
     /**
      * Create a new conversation with system prompt and tool declarations.
      */
     private fun createConversation(systemPrompt: String, toolSpecs: List<ToolSpecification>) {
-        // LiteRT-LM only supports one session at a time — close existing first
-        try { conversation?.close() } catch (_: Exception) {}
-        conversation = null
-
         // Convert tool specs to native LiteRT-LM tools
         val nativeTools = toolSpecs.mapNotNull { spec ->
             try {
@@ -126,15 +202,27 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
             automaticToolCalling = false  // We handle execution in DefaultAgentService
         )
 
-        val lease = LocalModelRuntime.openConversation(
-            context = ClawApplication.instance,
-            modelPath = config.baseUrl,
-            conversationConfig = convConfig,
-            preferCpu = gpuFailed,
-        )
-        engine = lease.engine
-        conversation = lease.conversation
-        processedMessageCount = 0
+        // FIX 1 — close the old Conversation and open the new one atomically under the
+        // shared conversation-slot mutex, so the chat owner cannot open its own
+        // Conversation on the engine in the gap between our close and our open.
+        // The lock covers session lifecycle only — never the sendMessage/decode below.
+        EngineHolder.withConversationSlot {
+            XLog.i(TAG, "[SESSION] SESSION_OWNER=TASK CONVERSATION_CREATE_START tools=${nativeTools.size}")
+            // LiteRT-LM only supports one session at a time — close existing first
+            try { conversation?.close() } catch (_: Exception) {}
+            conversation = null
+
+            val lease = LocalModelRuntime.openConversation(
+                context = ClawApplication.instance,
+                modelPath = config.baseUrl,
+                conversationConfig = convConfig,
+                preferCpu = gpuFailed,
+            )
+            engine = lease.engine
+            conversation = lease.conversation
+            processedMessageCount = 0
+            XLog.i(TAG, "[SESSION] SESSION_OWNER=TASK CONVERSATION_CREATE_SUCCESS")
+        }
     }
 
     private var sendCount = 0
@@ -181,7 +269,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                     val conv = conversation ?: throw RuntimeException("LiteRT-LM conversation not initialized — engine may have failed to load the model")
                     XLog.d(TAG, "chat: sendMessage user (${msg.singleText().take(80)}...) sendCount=$sendCount")
                     try {
-                        lastResponse = conv.sendMessage(msg.singleText())
+                        lastResponse = guardedSend { conv.sendMessage(msg.singleText()) }
                     } catch (e: Exception) {
                         // LiteRT-LM SDK may fail to parse tool calls with standard quotes.
                         // Extract raw model output from error message and parse ourselves.
@@ -206,7 +294,7 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
                     val conv = conversation ?: throw RuntimeException("LiteRT-LM conversation not initialized — engine may have failed to load the model")
                     XLog.d(TAG, "chat: sendMessage toolResult (${toolResultText.take(80)}...) sendCount=$sendCount")
                     try {
-                        lastResponse = conv.sendMessage(toolResultText)
+                        lastResponse = guardedSend { conv.sendMessage(toolResultText) }
                     } catch (e: Exception) {
                         val errorMsg = e.message ?: ""
                         if (errorMsg.contains("Failed to parse tool calls") && errorMsg.contains("tool_call")) {
@@ -531,17 +619,57 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
         }
     }
 
-    override fun close() {
+    override fun close() = close(CLOSE_WAIT_TIMEOUT_MS)
+
+    /**
+     * Cancel-safe close.
+     *   1. flip `closing` — no new native send can start (beginSend throws).
+     *   2. if a send is in flight, DEFER the native teardown: endSend() on the
+     *      loop thread runs it once the last send drains. close() never calls
+     *      nativeDeleteConversation under an active nativeSendMessage (no UAF).
+     *   3. wait up to [timeoutMs] for the drain so simple cases finish
+     *      synchronously; on timeout the deferred path still completes the close
+     *      later — the conversation is never freed while a send runs.
+     */
+    internal fun close(timeoutMs: Long) {
         XLog.i(TAG, "close() — closing conversation only (engine stays in EngineHolder)")
-        try { conversation?.close() } catch (e: Exception) { XLog.w(TAG, "close conversation error", e) }
-        conversation = null
-        engine = null
-        processedMessageCount = 0
+        val deadline = System.currentTimeMillis() + timeoutMs
+        var closeNow = false
+        synchronized(sendLifecycleLock) {
+            closing = true
+            if (inFlightSendCount == 0) {
+                closeNow = true            // fast path — no send running
+            } else {
+                closeDeferred = true       // endSend() will run the native close on the loop thread
+                XLog.i(TAG, "[SEND-GUARD] CLOSE_DEFERRED inFlight=$inFlightSendCount")
+                while (inFlightSendCount > 0) {
+                    val remaining = deadline - System.currentTimeMillis()
+                    if (remaining <= 0L) {
+                        XLog.w(TAG, "[SEND-GUARD] CLOSE_DEFER_TIMEOUT inFlight=$inFlightSendCount — " +
+                            "native close will run when the send finally drains; not blocking further")
+                        break
+                    }
+                    try {
+                        sendLifecycleLock.wait(remaining)
+                    } catch (ie: InterruptedException) {
+                        Thread.currentThread().interrupt()
+                        break  // deferred close still pending; do not force a native close now
+                    }
+                }
+            }
+        }
+        if (closeNow) closeConversationNative()
         XLog.i(TAG, "close() — done")
     }
 
     companion object {
         private const val TAG = "LocalLlmClient"
+
+        /**
+         * Upper bound close() will wait for an in-flight native send to finish before
+         * it deletes the conversation. Gemma-4-E2B first prefill on CPU can exceed 90 s.
+         */
+        internal const val CLOSE_WAIT_TIMEOUT_MS = 120_000L
 
         private const val LOCAL_SYSTEM_PROMPT = """You control an Android phone via tools. Screen shows elements as: [n1] "text" [flags] (x,y) where n1 is the node ID and (x,y) is the tap target.
 
