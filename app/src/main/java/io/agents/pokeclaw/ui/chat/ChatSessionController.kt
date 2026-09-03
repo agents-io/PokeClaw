@@ -11,6 +11,7 @@ import dev.langchain4j.data.message.AiMessage
 import dev.langchain4j.data.message.SystemMessage
 import dev.langchain4j.data.message.UserMessage
 import io.agents.pokeclaw.agent.ModelPricing
+import io.agents.pokeclaw.agent.llm.EngineHolder
 import io.agents.pokeclaw.agent.llm.LlmClient
 import io.agents.pokeclaw.agent.llm.LlmSessionManager
 import io.agents.pokeclaw.agent.llm.LocalModelManager
@@ -63,6 +64,23 @@ class ChatSessionController(
 
     fun isModelReady(): Boolean = isModelReady
 
+    /**
+     * FIX 2 — the chat side must NOT open a local Conversation while a task owns
+     * (or is about to own) the single shared model session.
+     *  - isTaskRunning(): authoritative once the orchestrator has the task lock —
+     *    covers the whole task, including long first prefills.
+     *  - EngineHolder.isTaskStarting(): covers the launch -> task-lock gap, during
+     *    which a task launch can already have brought this Activity to onResume.
+     */
+    private fun taskOwnsSession(): Boolean = isTaskRunning() || EngineHolder.isTaskStarting()
+
+    private fun deferChatOpenForTask(where: String) {
+        XLog.i(TAG, "[SESSION] SESSION_OWNER=CHAT open deferred at $where — TASK_ACTIVE_OR_STARTING=true")
+        uiState.modelStatus.value = "● Local task using model"
+        isModelReady = false
+        setButtonsEnabled(false)
+    }
+
     fun loadModelIfReady(
         conversationId: String? = null,
         visibleMessages: List<ChatMessage> = emptyList(),
@@ -110,10 +128,8 @@ class ChatSessionController(
 
         cloudClient = null
         val modelPath = resolvedConfig.local.modelPath
-        if (isTaskRunning()) {
-            uiState.modelStatus.value = "● Local task using model"
-            isModelReady = false
-            setButtonsEnabled(false)
+        if (taskOwnsSession()) {
+            deferChatOpenForTask("loadModelIfReady")
             return
         }
         XLog.d(TAG, "loadModelIfReady: stored=$modelPath loaded=$loadedModelPath engine=${engine != null}")
@@ -127,7 +143,7 @@ class ChatSessionController(
             loadedModelPath = null
             executor.submit {
                 try {
-                    oldConv?.close()
+                    EngineHolder.withConversationSlot { oldConv?.close() }
                 } catch (e: Exception) {
                     XLog.w(TAG, "loadModelIfReady: conv close error", e)
                 }
@@ -197,6 +213,13 @@ class ChatSessionController(
         conversationId: String,
         visibleMessages: List<ChatMessage>,
     ) {
+        // FIX 2 — if a task owns / is starting the session, do not touch the model
+        // here. The existing task-terminal callback re-runs syncUiToActiveModel()
+        // which reopens the chat session cleanly.
+        if (taskOwnsSession()) {
+            deferChatOpenForTask("onResume")
+            return
+        }
         syncUiToActiveModel()
         val currentModelPath = ModelConfigRepository.snapshot().local.modelPath
         if (currentModelPath.isNotEmpty() && currentModelPath != loadedModelPath) {
@@ -205,19 +228,26 @@ class ChatSessionController(
             val generation = ++localUiGeneration
             executor.submit {
                 try {
-                    try {
-                        conversation?.close()
-                    } catch (_: Exception) {
+                    if (taskOwnsSession()) {
+                        postToMain { deferChatOpenForTask("onResume/recreate") }
+                        return@submit
                     }
-                    conversation = null
-                    val lease = LocalModelRuntime.openConversation(
-                        activity,
-                        currentModelPath,
-                        buildConversationConfig(buildRestoredSystemPrompt(conversationId, visibleMessages))
-                    )
-                    engine = lease.engine
-                    conversation = lease.conversation
-                    isModelReady = true
+                    // FIX 1 — close + reopen atomically under the conversation-slot mutex.
+                    EngineHolder.withConversationSlot {
+                        try {
+                            conversation?.close()
+                        } catch (_: Exception) {
+                        }
+                        conversation = null
+                        val lease = LocalModelRuntime.openConversation(
+                            activity,
+                            currentModelPath,
+                            buildConversationConfig(buildRestoredSystemPrompt(conversationId, visibleMessages))
+                        )
+                        engine = lease.engine
+                        conversation = lease.conversation
+                        isModelReady = true
+                    }
                     postToMain {
                         if (!isLocalUiStillExpected(currentModelPath, generation)) {
                             return@postToMain
@@ -254,18 +284,71 @@ class ChatSessionController(
     }
 
     fun onPause(conversationId: String) {
-        if (engine != null && ConversationCompactor.needsCompaction(uiState.messages)) {
+        // FIX 2 — compaction opens a temporary Conversation on the shared engine;
+        // never do that while a task owns the session.
+        if (engine != null && !taskOwnsSession() && ConversationCompactor.needsCompaction(uiState.messages)) {
             executor.submit {
+                if (taskOwnsSession()) return@submit
+                // FIX 1 — close + compact (which opens a temp Conversation) under the slot.
+                EngineHolder.withConversationSlot {
+                    try {
+                        conversation?.close()
+                    } catch (_: Exception) {
+                    }
+                    conversation = null
+                    ConversationCompactor.compact(engine!!, uiState.messages, activity, conversationId)
+                    isModelReady = false
+                }
+            }
+        }
+        executor.submit {
+            EngineHolder.withConversationSlot {
                 try {
                     conversation?.close()
                 } catch (_: Exception) {
                 }
                 conversation = null
-                ConversationCompactor.compact(engine!!, uiState.messages, activity, conversationId)
                 isModelReady = false
             }
         }
+    }
+
+    fun onDestroy() {
         executor.submit {
+            XLog.i(TAG, "onDestroy: closing conversation (engine stays in EngineHolder)")
+            EngineHolder.withConversationSlot {
+                try {
+                    conversation?.close()
+                } catch (e: Exception) {
+                    XLog.w(TAG, "onDestroy: conversation close error", e)
+                }
+                conversation = null
+            }
+        }
+    }
+
+    /**
+     * Called from AppViewModel.onBeforeTask on the MAIN thread. Keep it cheap — do
+     * NOT hold the conversation-slot here (would risk blocking the UI thread).
+     * The real slot-guarded close happens in [prepareForTaskStart] on the chat
+     * executor, which TaskFlowController runs first.
+     */
+    fun releaseForTask() {
+        // FIX 2 — fence is up before any concurrent Activity.onResume can react.
+        EngineHolder.markTaskStarting()
+        try {
+            conversation?.close()
+        } catch (_: Exception) {
+        }
+        conversation = null
+        isModelReady = false
+    }
+
+    /** Called on the chat executor before a task starts. */
+    fun prepareForTaskStart() {
+        EngineHolder.markTaskStarting()
+        XLog.i(TAG, "[SESSION] SESSION_OWNER=CHAT CONVERSATION_CLOSE (prepareForTaskStart)")
+        EngineHolder.withConversationSlot {
             try {
                 conversation?.close()
             } catch (_: Exception) {
@@ -273,36 +356,6 @@ class ChatSessionController(
             conversation = null
             isModelReady = false
         }
-    }
-
-    fun onDestroy() {
-        executor.submit {
-            XLog.i(TAG, "onDestroy: closing conversation (engine stays in EngineHolder)")
-            try {
-                conversation?.close()
-            } catch (e: Exception) {
-                XLog.w(TAG, "onDestroy: conversation close error", e)
-            }
-            conversation = null
-        }
-    }
-
-    fun releaseForTask() {
-        try {
-            conversation?.close()
-        } catch (_: Exception) {
-        }
-        conversation = null
-        isModelReady = false
-    }
-
-    fun prepareForTaskStart() {
-        try {
-            conversation?.close()
-        } catch (_: Exception) {
-        }
-        conversation = null
-        isModelReady = false
     }
 
     fun sendChat(text: String) {
@@ -422,16 +475,23 @@ class ChatSessionController(
         }
 
         executor.submit {
-            try {
-                conversation?.close()
-            } catch (_: Exception) {
+            if (taskOwnsSession()) {
+                postToMain { deferChatOpenForTask("startNewConversationRuntime") }
+                return@submit
             }
-            val modelPath = ModelConfigRepository.snapshot().local.modelPath.ifEmpty { loadedModelPath.orEmpty() }
-            if (modelPath.isNotEmpty()) {
-                val lease = LocalModelRuntime.openConversation(activity, modelPath, buildConversationConfig())
-                engine = lease.engine
-                conversation = lease.conversation
-                isModelReady = true
+            // FIX 1 — close + open under the conversation-slot mutex.
+            EngineHolder.withConversationSlot {
+                try {
+                    conversation?.close()
+                } catch (_: Exception) {
+                }
+                val modelPath = ModelConfigRepository.snapshot().local.modelPath.ifEmpty { loadedModelPath.orEmpty() }
+                if (modelPath.isNotEmpty()) {
+                    val lease = LocalModelRuntime.openConversation(activity, modelPath, buildConversationConfig())
+                    engine = lease.engine
+                    conversation = lease.conversation
+                    isModelReady = true
+                }
             }
             postToMain {
                 addSystem("New conversation started.")
@@ -447,25 +507,32 @@ class ChatSessionController(
         }
         if (engine != null) {
             executor.submit {
+                if (taskOwnsSession()) {
+                    postToMain { deferChatOpenForTask("restoreConversationRuntime") }
+                    return@submit
+                }
                 try {
-                    try {
-                        conversation?.close()
-                    } catch (_: Exception) {
-                    }
                     val recentMsgs = messages.takeLast(5)
                     val systemPrompt = ConversationCompactor.buildRestoredSystemPrompt(activity, conversationId, recentMsgs)
                     val modelPath = ModelConfigRepository.snapshot().local.modelPath.ifEmpty { loadedModelPath.orEmpty() }
-                    val lease = LocalModelRuntime.openConversation(
-                        context = activity,
-                        modelPath = modelPath,
-                        conversationConfig = ConversationConfig(
-                            systemInstruction = Contents.of(systemPrompt),
-                            samplerConfig = SamplerConfig(topK = 64, topP = 0.95, temperature = 0.7)
+                    // FIX 1 — close + open under the conversation-slot mutex.
+                    EngineHolder.withConversationSlot {
+                        try {
+                            conversation?.close()
+                        } catch (_: Exception) {
+                        }
+                        val lease = LocalModelRuntime.openConversation(
+                            context = activity,
+                            modelPath = modelPath,
+                            conversationConfig = ConversationConfig(
+                                systemInstruction = Contents.of(systemPrompt),
+                                samplerConfig = SamplerConfig(topK = 64, topP = 0.95, temperature = 0.7)
+                            )
                         )
-                    )
-                    engine = lease.engine
-                    conversation = lease.conversation
-                    isModelReady = true
+                        engine = lease.engine
+                        conversation = lease.conversation
+                        isModelReady = true
+                    }
                     postToMain {
                         setButtonsEnabled(true)
                         addSystem("Conversation restored.")
@@ -484,22 +551,29 @@ class ChatSessionController(
         restoredSystemPrompt: String? = null,
     ) {
         try {
-            XLog.i(TAG, "loadModel: acquiring shared runtime for $modelPath")
-            try {
-                conversation?.close()
-            } catch (_: Exception) {
+            if (taskOwnsSession()) {
+                postToMain { deferChatOpenForTask("loadModel") }
+                return
             }
-            conversation = null
+            XLog.i(TAG, "loadModel: acquiring shared runtime for $modelPath")
             Thread.sleep(200)
+            // FIX 1 — close + open under the conversation-slot mutex.
+            EngineHolder.withConversationSlot {
+                try {
+                    conversation?.close()
+                } catch (_: Exception) {
+                }
+                conversation = null
 
-            val lease = LocalModelRuntime.openConversation(
-                activity,
-                modelPath,
-                buildConversationConfig(restoredSystemPrompt)
-            )
-            engine = lease.engine
-            XLog.i(TAG, "loadModel: engine ready (${lease.backendLabel})")
-            conversation = lease.conversation
+                val lease = LocalModelRuntime.openConversation(
+                    activity,
+                    modelPath,
+                    buildConversationConfig(restoredSystemPrompt)
+                )
+                engine = lease.engine
+                XLog.i(TAG, "loadModel: engine ready (${lease.backendLabel})")
+                conversation = lease.conversation
+            }
 
             isModelReady = true
             loadedModelPath = modelPath
@@ -540,21 +614,25 @@ class ChatSessionController(
 
     private fun retryLocalChatOnCpu(modelPath: String, text: String): String {
         require(modelPath.isNotEmpty()) { "Local model path missing for CPU retry" }
-        try {
-            conversation?.close()
-        } catch (_: Exception) {
+        // FIX 1 — session lifecycle (close old + force-CPU engine + open new) under
+        // the slot mutex; the sendMessage below runs OUTSIDE the lock.
+        EngineHolder.withConversationSlot {
+            try {
+                conversation?.close()
+            } catch (_: Exception) {
+            }
+            conversation = null
+            LocalModelRuntime.forceCpuEngine(activity, modelPath)
+            val lease = LocalModelRuntime.openConversation(
+                context = activity,
+                modelPath = modelPath,
+                conversationConfig = buildConversationConfig(),
+                preferCpu = true,
+            )
+            engine = lease.engine
+            loadedModelPath = modelPath
+            conversation = lease.conversation
         }
-        conversation = null
-        LocalModelRuntime.forceCpuEngine(activity, modelPath)
-        val lease = LocalModelRuntime.openConversation(
-            context = activity,
-            modelPath = modelPath,
-            conversationConfig = buildConversationConfig(),
-            preferCpu = true,
-        )
-        engine = lease.engine
-        loadedModelPath = modelPath
-        conversation = lease.conversation
         XLog.i(TAG, "retryLocalChatOnCpu: CPU runtime ready, retrying sendMessage")
         return conversation!!.sendMessage(text)?.toString() ?: "(no response)"
     }

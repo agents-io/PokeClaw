@@ -36,6 +36,17 @@ object LocalModelRuntime {
     private const val DEFAULT_RESET_ATTEMPT = 3
     private const val DEFAULT_RETRY_SLEEP_MS = 1500L
 
+    // FIX 3 — bounded session-conflict retry (safety net behind FIX 1 + FIX 2).
+    // A session conflict here is a transient race with the other session owner's
+    // Conversation teardown, not a permanent failure. Retry a small, fixed number
+    // of times with a short pause; never reset/recreate the engine; then fail closed.
+    internal const val SESSION_CONFLICT_MAX_ATTEMPTS = 3
+    internal const val SESSION_CONFLICT_RETRY_SLEEP_MS = 250L
+
+    /** Pure, unit-testable: given how many session-conflicts have occurred so far, retry? */
+    internal fun shouldRetrySessionConflict(priorAttempts: Int): Boolean =
+        priorAttempts < SESSION_CONFLICT_MAX_ATTEMPTS
+
     fun acquireSharedEngine(
         context: Context,
         modelPath: String,
@@ -85,21 +96,35 @@ object LocalModelRuntime {
     ): LocalConversationLease {
         var lastError: Exception? = null
         var forceCpu = preferCpu
+        var sessionConflicts = 0
 
         for (attempt in 1..maxRetries) {
             try {
-                val engineLease = acquireSharedEngine(context, modelPath, preferCpu = forceCpu)
-                val conversation = engineLease.engine.createConversation(conversationConfig)
-                return LocalConversationLease(
-                    engine = engineLease.engine,
-                    conversation = conversation,
-                    backendLabel = engineLease.backendLabel,
-                )
+                // FIX 1 — every engine.createConversation() on the shared engine goes
+                // through the conversation-slot mutex, whichever owner is calling.
+                // Reentrant: owners that already hold the slot (LocalLlmClient /
+                // ChatSessionController) simply re-enter here.
+                return EngineHolder.withConversationSlot {
+                    val engineLease = acquireSharedEngine(context, modelPath, preferCpu = forceCpu)
+                    val conversation = engineLease.engine.createConversation(conversationConfig)
+                    LocalConversationLease(
+                        engine = engineLease.engine,
+                        conversation = conversation,
+                        backendLabel = engineLease.backendLabel,
+                    )
+                }
             } catch (e: Exception) {
                 lastError = e
                 XLog.w(TAG, "openConversation attempt $attempt failed for $modelPath: ${e.message}")
 
                 if (isSessionConflict(e)) {
+                    sessionConflicts++
+                    if (shouldRetrySessionConflict(sessionConflicts)) {
+                        XLog.w(TAG, "SESSION_CONFLICT_RETRY attempt=$sessionConflicts/$SESSION_CONFLICT_MAX_ATTEMPTS")
+                        Thread.sleep(SESSION_CONFLICT_RETRY_SLEEP_MS)
+                        continue
+                    }
+                    XLog.e(TAG, "SESSION_CONFLICT_RETRY exhausted ($SESSION_CONFLICT_MAX_ATTEMPTS) — failing closed")
                     throw IllegalStateException("Local model session already in use", e)
                 }
 

@@ -80,21 +80,19 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
     private fun fallbackToCpu() {
         XLog.w(TAG, "fallbackToCpu: GPU inference failed, switching to CPU")
         gpuFailed = true
-        try { conversation?.close() } catch (_: Exception) {}
-        conversation = null
-        processedMessageCount = 0
-        sendCount = 0
-        engine = LocalModelRuntime.forceCpuEngine(ClawApplication.instance, config.baseUrl).engine
+        EngineHolder.withConversationSlot {
+            try { conversation?.close() } catch (_: Exception) {}
+            conversation = null
+            processedMessageCount = 0
+            sendCount = 0
+            engine = LocalModelRuntime.forceCpuEngine(ClawApplication.instance, config.baseUrl).engine
+        }
     }
 
     /**
      * Create a new conversation with system prompt and tool declarations.
      */
     private fun createConversation(systemPrompt: String, toolSpecs: List<ToolSpecification>) {
-        // LiteRT-LM only supports one session at a time — close existing first
-        try { conversation?.close() } catch (_: Exception) {}
-        conversation = null
-
         // Convert tool specs to native LiteRT-LM tools
         val nativeTools = toolSpecs.mapNotNull { spec ->
             try {
@@ -126,15 +124,27 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
             automaticToolCalling = false  // We handle execution in DefaultAgentService
         )
 
-        val lease = LocalModelRuntime.openConversation(
-            context = ClawApplication.instance,
-            modelPath = config.baseUrl,
-            conversationConfig = convConfig,
-            preferCpu = gpuFailed,
-        )
-        engine = lease.engine
-        conversation = lease.conversation
-        processedMessageCount = 0
+        // FIX 1 — close the old Conversation and open the new one atomically under the
+        // shared conversation-slot mutex, so the chat owner cannot open its own
+        // Conversation on the engine in the gap between our close and our open.
+        // The lock covers session lifecycle only — never the sendMessage/decode below.
+        EngineHolder.withConversationSlot {
+            XLog.i(TAG, "[SESSION] SESSION_OWNER=TASK CONVERSATION_CREATE_START tools=${nativeTools.size}")
+            // LiteRT-LM only supports one session at a time — close existing first
+            try { conversation?.close() } catch (_: Exception) {}
+            conversation = null
+
+            val lease = LocalModelRuntime.openConversation(
+                context = ClawApplication.instance,
+                modelPath = config.baseUrl,
+                conversationConfig = convConfig,
+                preferCpu = gpuFailed,
+            )
+            engine = lease.engine
+            conversation = lease.conversation
+            processedMessageCount = 0
+            XLog.i(TAG, "[SESSION] SESSION_OWNER=TASK CONVERSATION_CREATE_SUCCESS")
+        }
     }
 
     private var sendCount = 0
@@ -533,10 +543,13 @@ class LocalLlmClient(private val config: AgentConfig) : LlmClient {
 
     override fun close() {
         XLog.i(TAG, "close() — closing conversation only (engine stays in EngineHolder)")
-        try { conversation?.close() } catch (e: Exception) { XLog.w(TAG, "close conversation error", e) }
-        conversation = null
-        engine = null
-        processedMessageCount = 0
+        EngineHolder.withConversationSlot {
+            XLog.i(TAG, "[SESSION] SESSION_OWNER=TASK CONVERSATION_CLOSE")
+            try { conversation?.close() } catch (e: Exception) { XLog.w(TAG, "close conversation error", e) }
+            conversation = null
+            engine = null
+            processedMessageCount = 0
+        }
         XLog.i(TAG, "close() — done")
     }
 

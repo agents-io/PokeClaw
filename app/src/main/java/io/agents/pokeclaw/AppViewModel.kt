@@ -55,9 +55,12 @@ class AppViewModel : ViewModel() {
         agentPromptOverride: String? = null,
         onEvent: (TaskEvent) -> Unit,
     ) {
+        // FIX 2 — fence the chat side before onBeforeTask / the orchestrator runs.
+        io.agents.pokeclaw.agent.llm.EngineHolder.markTaskStarting()
         onBeforeTask?.invoke()
         taskOrchestrator.taskEventCallback = onEvent
         if (!updateAgentConfig()) {
+            io.agents.pokeclaw.agent.llm.EngineHolder.clearTaskStarting()
             onEvent(TaskEvent.Failed("AI service not ready"))
             return
         }

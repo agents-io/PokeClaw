@@ -27,6 +27,81 @@ object EngineHolder {
     private var currentModelPath: String? = null
     private var currentBackendLabel: String? = null
 
+    // ------------------------------------------------------------------
+    // Session-handoff experiment (fix/experiment: serialize local model session handoff)
+    // ------------------------------------------------------------------
+
+    /**
+     * FIX 1 — Conversation-slot mutex.
+     *
+     * LiteRT-LM allows exactly ONE live [com.google.ai.edge.litertlm.Conversation]
+     * per [Engine]. The chat owner (ChatSessionController) and the task owner
+     * (LocalLlmClient) each keep their own Conversation on this one shared engine.
+     * Without serialisation, the chat executor and the task executor can both reach
+     * `engine.createConversation()` at the same moment and one gets
+     * `FAILED_PRECONDITION: A session already exists`.
+     *
+     * Hold this lock ONLY around session lifecycle — "close old Conversation" +
+     * "open new Conversation". NEVER hold it during sendMessage / prefill / decode.
+     */
+    private val conversationSlotLock = Any()
+
+    fun <T> withConversationSlot(block: () -> T): T =
+        synchronized(conversationSlotLock) {
+            XLog.d(TAG, "[SESSION] CONVERSATION_SLOT_ACQUIRE")
+            try {
+                block()
+            } finally {
+                XLog.d(TAG, "[SESSION] CONVERSATION_SLOT_RELEASE")
+            }
+        }
+
+    /**
+     * FIX 2 — "task active or starting" fence (starting-window half).
+     *
+     * A task launch can bring ComposeChatActivity to the foreground, whose
+     * `onResume()` would otherwise (re)open a chat Conversation on the shared
+     * engine right as the task opens its own. `isTaskRunning()` (TaskSessionStore)
+     * only becomes true once the orchestrator has acquired the task lock — too late
+     * to fence the initial `onResume`. This flag covers the launch -> acquire gap.
+     *
+     * Cleared by the orchestrator once `isTaskRunning()` takes over, and again at
+     * task terminal. Auto-expires after [TASK_STARTING_GRACE_MS] so a launch that
+     * never reaches startTask cannot wedge the chat side forever.
+     */
+    internal const val TASK_STARTING_GRACE_MS = 15_000L
+
+    @Volatile
+    private var taskStartingAtMs = 0L
+
+    /** Pure, unit-testable expiry check. */
+    internal fun startingFenceActive(startedAtMs: Long, nowMs: Long): Boolean {
+        if (startedAtMs == 0L) return false
+        val age = nowMs - startedAtMs
+        return age in 0L until TASK_STARTING_GRACE_MS
+    }
+
+    fun markTaskStarting() {
+        taskStartingAtMs = System.currentTimeMillis()
+        XLog.i(TAG, "[SESSION] TASK_ACTIVE_OR_STARTING=true (starting)")
+    }
+
+    fun clearTaskStarting() {
+        if (taskStartingAtMs != 0L) {
+            taskStartingAtMs = 0L
+            XLog.i(TAG, "[SESSION] TASK_ACTIVE_OR_STARTING=false (starting cleared)")
+        }
+    }
+
+    fun isTaskStarting(): Boolean {
+        val startedAt = taskStartingAtMs
+        if (startedAt == 0L) return false
+        if (startingFenceActive(startedAt, System.currentTimeMillis())) return true
+        taskStartingAtMs = 0L
+        XLog.w(TAG, "[SESSION] task-starting fence expired — auto-cleared")
+        return false
+    }
+
     private fun backendLabel(backend: Backend): String =
         if (backend is Backend.CPU) "CPU" else if (backend is Backend.GPU) "GPU" else backend.javaClass.simpleName
 
