@@ -11,10 +11,46 @@ plugins {
     id("org.jetbrains.kotlin.plugin.compose") version "2.1.21"
 }
 
-fun readLocalOrEnvString(key: String, defaultValue: String = ""): String {
-    val props = Properties().apply {
-        File("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
+/**
+ * Parse local.properties line by line instead of using java.util.Properties.load.
+ *
+ * Properties treats "\" as an escape character, so a Windows path written the
+ * natural way is silently corrupted:
+ *
+ *   storeFile=C:\Users\me\app.keystore   ->   C:Usersmeapp.keystore
+ *
+ * Gradle then looks for a keystore at a path that does not exist and fails with
+ * a confusing "Keystore file ... not found for signing config 'release'".
+ * Reading the value literally keeps backslashes intact.
+ *
+ * Note: sdk.dir is deliberately left untouched. The Android Gradle Plugin reads
+ * local.properties with Properties semantics, so sdk.dir must keep the escaped
+ * form Android Studio writes (sdk.dir=C\:\\Users\\...).
+ */
+fun loadLocalPropertiesLiterally(): Properties {
+    val props = Properties()
+    val file = rootProject.file("local.properties")
+    if (file.exists()) {
+        file.bufferedReader().forEachLine { line ->
+            val trimmed = line.trim()
+            if (trimmed.isEmpty() || trimmed.startsWith("#") || trimmed.startsWith("!")) {
+                return@forEachLine
+            }
+            val separator = trimmed.indexOf('=')
+            if (separator <= 0) {
+                return@forEachLine
+            }
+            props.setProperty(
+                trimmed.substring(0, separator).trim(),
+                trimmed.substring(separator + 1).trim()
+            )
+        }
     }
+    return props
+}
+
+fun readLocalOrEnvString(key: String, defaultValue: String = ""): String {
+    val props = loadLocalPropertiesLiterally()
     return System.getenv(key)?.takeIf { it.isNotBlank() }
         ?: props.getProperty(key, defaultValue).trim()
 }
@@ -33,9 +69,7 @@ android {
 
     signingConfigs {
         create("release") {
-            val props = Properties().apply {
-                rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use { load(it) }
-            }
+            val props = loadLocalPropertiesLiterally()
             fun readSigningValue(key: String): String {
                 return System.getenv(key)?.takeIf { it.isNotBlank() }
                     ?: props.getProperty(key, "").trim()
