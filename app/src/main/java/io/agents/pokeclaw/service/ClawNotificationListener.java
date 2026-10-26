@@ -8,6 +8,8 @@ import android.content.Context;
 import android.service.notification.NotificationListenerService;
 import android.service.notification.StatusBarNotification;
 import android.app.Notification;
+import android.app.RemoteInput;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -18,6 +20,8 @@ import io.agents.pokeclaw.utils.XLog;
 
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Listens for ALL notifications (including updates to existing ones).
@@ -36,6 +40,8 @@ public class ClawNotificationListener extends NotificationListenerService {
 
     private static final String TAG = "ClawNotifListener";
     private static ClawNotificationListener instance;
+    /** Latest inline-reply action per incoming chat notification. */
+    private static final Map<String, Notification.Action> INLINE_REPLY_ACTIONS = new ConcurrentHashMap<>();
 
     private static final Set<String> MESSAGING_APPS = new HashSet<>();
     static {
@@ -80,10 +86,55 @@ public class ClawNotificationListener extends NotificationListenerService {
 
         if (title.isEmpty() || text.isEmpty()) return;
 
+        cacheInlineReplyAction(pkg, title, notification);
+
         XLog.d(TAG, "Notification from " + pkg + ": title='" + title + "' text='" + text + "'");
 
         // Route to AutoReplyManager
         AutoReplyManager.getInstance().onNotificationReceived(pkg, title, text);
+    }
+
+    private static void cacheInlineReplyAction(String packageName, String title, Notification notification) {
+        Notification.Action[] actions = notification.actions;
+        if (actions == null) return;
+        for (Notification.Action action : actions) {
+            if (action != null && action.actionIntent != null && action.getRemoteInputs() != null
+                    && action.getRemoteInputs().length > 0) {
+                INLINE_REPLY_ACTIONS.put(replyActionKey(packageName, title), action);
+                return;
+            }
+        }
+    }
+
+    /**
+     * Replies through the RemoteInput action of the original notification. This does not open
+     * WhatsApp or steal focus from the completed phone-automation task.
+     */
+    public static boolean sendInlineReply(String packageName, String notificationTitle, String message) {
+        ClawNotificationListener listener = instance;
+        if (listener == null || message == null || message.trim().isEmpty()) return false;
+        Notification.Action action = INLINE_REPLY_ACTIONS.remove(replyActionKey(packageName, notificationTitle));
+        if (action == null || action.actionIntent == null || action.getRemoteInputs() == null) return false;
+
+        try {
+            RemoteInput[] inputs = action.getRemoteInputs();
+            Bundle results = new Bundle();
+            for (RemoteInput input : inputs) {
+                results.putCharSequence(input.getResultKey(), message);
+            }
+            Intent replyIntent = new Intent();
+            RemoteInput.addResultsToIntent(inputs, replyIntent, results);
+            action.actionIntent.send(listener, 0, replyIntent);
+            XLog.i(TAG, "Sent inline reply for " + packageName + "/" + notificationTitle);
+            return true;
+        } catch (Exception e) {
+            XLog.w(TAG, "Inline reply failed for " + packageName + "/" + notificationTitle, e);
+            return false;
+        }
+    }
+
+    private static String replyActionKey(String packageName, String title) {
+        return packageName + "\u0000" + (title != null ? title.trim().toLowerCase(java.util.Locale.ROOT) : "");
     }
 
     /**
