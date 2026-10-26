@@ -16,8 +16,10 @@ import io.agents.pokeclaw.service.ForegroundService
 import io.agents.pokeclaw.floating.FloatingCircleManager
 import io.agents.pokeclaw.server.ConfigServerManager
 import io.agents.pokeclaw.service.KeepAliveJobService
+import io.agents.pokeclaw.service.AutoReplyManager
 import io.agents.pokeclaw.utils.KVUtils
 import io.agents.pokeclaw.utils.XLog
+import java.util.UUID
 
 class AppViewModel : ViewModel() {
 
@@ -62,6 +64,29 @@ class AppViewModel : ViewModel() {
             return
         }
         taskOrchestrator.startNewTask(Channel.LOCAL, task, taskId, agentPromptOverride = agentPromptOverride)
+    }
+
+    /**
+     * Starts a normal Task-mode run for a command received from an on-device monitored chat.
+     * The response is delivered only after the task has stopped using the accessibility UI.
+     */
+    fun startMonitoredTask(task: String, contact: String, appName: String, notificationTitle: String) {
+        val taskId = "monitor-${UUID.randomUUID()}"
+        ChannelManager.registerExternalReplyRoute(taskId) { response ->
+            AutoReplyManager.getInstance().sendTaskResponse(contact, appName, notificationTitle, response)
+        }
+
+        if (!KVUtils.hasLlmConfig() || !updateAgentConfig()) {
+            ChannelManager.sendMessage(
+                Channel.WHATSAPP_MONITOR,
+                "AI service is not ready. Open PokeClaw and check the model settings.",
+                taskId,
+            )
+            ChannelManager.flushMessages(Channel.WHATSAPP_MONITOR, taskId)
+            return
+        }
+
+        taskOrchestrator.startNewTask(Channel.WHATSAPP_MONITOR, task, taskId)
     }
 
     fun stopTask() {

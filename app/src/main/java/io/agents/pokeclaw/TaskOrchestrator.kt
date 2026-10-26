@@ -130,6 +130,7 @@ class TaskOrchestrator(
                 )
                 taskEventCallback?.invoke(TaskEvent.Failed("Another task is still running. Stop it first."))
                 ChannelManager.sendMessage(channel, "Another task is still running. Stop it first.", messageID)
+                ChannelManager.flushMessages(channel, messageID)
                 return
             }
         }
@@ -145,6 +146,7 @@ class TaskOrchestrator(
                 XLog.i(TAG, "onComplete: rounds=0, totalTokens=0, model=direct, answer=${route.description}")
                 taskEventCallback?.invoke(TaskEvent.Completed(route.description))
                 ChannelManager.sendMessage(channel, "✓ ${route.description}", messageID)
+                ChannelManager.flushMessages(channel, messageID)
                 releaseTask()
                 ForegroundService.resetToIdle(ClawApplication.instance)
                 FloatingCircleManager.setSuccessState()
@@ -176,6 +178,7 @@ class TaskOrchestrator(
                         ChannelManager.sendMessage(channel, "✗ ${route.description}: $message", messageID)
                         "Failed: ${route.description}: $message"
                     } finally {
+                        ChannelManager.flushMessages(channel, messageID)
                         releaseTask()
                         ForegroundService.resetToIdle(ClawApplication.instance)
                         if (success) {
@@ -206,6 +209,7 @@ class TaskOrchestrator(
                             if (skillResult.success) {
                                 ChannelManager.sendMessage(channel, skillResult.message, messageID)
                                 taskEventCallback?.invoke(TaskEvent.Completed(skillResult.message))
+                                ChannelManager.flushMessages(channel, messageID)
                                 releaseTask()
                                 FloatingCircleManager.setSuccessState()
                                 ForegroundService.resetToIdle(ClawApplication.instance)
@@ -235,10 +239,11 @@ class TaskOrchestrator(
                 agentService.initialize(agentConfigProvider())
             } catch (e: Exception) {
                 XLog.e(TAG, "Failed to initialize AgentService", e)
-                releaseTask()
                 ForegroundService.resetToIdle(ClawApplication.instance)
                 taskEventCallback?.invoke(TaskEvent.Failed("AI service not ready"))
                 ChannelManager.sendMessage(channel, ClawApplication.instance.getString(R.string.channel_msg_service_not_ready), messageID)
+                ChannelManager.flushMessages(channel, messageID)
+                releaseTask()
                 return
             }
         }
@@ -339,15 +344,16 @@ class TaskOrchestrator(
                     taskEventCallback?.invoke(TaskEvent.Cancelled)
                     ForegroundService.resetToIdle(ClawApplication.instance)
                     flushRoundBuffer()
-                    val cancelledSession = releaseTask()
+                    val cancelledSession = taskSessionStore.snapshot()
                     if (cancelledSession.channel != null && cancelledSession.messageId.isNotEmpty()) {
                         ChannelManager.sendMessage(
                             cancelledSession.channel,
                             ClawApplication.instance.getString(R.string.channel_msg_task_cancelled),
                             cancelledSession.messageId
                         )
-                        ChannelManager.flushMessages(cancelledSession.channel)
+                        ChannelManager.flushMessages(cancelledSession.channel, cancelledSession.messageId)
                     }
+                    releaseTask()
                     FloatingCircleManager.setErrorState()
                     onTaskFinished()
                     XLog.d(TAG, "Current task cancelled by user")
@@ -360,8 +366,9 @@ class TaskOrchestrator(
                 taskEventCallback?.invoke(TaskEvent.Completed(answer, modelName))
                 ForegroundService.resetToIdle(ClawApplication.instance)
                 flushRoundBuffer()
-                val completedSession = releaseTask()
-                ChannelManager.flushMessages(completedSession.channel ?: channel)
+                val completedSession = taskSessionStore.snapshot()
+                ChannelManager.flushMessages(completedSession.channel ?: channel, completedSession.messageId)
+                releaseTask()
                 FloatingCircleManager.setSuccessState()
                 // Auto-return to PokeClaw after in-app task completes
                 if (completedSession.autoReturnToChat) {
@@ -385,7 +392,7 @@ class TaskOrchestrator(
                 taskEventCallback?.invoke(TaskEvent.Failed(error.message ?: "Unknown error"))
                 ForegroundService.resetToIdle(ClawApplication.instance)
                 flushRoundBuffer()
-                val failedSession = releaseTask()
+                val failedSession = taskSessionStore.snapshot()
                 val failedChannel = failedSession.channel ?: channel
                 val failedMessageId = failedSession.messageId.ifEmpty { messageID }
                 ChannelManager.sendMessage(
@@ -393,7 +400,8 @@ class TaskOrchestrator(
                     ClawApplication.instance.getString(R.string.channel_msg_task_error, error.message),
                     failedMessageId
                 )
-                ChannelManager.flushMessages(failedChannel)
+                ChannelManager.flushMessages(failedChannel, failedMessageId)
+                releaseTask()
                 FloatingCircleManager.setErrorState()
                 onTaskFinished()
             }
@@ -402,7 +410,7 @@ class TaskOrchestrator(
                 XLog.w(TAG, "onSystemDialogBlocked: round=$round, totalTokens=$totalTokens")
                 taskEventCallback?.invoke(TaskEvent.Blocked)
                 flushRoundBuffer()
-                val blockedSession = releaseTask()
+                val blockedSession = taskSessionStore.snapshot()
                 val blockedChannel = blockedSession.channel ?: channel
                 val blockedMessageId = blockedSession.messageId.ifEmpty { messageID }
                 ChannelManager.sendMessage(
@@ -422,6 +430,8 @@ class TaskOrchestrator(
                 } catch (e: Exception) {
                     XLog.e(TAG, "Failed to send screenshot for system dialog", e)
                 }
+                ChannelManager.flushMessages(blockedChannel, blockedSession.messageId.ifEmpty { messageID })
+                releaseTask()
                 FloatingCircleManager.setErrorState()
                 onTaskFinished()
             }

@@ -115,10 +115,11 @@ public class AutoReplyManager {
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private final AtomicBoolean replying = new AtomicBoolean(false);
 
-    // Debounce: don't reply to same contact within 5s (avoid loops).
-    // ownSentMessages handles self-reply detection, so debounce can be short.
-    private final Map<String, Long> lastReplyTime = new HashMap<>();
-    private static final long DEBOUNCE_MS = 5_000;
+    // Notification updates can repeat the same incoming message.  Deduplicate only an exact
+    // duplicate, never a different command from the monitored contact.
+    private String lastTaskCommandFingerprint = "";
+    private long lastTaskCommandAtMillis = 0L;
+    private static final long DUPLICATE_COMMAND_WINDOW_MS = 5_000;
 
     // Track our own sent messages to avoid replying to ourselves
     private final Set<String> ownSentMessages = new HashSet<>();
@@ -227,6 +228,102 @@ public class AutoReplyManager {
 
         XLog.i(TAG, "Debug-simulating incoming message from " + sender + " on " + normalizedApp + ": '" + message + "'");
         onNotificationReceived(packageName, sender, message);
+    }
+
+    /**
+     * Delivers a completed monitored-task response back to the originating chat.  The caller
+     * keeps the task session locked until this returns, so it cannot compete with a new task for
+     * Accessibility.
+     */
+    public void sendTaskResponse(String contact, String appName, String notificationTitle, String response) {
+        String message = response != null ? response.trim() : "";
+        if (message.isEmpty()) return;
+
+        MonitorTarget target = buildTarget(contact, appName);
+        if (target == null) {
+            XLog.w(TAG, "Cannot send monitored-task response: missing target contact");
+            return;
+        }
+
+        ownSentMessages.add(message);
+        try {
+            if (ClawNotificationListener.sendInlineReply(target.getPackageName(), notificationTitle, message)) {
+                ClawNotificationListener.dismissNotifications(target.getPackageName());
+                XLog.i(TAG, "Sent monitored-task response inline to " + target.getDisplayLabel());
+                return;
+            }
+
+            ToolResult result = sendInMonitoredChat(target, message);
+            if (result.isSuccess()) {
+                // WhatsApp may update its notification for our outgoing message.  Removing the
+                // notification mirrors the established auto-reply flow and prevents that update
+                // from being interpreted as another command from the monitored contact.
+                ClawNotificationListener.dismissNotifications(target.getPackageName());
+                XLog.i(TAG, "Sent monitored-task response to " + target.getDisplayLabel());
+            } else {
+                ownSentMessages.remove(message);
+                XLog.w(TAG, "Could not send monitored-task response to " + target.getDisplayLabel() + ": " + result.getError());
+            }
+        } catch (Exception e) {
+            ownSentMessages.remove(message);
+            XLog.w(TAG, "Monitored-task response send failed for " + target.getDisplayLabel(), e);
+        }
+    }
+
+    /**
+     * Sends directly through the monitored-chat navigation path rather than SendMessageTool.
+     * The generic tool resets WhatsApp to a chat-list search, which is disruptive after an
+     * automation task and can escape back to PokeClaw if the expected list is not visible.
+     */
+    private ToolResult sendInMonitoredChat(MonitorTarget target, String message) {
+        if (!isAccessibilityHealthyForReply()) {
+            return ToolResult.error("Accessibility service is not ready");
+        }
+
+        ClawAccessibilityService service = ClawAccessibilityService.getConnectedInstance(12000L);
+        if (service == null) {
+            return ToolResult.error("Accessibility service is not running");
+        }
+        if (!ensureDeviceReadyForReply(service, target, message)) {
+            return ToolResult.error("Device is locked or unavailable");
+        }
+
+        try {
+            if (!service.openApp(target.getPackageName())) {
+                return ToolResult.error("Failed to open " + target.getAppName());
+            }
+            Thread.sleep(2000);
+
+            if (!isInChatroom(service, target.getDisplayName())) {
+                LinkedHashSet<String> normalizedAliases = ContactMatchUtils.buildNormalizedAliases(target.getDisplayName());
+                LinkedHashSet<String> digitAliases = ContactMatchUtils.buildDigitAliases(target.getDisplayName());
+                if (!ContactListUiUtils.prepareForContactLookup(service, target.getPackageName(), 4, 1200)) {
+                    return ToolResult.error("Could not return to a searchable chat list");
+                }
+                if (!ContactListUiUtils.searchOrScrollAndFindAndClick(
+                        service,
+                        target.getDisplayName(),
+                        normalizedAliases,
+                        digitAliases,
+                        12,
+                        800
+                    )) {
+                    return ToolResult.error("Could not find " + target.getDisplayName() + " in chat list");
+                }
+                Thread.sleep(2000);
+            }
+
+            if (!waitForChatroom(service, target.getDisplayName())) {
+                return ToolResult.error("Chatroom was not verified before sending");
+            }
+            return typeAndSendInOpenChat(service, message);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return ToolResult.error("Interrupted while sending monitored-task response");
+        } catch (Exception e) {
+            XLog.w(TAG, "Monitored-chat send path failed", e);
+            return ToolResult.error("Failed to send monitored-task response: " + e.getMessage());
+        }
     }
 
     public void clearContacts() {
@@ -375,11 +472,34 @@ public class AutoReplyManager {
             return;
         }
 
-        // Debounce — don't reply to same contact within 30s
+        // The listener may post an update for the same message.  Ignore only that exact repeat;
+        // different messages are commands too and must not be suppressed.
         long now = System.currentTimeMillis();
-        Long lastReply = lastReplyTime.get(matchedTarget.getKey());
-        if (lastReply != null && (now - lastReply) < DEBOUNCE_MS) {
-            XLog.d(TAG, "Debounce: skipping reply to " + matchedTarget.getDisplayLabel() + " (replied " + ((now - lastReply) / 1000) + "s ago)");
+        String commandFingerprint = matchedTarget.getKey() + "|" + text;
+        if (commandFingerprint.equals(lastTaskCommandFingerprint)
+            && (now - lastTaskCommandAtMillis) < DUPLICATE_COMMAND_WINDOW_MS) {
+            XLog.d(TAG, "Skipping duplicate monitored command from " + matchedTarget.getDisplayLabel());
+            return;
+        }
+        lastTaskCommandFingerprint = commandFingerprint;
+        lastTaskCommandAtMillis = now;
+
+        if (routeMonitoredMessagesToTasks()) {
+            // Monitoring is a remote Task-mode entry point.  Do not generate an auto-reply here:
+            // the existing task agent classifies the command and performs any required phone tools.
+            try {
+                ClawApplication.Companion.getAppViewModelInstance()
+                    .startMonitoredTask(text, matchedTarget.getDisplayName(), matchedTarget.getAppName(), title);
+                XLog.i(TAG, "Routed monitored command to task agent: '" + text + "'");
+            } catch (Exception e) {
+                failAutoReply(
+                    matchedTarget,
+                    text,
+                    AutoReplyFailureStage.GENERATION_FAILED,
+                    "Could not start monitored task",
+                    e
+                );
+            }
             return;
         }
 
@@ -551,7 +671,6 @@ public class AutoReplyManager {
 
                 if (result.isSuccess()) {
                     XLog.i(TAG, "Auto-reply sent to " + finalContact + ": '" + reply + "'");
-                    lastReplyTime.put(finalTarget.getKey(), System.currentTimeMillis());
                     logAutoReplyStep(finalTarget, "send-success", reply);
 
                     // Dismiss the messaging app's notifications so the next message
@@ -604,6 +723,10 @@ public class AutoReplyManager {
             packageName = "com.whatsapp";
         }
         return new MonitorTarget(displayName, resolvedAppName, packageName);
+    }
+
+    private boolean routeMonitoredMessagesToTasks() {
+        return true;
     }
 
     private String normalizeName(String name) {
