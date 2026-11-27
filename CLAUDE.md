@@ -269,3 +269,7 @@ For any Android UI QA work via ADB, default to **`uiautomator2`** (Python librar
 **Project-specific playbook for PokeClaw:** `~/MyGithub/PokeClaw/docs/AI_AGENT_PLAYBOOK.md`
 
 **Verified usage:** 2026-05-26 PokeClaw QA — configured Groq Cloud LLM end-to-end via Custom-provider tab (3 EditText fields + Save & Activate button) on signed-release APK. Same flow had failed repeatedly with raw `adb input text` (164-char key truncated, Send FAB tap missed because keyboard occluded the y-coord).
+
+## AI_INDEX.md
+
+`AI_INDEX.md` is a navigation map only (where to look, never conclusions). Format and limits: `~/.claude/reference/ai-index-format.md`.
